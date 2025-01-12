@@ -1,0 +1,28 @@
+# Test Endpoint (Add new Admin)
+POST http://127.0.0.1:8000/add-new-admin
+Content-Type: application/json
+
+{
+    "loginToken": "xkTIijaVqHSCAvZ-GDzZ9pRCr45_fJLQudu4uTgnbG4=",
+    "fullName": "farland",
+    "username": "farland",
+    "password": "farland",
+    "level": 3
+}
+
+###
+
+# Test Auth Endpoint (OTP Generation)
+POST http://127.0.0.1:8000/add-new
+Content-Type: application/json
+
+{
+    "loginToken": "xkTIijaVqHSCAvZ-GDzZ9pRCr45_fJLQudu4uTgnbG4=",
+    "fullName": "farland",
+    "username": "farland",
+    "password": "farland",
+    "level": 3
+}
+
+###
+
