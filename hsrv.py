@@ -3,14 +3,14 @@ import tempfile
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Form, Header, File, UploadFile, Query, BackgroundTasks, Body
+from fastapi import APIRouter, Form, Header, File, UploadFile, Query, BackgroundTasks
 from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
 
 from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, NewAdminRequest
 from utils import flatbed, check_username_password_admins, get_admins_data, check_admins_token, \
     search_recent_activities_list, update_admins_password, add_new_admin_ps, insert_into_inventory, send_mail, \
-    get_image_for_product, search_products_list, update_product_image
+    get_image_for_product, search_products_list, update_in_inventory, get_product_ps
 from utils.config import ADMIN_EMAIL
 from utils.hasher import hash_password
 
@@ -80,7 +80,7 @@ async def get_dashboard_data(request: TokenValidationRequest):
 
 
 @router.get("/recent-activities-list-get")
-async def get_recent_activity(loginToken: str, date: str = None):
+async def get_recent_activity(loginToken: str, date: int):
     """
     Retrieve a list of recent activities.
     """
@@ -153,13 +153,16 @@ async def add_new_admin(request: NewAdminRequest):
         return "Error", 500
 
 
-@router.post("/add-to-inventory")
-async def add_to_inventory(
+@router.post("/add-or-edit-product")
+async def add_or_edit_product(
         Authorization: str = Header(None),
         code: str = Form(...),
+        username: str = Form(...),
+        newCode: Optional[str] = Form(None),
         name: str = Form(...),
-        quantityInCm: int = Form(...),
-        pricePerMetre: int = Form(...),
+        categoryIndex: int = Form(...),
+        quantity: int = Form(...),
+        price: int = Form(...),
         description: Optional[str] = Form(None),
         image: UploadFile = File(...),
 ):
@@ -174,25 +177,28 @@ async def add_to_inventory(
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
         # Read each image file's content (all files are required)
-        image = await image.read()
+        image_data = await image.read()
 
-        # Insert registration data and images into the database
-        insert_into_inventory(code, image, name, quantityInCm, pricePerMetre, description)
+        if newCode is None:
+            # Insert registration data and images into the database
+            insert_into_inventory(code, image_data, name, categoryIndex, quantity, price, description)
+            return "Item added successfully", 200
 
-        return "Item added successfully", 200
+        update_in_inventory(code, newCode, image_data, name, categoryIndex, quantity, price, description)
+        return "Item updated successfully", 200
 
     except Exception as e:
         # Log the exception for debugging
-        flatbed("exception", f"in add_to_inventory: {e}")
-        send_mail("Exception in add_to_inventory", ADMIN_EMAIL, str(e))
+        flatbed("exception", f"in add_or_edit_product: {e}")
+        send_mail("Exception in add_or_edit_product", ADMIN_EMAIL, str(e))
         return "Error submitting data", 500  # Error response
 
 
 @router.get("/products-list-get")
 async def get_products_list(
         loginToken: str,
-        searchQuery: str = None,
-        searchBy: str = None,
+        searchQuery: str,
+        searchByIndex: int,
 ):
     """
     Retrieve a list of products based on search query.
@@ -202,11 +208,12 @@ async def get_products_list(
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        products_data = search_products_list(searchQuery, searchBy)
-        drivers_list = get_formatted_products_list(products_data)
-
-        if drivers_list:
-            return JSONResponse(content={drivers_list}, status_code=200)
+        products_data = search_products_list(searchQuery, searchByIndex)
+        print(f"this is the data: {products_data}")
+        products_list = get_formatted_products_list(products_data)
+        print(f"this is the list: {products_list}")
+        if products_list:
+            return JSONResponse(content=products_list, status_code=200)
         else:
             return "not found", 404
     except Exception as e:
@@ -251,24 +258,34 @@ async def get_product_image(
         return "Error", 500
 
 
-@router.post("/product-image-update")
-async def handle_update_product_image(
-        loginToken: str = Body(...),
-        code: str = Body(...),
-        image: bytes = File(...)
+@router.get("/product-get")
+async def get_product(
+        loginToken: str,
+        code: str
 ):
     """
-    Endpoint to update product's image.
+    Retrieve a product based on code.
     """
     try:
-        check_status = check_admins_token(2, loginToken)
+        check_status = check_admins_token(1, loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        update_product_image(code, image)
-        return "Success", 200
+        data = get_product_ps(code)
+        product = {
+            "code": data[0],
+            "name": data[1],
+            "category": data[2],
+            "quantityInCm": data[3],
+            "pricePerMetre": data[4],
+            "description": data[5]
+        }
+        if product:
+            return JSONResponse(content=product, status_code=200)
+        else:
+            return "not found", 404
     except Exception as e:
-        flatbed('exception', f"in handle_update_product_image {e}")
+        flatbed("exception", f"in get_product {e}")
         return "Error", 500
 
 
@@ -312,9 +329,9 @@ def get_formatted_products_list(products_data):
             product = {
                 "code": data[0],
                 "name": data[1],
-                "quantityInCm": data[2],
-                "pricePerMetre": data[3],
-                "category": data[4],
+                "quantityInCm": data[3],
+                "pricePerMetre": data[4],
+                "category": data[2],
                 "description": data[5]
             }
             products_list.append(product)
@@ -335,5 +352,4 @@ def delete_temp_file(file_path: str):
 
 if __name__ == '__main__':
     import uvicorn
-
     uvicorn.run(router, host='127.0.0.1', port=8000)

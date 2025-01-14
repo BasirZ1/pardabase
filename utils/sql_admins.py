@@ -90,7 +90,7 @@ def search_recent_activities_list(date):
     Retrieve recent activities list and filter with date range.
 
     Parameters:
-    - date (str): Date range filter ('last week', 'last month', 'last year', 'last day').
+    - date (int): Date range filter index ('last week', 'last month', 'last year', 'last day').
 
     Returns:
     - List of tuples representing rows from the admins_records table that match the criteria.
@@ -129,25 +129,25 @@ def search_recent_activities_list(date):
     return recent_activity_list
 
 
-def get_date_range(date: str):
+def get_date_range(date: int):
     """
     Calculate the date range based on the `date` parameter.
 
     Parameters:
-    - date (str): The date filter option (e.g., 'Today', 'Last 7 days', 'Last 30 days', 'All').
+    - date (int): The date filter options index (e.g., 'Today', 'Last 7 days', 'Last 30 days', 'All').
 
     Returns:
     - Tuple of (start_date, end_date) if the date is valid; otherwise, returns None.
     """
     end_date = datetime.now()  # Current date and time
 
-    if date == 'Today':
+    if date == 0:
         start_date = end_date - timedelta(days=1)
-    elif date == 'Last 7 days':
+    elif date == 1:
         start_date = end_date - timedelta(days=7)
-    elif date == 'Last 30 days':
+    elif date == 2:
         start_date = end_date - timedelta(days=30)  # Approximate 1 month as 30 days
-    elif date == 'All':
+    elif date == 3:
         start_date = end_date - timedelta(days=365)  # Example: Last year
     else:
         return None  # Invalid date parameter, return None
@@ -236,7 +236,7 @@ def search_products_list(search_query, search_by):
 
     Parameters:
     - search_query (str): The term to search within the specified field.
-    - search_by (str): The field to search in (e.g., 'code', 'name').
+    - search_by (int): The field to search in (0 for 'code', 1 for 'name'). Defaults to 'name' if not recognized.
 
     Returns:
     - List of tuples representing rows from the inventory table that match the criteria.
@@ -247,7 +247,7 @@ def search_products_list(search_query, search_by):
         with conn.cursor() as cur:
             # Base query for retrieving product data
             query = (
-                "SELECT code, name, quantity_in_cm, price_per_metre, description "
+                "SELECT code, name, category, quantity_in_cm, price_per_metre, description "
                 "FROM inventory WHERE 1=1"
             )
 
@@ -257,16 +257,23 @@ def search_products_list(search_query, search_by):
             # Add search conditions based on `search_by` field
             if search_query:
                 search_fields = {
-                    'code': 'code',
-                    'name': 'name'
+                    0: 'code',
+                    1: 'name'
                 }
 
                 # Validate `search_by` field, default to `name` if not recognized
                 column_to_search = search_fields.get(search_by, 'name')
 
+                # Log a warning for invalid `search_by` values
+                if search_by not in search_fields:
+                    flatbed('warning', f"Invalid search_by value: {search_by}. Defaulting to 'name'.")
+
                 # Add case-insensitive partial match condition
                 query += f" AND LOWER({column_to_search}) ILIKE %s"
                 params.append(f"%{search_query}%")
+            else:
+                flatbed('warning', "Empty search_query provided. Returning empty results.")
+                return []
 
             # Limit the result set to 20 items
             query += " LIMIT 20;"
@@ -281,7 +288,7 @@ def search_products_list(search_query, search_by):
 
     except Exception as e:
         flatbed('exception', f"In search_products_list: {e}")
-        return []
+        raise RuntimeError(f"Failed to search products: {e}")
 
     finally:
         conn.close()
@@ -303,3 +310,36 @@ def get_image_for_product(code):
         return product_image[0]
     else:
         return None
+
+
+def get_product_ps(code):
+    """
+        Retrieve product based on code.
+
+        Parameters:
+        - code (str): The code for the specified product.
+
+        Returns:
+        - Tuple: a single product.
+        """
+    # Establish database connection
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+
+            cur.execute("""
+                            SELECT code, name, category, quantity_in_cm, price_per_metre, description 
+                            FROM inventory WHERE code = %s
+                        """, (code,))
+
+            # Fetch all rows
+            product = cur.fetchone()
+
+        return product
+
+    except Exception as e:
+        flatbed('exception', f"In get_product_ps: {e}")
+        return None
+
+    finally:
+        conn.close()
