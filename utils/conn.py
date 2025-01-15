@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 
-def get_connection(db_name="defaultdb"):
+def get_connection(db_name="zmt"):
     """
     Returns a PostgreSQL database connection.
     """
