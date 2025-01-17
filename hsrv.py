@@ -93,7 +93,7 @@ async def get_recent_activity(loginToken: str, date: int):
         recent_activities_list = get_formatted_recent_activities_list(recent_activity_data)
 
         if recent_activities_list:
-            return JSONResponse(content={recent_activities_list}, status_code=200)
+            return JSONResponse(content=recent_activities_list, status_code=200)
         else:
             return "not found", 404
     except Exception as e:
