@@ -45,7 +45,7 @@ def insert_into_inventory(image, name, category_index, quantity, price, descript
                     price_per_metre,
                     description,
                     color
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
             values = (
                 product_code,  # Insert the generated product code
