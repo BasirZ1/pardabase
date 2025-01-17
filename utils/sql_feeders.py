@@ -31,8 +31,8 @@ def insert_into_inventory(image, name, category_index, quantity, price, descript
                 new_number = last_number + 1
             else:
                 new_number = 1  # Start with 1 if no codes exist
-
-            product_code = f"P{new_number}{color_letter}{category_index}"  # Generate the new product code
+            category_letter = get_category_letter(category_index)
+            product_code = f"P{new_number}{category_letter}{color_letter}"  # Generate the new product code
 
             # SQL query to insert the item into the inventory table
             sql_insert = """
@@ -113,3 +113,27 @@ def update_in_inventory(codeToEdit, image, name, category_index, quantity, price
         return False
     finally:
         conn.close()
+
+
+def get_category_letter(category_index):
+    """
+    Returns the category letter based on the category index.
+
+    Args:
+        category_index (int): The index of the category.
+
+    Returns:
+        str: The corresponding category letter, or None if the index is invalid.
+    """
+    if category_index == 0:
+        return "P"
+    elif category_index == 1:
+        return "J"
+    elif category_index == 2:
+        return "D"
+    elif category_index == 3:
+        return "JP"
+    elif category_index == 4:
+        return "G"
+    else:
+        return None
