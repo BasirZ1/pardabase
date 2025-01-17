@@ -29,7 +29,7 @@ def insert_into_inventory(image, name, category_index, quantity, price, descript
                 last_number = int(last_code[1:])  # Extract number after "P"
                 new_number = last_number + 1
             else:
-                new_number = 0o1  # Start with 1 if no codes exist
+                new_number = 1  # Start with 1 if no codes exist
 
             product_code = f"P{new_number}{color_letter}{category_index}"  # Generate the new product code
 

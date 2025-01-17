@@ -181,11 +181,10 @@ async def add_or_edit_product(
         # Read each image file's content (all files are required)
         image_data = await image.read()
         if codeToEdit is None:
-            code = "generated"
             # Insert registration data and images into the database
             result = insert_into_inventory(image_data, name, categoryIndex, quantity, price, description, color)
             if result:
-                remember_admins_action(username, f"Product Added: {code}")
+                remember_admins_action(username, f"Product Added: {result}")
                 return JSONResponse(content={
                     "code": result,
                     "name": name,
