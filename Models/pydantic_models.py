@@ -24,3 +24,9 @@ class NewAdminRequest(BaseModel):
     username: str
     password: str
     level: int
+
+
+class RemoveProductRequest(BaseModel):
+    loginToken: str
+    code: str
+    username: str

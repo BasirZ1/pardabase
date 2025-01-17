@@ -7,10 +7,11 @@ from fastapi import APIRouter, Form, Header, File, UploadFile, Query, Background
 from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
 
-from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, NewAdminRequest
+from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, NewAdminRequest, RemoveProductRequest
 from utils import flatbed, check_username_password_admins, get_admins_data, check_admins_token, \
     search_recent_activities_list, update_admins_password, add_new_admin_ps, insert_into_inventory, send_mail, \
-    get_image_for_product, search_products_list, update_in_inventory, get_product_ps
+    get_image_for_product, search_products_list, update_in_inventory, get_product_ps, remove_product_ps, \
+    remember_admins_action
 from utils.config import ADMIN_EMAIL
 from utils.hasher import hash_password
 
@@ -44,11 +45,12 @@ async def auth(request: AuthRequest):
         flatbed('hmm', f"login attempted: {check_result}")
 
         if check_result:
-            login_token, full_name = get_admins_data(request.username)
+            login_token, full_name, level = get_admins_data(request.username)
             return JSONResponse(content={
                 'result': check_result,
                 'loginToken': login_token,
-                'fullName': full_name
+                'fullName': full_name,
+                "level": level
             })
         else:
             return JSONResponse(content={"result": False})
@@ -178,14 +180,15 @@ async def add_or_edit_product(
 
         # Read each image file's content (all files are required)
         image_data = await image.read()
-
         if newCode is None:
             # Insert registration data and images into the database
             insert_into_inventory(code, image_data, name, categoryIndex, quantity, price, description)
-            return "Item added successfully", 200
+            remember_admins_action(username, f"Product Added: {code}")
+            return "Product added successfully", 200
 
         update_in_inventory(code, newCode, image_data, name, categoryIndex, quantity, price, description)
-        return "Item updated successfully", 200
+        remember_admins_action(username, f"Product updated: {newCode}")
+        return "Product updated successfully", 200
 
     except Exception as e:
         # Log the exception for debugging
@@ -286,6 +289,25 @@ async def get_product(
             return "not found", 404
     except Exception as e:
         flatbed("exception", f"in get_product {e}")
+        return "Error", 500
+
+
+@router.post("/remove-product")
+async def remove_product(request: RemoveProductRequest):
+    """
+    Endpoint to remove a product.
+    """
+    try:
+        check_status = check_admins_token(3, request.loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        remove_product_ps(request.code)
+        remember_admins_action(request.username, f"Product removed: {request.code}")
+        return JSONResponse("Success", status_code=200)
+    except Exception as e:
+        flatbed('exception', f"in remove_product: {e}")
+        send_mail("Exception in remove_product", ADMIN_EMAIL, str(e))
         return "Error", 500
 
 

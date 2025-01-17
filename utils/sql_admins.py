@@ -53,7 +53,7 @@ def get_admins_data(username):
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("""
-                SELECT login_token, full_name FROM admins
+                SELECT login_token, full_name, level FROM admins
                 WHERE username ILIKE %s
             """, (username,))
     data = cur.fetchone()
@@ -342,4 +342,26 @@ def get_product_ps(code):
         return None
 
     finally:
+        conn.close()
+
+
+def remove_product_ps(code):
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        # Delete the driver profile
+        cur.execute("""
+            DELETE FROM inventory
+            WHERE code = %s
+        """, (code,))
+
+        conn.commit()
+
+    except Exception as e:
+        # Roll back changes if any errors occur
+        conn.rollback()
+        flatbed('exception', f"Error removing product: {e}")
+
+    finally:
+        cur.close()
         conn.close()
