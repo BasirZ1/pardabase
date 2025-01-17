@@ -90,6 +90,7 @@ async def get_recent_activity(loginToken: str, date: int):
             return "Access denied", 401
 
         recent_activity_data = search_recent_activities_list(date)
+        flatbed("hmm", f"recent activities: {recent_activity_data}")
         recent_activities_list = get_formatted_recent_activities_list(recent_activity_data)
 
         if recent_activities_list:
