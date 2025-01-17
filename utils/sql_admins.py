@@ -110,10 +110,21 @@ def search_recent_activities_list(date):
     # Calculate date range based on `date` parameter
     date_range = get_date_range(date)
 
+    limit = None
+
+    if date == 0:
+        limit = 10
+    elif date == 1:
+        limit = 20
+    elif date == 2:
+        limit = 30
+
     # Add date filter to the query if a valid date range is determined
     if date_range:
         start_date, end_date = date_range
         query += " AND date >= %s AND date <= %s"
+        if limit is not None:
+            query += f"  LIMIT {limit} "
         params.extend([start_date, end_date])
 
     # Execute the query with the constructed parameters
