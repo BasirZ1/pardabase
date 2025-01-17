@@ -1,25 +1,38 @@
 from utils.conn import get_connection
 
 
-def insert_into_inventory(code, image, name, category_index, quantity, price, description):
+def insert_into_inventory(image, name, category_index, quantity, price, description, color_letter):
     """
-    Adds a new item to the inventory.
+    Adds a new item to the inventory with an auto-generated product code.
 
     Args:
-        code (str): The unique code for the inventory item.
         image (bytes): The binary data of the item's image.
         name (str): The name of the inventory item.
         category_index (int): The index of the category for the inventory item.
         quantity (int): The quantity of the item in centimeters.
         price (int): The price of the item per meter.
         description (str): A description of the inventory item.
+        color_letter (str): A letter that determine the color of the item.
 
     Returns:
-        bool: True if the item was added successfully, False otherwise.
+        str: The product code if the item was added successfully, None otherwise.
     """
     conn = get_connection()
     try:
         with conn.cursor() as cur:
+            # Generate the new product code
+            cur.execute("SELECT MAX(code) FROM inventory WHERE code LIKE 'P%'")
+            last_code = cur.fetchone()[0]
+
+            # Extract the last number from the code and increment it
+            if last_code:
+                last_number = int(last_code[1:])  # Extract number after "P"
+                new_number = last_number + 1
+            else:
+                new_number = 0o1  # Start with 1 if no codes exist
+
+            product_code = f"P{new_number}{color_letter}{category_index}"  # Generate the new product code
+
             # SQL query to insert the item into the inventory table
             sql_insert = """
                 INSERT INTO inventory (
@@ -29,36 +42,37 @@ def insert_into_inventory(code, image, name, category_index, quantity, price, de
                     category,
                     quantity_in_cm,
                     price_per_metre,
-                    description
+                    description,
+                    color
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
             values = (
-                code,
+                product_code,  # Insert the generated product code
                 image,
                 name,
                 category_index,
                 quantity,
                 price,
-                description
+                description,
+                color_letter
             )
 
             cur.execute(sql_insert, values)
             conn.commit()
-        return True
+        return product_code  # Return the product code upon success
     except Exception as e:
         print(f"Error adding item to inventory: {e}")
-        return False
+        return None
     finally:
         conn.close()
 
 
-def update_in_inventory(code, new_code, image, name, category_index, quantity, price, description):
+def update_in_inventory(codeToEdit, image, name, category_index, quantity, price, description):
     """
     Update an item in the inventory.
 
     Args:
-        code (str): The unique code for the inventory item.
-        new_code (str): The unique code for the inventory item.
+        codeToEdit (str): The unique code for the inventory item.
         image (bytes): The binary data of the item's image.
         name (str): The name of the inventory item.
         category_index (int): The category of the inventory item.
@@ -75,20 +89,19 @@ def update_in_inventory(code, new_code, image, name, category_index, quantity, p
             # SQL query to insert the item into the inventory table
             sql_insert = """
                 UPDATE inventory
-                SET code = %s, image = %s, name = %s,
+                SET image = %s, name = %s,
                 category = %s, quantity_in_cm = %s,
                 price_per_metre = %s, description = %s
                 WHERE code = %s
             """
             values = (
-                new_code,
                 image,
                 name,
                 category_index,
                 quantity,
                 price,
                 description,
-                code
+                codeToEdit
             )
 
             cur.execute(sql_insert, values)

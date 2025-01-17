@@ -158,14 +158,14 @@ async def add_new_admin(request: NewAdminRequest):
 @router.post("/add-or-edit-product")
 async def add_or_edit_product(
         Authorization: str = Header(None),
-        code: str = Form(...),
         username: str = Form(...),
-        newCode: Optional[str] = Form(None),
+        codeToEdit: Optional[str] = Form(None),
         name: str = Form(...),
         categoryIndex: int = Form(...),
         quantity: int = Form(...),
         price: int = Form(...),
         description: Optional[str] = Form(None),
+        color: Optional[str] = Form(None),
         image: UploadFile = File(...),
 ):
     try:
@@ -180,15 +180,26 @@ async def add_or_edit_product(
 
         # Read each image file's content (all files are required)
         image_data = await image.read()
-        if newCode is None:
+        if codeToEdit is None:
+            code = "generated"
             # Insert registration data and images into the database
-            insert_into_inventory(code, image_data, name, categoryIndex, quantity, price, description)
-            remember_admins_action(username, f"Product Added: {code}")
-            return "Product added successfully", 200
+            result = insert_into_inventory(image_data, name, categoryIndex, quantity, price, description, color)
+            if result:
+                remember_admins_action(username, f"Product Added: {code}")
+                return JSONResponse(content={
+                    "code": result,
+                    "name": name,
+                })
+            return "Failure", 500
 
-        update_in_inventory(code, newCode, image_data, name, categoryIndex, quantity, price, description)
-        remember_admins_action(username, f"Product updated: {newCode}")
-        return "Product updated successfully", 200
+        result = update_in_inventory(codeToEdit, image_data, name, categoryIndex, quantity, price, description)
+        if result:
+            remember_admins_action(username, f"Product updated: {codeToEdit}")
+            return JSONResponse(content={
+                "code": codeToEdit,
+                "name": name,
+            })
+        return "Failure", 500
 
     except Exception as e:
         # Log the exception for debugging
@@ -281,7 +292,8 @@ async def get_product(
             "category": data[2],
             "quantityInCm": data[3],
             "pricePerMetre": data[4],
-            "description": data[5]
+            "description": data[5],
+            "colorLetter": data[6]
         }
         if product:
             return JSONResponse(content=product, status_code=200)
@@ -354,7 +366,8 @@ def get_formatted_products_list(products_data):
                 "quantityInCm": data[3],
                 "pricePerMetre": data[4],
                 "category": data[2],
-                "description": data[5]
+                "description": data[5],
+                "colorLetter": data[6]
             }
             products_list.append(product)
     return products_list

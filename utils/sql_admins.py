@@ -247,7 +247,7 @@ def search_products_list(search_query, search_by):
         with conn.cursor() as cur:
             # Base query for retrieving product data
             query = (
-                "SELECT code, name, category, quantity_in_cm, price_per_metre, description "
+                "SELECT code, name, category, quantity_in_cm, price_per_metre, description, color "
                 "FROM inventory WHERE 1=1"
             )
 
@@ -328,7 +328,7 @@ def get_product_ps(code):
         with conn.cursor() as cur:
 
             cur.execute("""
-                            SELECT code, name, category, quantity_in_cm, price_per_metre, description 
+                            SELECT code, name, category, quantity_in_cm, price_per_metre, description, color 
                             FROM inventory WHERE code = %s
                         """, (code,))
 
