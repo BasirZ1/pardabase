@@ -1,5 +1,6 @@
 import os
 import tempfile
+from datetime import datetime
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -337,7 +338,7 @@ def get_formatted_recent_activities_list(recent_activity_data):
         for data in recent_activity_data:
             activity = {
                 "id": data[0],
-                "date": data[1],
+                "date": data[1].strftime('%Y-%m-%d %H:%M:%S') if isinstance(data[1], datetime) else data[1],
                 "username": data[2],
                 "action": data[3],
             }
