@@ -89,7 +89,7 @@ def update_in_inventory(codeToEdit, image, name, category_index, quantity, price
         description (str): A description of the inventory item.
 
     Returns:
-        bool: True if the item was added successfully, False otherwise.
+        bool: True if the item was updated successfully, False otherwise.
     """
     conn = get_connection()
     try:
@@ -144,3 +144,42 @@ def get_category_letter(category_index):
         return "G"
     else:
         return None
+
+
+def update_product_quantity_ps(code, quantity, action):
+    """
+    Update a product quantity in the inventory.
+
+    Args:
+        code (str): The unique code for the inventory product.
+        quantity (int): The quantity of the item in centimeters.
+        action (str): The operation to be performed (subtract, add).
+
+    Returns:
+        bool: True if the item was updated successfully, False otherwise.
+    """
+    if action not in ["subtract", "add"]:
+        flatbed('error', f"Invalid action: {action}. Expected 'subtract' or 'add'.")
+        return False
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            # Determine the SQL operation
+            sign = "-" if action == "subtract" else "+"
+
+            # SQL query to update the product quantity
+            sql_update = f"""
+                UPDATE inventory
+                SET quantity_in_cm = quantity_in_cm {sign} %s
+                WHERE code = %s
+            """
+            cur.execute(sql_update, (quantity, code))
+            conn.commit()
+
+        return True
+    except Exception as e:
+        flatbed('exception', f"In update_product_quantity_ps: {e}")
+        return False
+    finally:
+        conn.close()

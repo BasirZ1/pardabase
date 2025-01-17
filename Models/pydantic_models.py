@@ -30,3 +30,11 @@ class RemoveProductRequest(BaseModel):
     loginToken: str
     code: str
     username: str
+
+
+class UpdateProductRequest(BaseModel):
+    loginToken: str
+    username: str
+    code: str
+    quantity: int
+    action: str

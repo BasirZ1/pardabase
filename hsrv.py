@@ -8,11 +8,12 @@ from fastapi import APIRouter, Form, Header, File, UploadFile, Query, Background
 from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
 
-from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, NewAdminRequest, RemoveProductRequest
+from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, NewAdminRequest, RemoveProductRequest, \
+    UpdateProductRequest
 from utils import flatbed, check_username_password_admins, get_admins_data, check_admins_token, \
     search_recent_activities_list, update_admins_password, add_new_admin_ps, insert_into_inventory, send_mail, \
     get_image_for_product, search_products_list, update_in_inventory, get_product_ps, remove_product_ps, \
-    remember_admins_action
+    remember_admins_action, update_product_quantity_ps
 from utils.config import ADMIN_EMAIL
 from utils.hasher import hash_password
 
@@ -319,6 +320,25 @@ async def remove_product(request: RemoveProductRequest):
     except Exception as e:
         flatbed('exception', f"in remove_product: {e}")
         send_mail("Exception in remove_product", ADMIN_EMAIL, str(e))
+        return "Error", 500
+
+
+@router.post("/update-product-quantity")
+async def update_product_quantity(request: UpdateProductRequest):
+    """
+    Endpoint to update a product's quantity.
+    """
+    try:
+        check_status = check_admins_token(3, request.loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        update_product_quantity_ps(request.code, request.quantity, request.action)
+        remember_admins_action(request.username, f"Product quantity updated: {request.code}")
+        return JSONResponse("Success", status_code=200)
+    except Exception as e:
+        flatbed('exception', f"in update_product_quantity: {e}")
+        send_mail("Exception in update_product_quantity", ADMIN_EMAIL, str(e))
         return "Error", 500
 
 
