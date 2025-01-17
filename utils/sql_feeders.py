@@ -1,3 +1,5 @@
+import re
+
 from .logger import flatbed
 from utils.conn import get_connection
 
@@ -25,12 +27,17 @@ def insert_into_inventory(image, name, category_index, quantity, price, descript
             cur.execute("SELECT MAX(code) FROM inventory WHERE code LIKE 'P%'")
             last_code = cur.fetchone()[0]
 
-            # Extract the last number from the code and increment it
             if last_code:
-                last_number = int(last_code[1:])  # Extract number after "P"
-                new_number = last_number + 1
+                # Extract only the first numeric part from the code
+                match = re.search(r'P(\d+)', last_code)  # Matches 'P' followed by digits
+                if match:
+                    last_number = int(match.group(1))  # Extract the first number group
+                    new_number = last_number + 1
+                else:
+                    new_number = 1  # Start with 1 if no valid number is found
             else:
                 new_number = 1  # Start with 1 if no codes exist
+                
             category_letter = get_category_letter(category_index)
             product_code = f"P{new_number}{category_letter}{color_letter}"  # Generate the new product code
 
