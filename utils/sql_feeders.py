@@ -1,3 +1,4 @@
+from .logger import flatbed
 from utils.conn import get_connection
 
 
@@ -61,7 +62,7 @@ def insert_into_inventory(image, name, category_index, quantity, price, descript
             conn.commit()
         return product_code  # Return the product code upon success
     except Exception as e:
-        print(f"Error adding item to inventory: {e}")
+        flatbed('exception', f"In insert_into_inventory: {e}")
         return None
     finally:
         conn.close()

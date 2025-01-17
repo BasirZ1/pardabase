@@ -183,6 +183,7 @@ async def add_or_edit_product(
         if codeToEdit is None:
             # Insert registration data and images into the database
             result = insert_into_inventory(image_data, name, categoryIndex, quantity, price, description, color)
+            flatbed('hmm', f"result of insert_into_inventory: {result}")
             if result:
                 remember_admins_action(username, f"Product Added: {result}")
                 return JSONResponse(content={
