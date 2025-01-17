@@ -68,12 +68,10 @@ async def get_dashboard_data(request: TokenValidationRequest):
 
         # Fetch data for the dashboard
         return JSONResponse(content={
-            "totalUsers": 404,
-            "totalDrivers": 404,
-            "activeDrivers": 404,
-            "pendingRegistrations": 404,
-            "totalRides": 404,
-            "reportedIssues": 404
+            "totalBills": 404,
+            "billsCompleted": 404,
+            "billsPending": 404,
+            "totalProducts": 404
         })
 
     except Exception as e:
@@ -183,7 +181,6 @@ async def add_or_edit_product(
         if codeToEdit is None:
             # Insert registration data and images into the database
             result = insert_into_inventory(image_data, name, categoryIndex, quantity, price, description, color)
-            flatbed('hmm', f"result of insert_into_inventory: {result}")
             if result:
                 remember_admins_action(username, f"Product Added: {result}")
                 return JSONResponse(content={

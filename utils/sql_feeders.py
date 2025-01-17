@@ -37,7 +37,7 @@ def insert_into_inventory(image, name, category_index, quantity, price, descript
                     new_number = 1  # Start with 1 if no valid number is found
             else:
                 new_number = 1  # Start with 1 if no codes exist
-                
+
             category_letter = get_category_letter(category_index)
             product_code = f"P{new_number}{category_letter}{color_letter}"  # Generate the new product code
 
