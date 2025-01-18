@@ -355,7 +355,11 @@ async def add_expense(request: AddExpenseRequest):
         expense_id = add_expense_ps(request.categoryIndex, request.description, request.amount)
         if expense_id:
             remember_admins_action(request.username, f"Added Expense: Desc: {request.description}")
-        return JSONResponse("Success", status_code=200)
+            return JSONResponse(content={
+                "description": request.description,
+                "amount": request.amount
+            })
+        return "Failure", 500
     except Exception as e:
         flatbed('exception', f"in add_expense: {e}")
         send_mail("Exception in add_expense", ADMIN_EMAIL, str(e))
