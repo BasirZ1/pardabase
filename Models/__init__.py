@@ -1,2 +1,3 @@
 from .pydantic_models import (AuthRequest, TokenValidationRequest, UpdateProductRequest,
-                              ChangePasswordRequest, NewAdminRequest, RemoveProductRequest)
+                              ChangePasswordRequest, NewAdminRequest, RemoveProductRequest,
+                              AddExpenseRequest)

@@ -183,3 +183,37 @@ def update_product_quantity_ps(code, quantity, action):
         return False
     finally:
         conn.close()
+
+
+def add_expense_ps(category_index, description, amount):
+    """
+    Add an expense in the expenses table.
+
+    Args:
+        category_index (int): The category index for the expense.
+        description (str): The description of the expense.
+        amount (int): The amount of the expense.
+
+    Returns:
+        str: Return id if it was added successfully, None otherwise.
+    """
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            # SQL query to add the expense
+            sql_insert = """
+            INSERT INTO expenses (category_index, description, amount)
+            VALUES (%s, %s, %s)
+            RETURNING id;
+            """
+            cur.execute(sql_insert, (category_index, description, amount))
+            expense_id = cur.fetchone()[0]  # Retrieve the returned id
+            conn.commit()
+
+        return expense_id
+    except Exception as e:
+        flatbed('exception', f"In add_expense_ps: {e}")
+        return None
+    finally:
+        conn.close()

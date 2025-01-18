@@ -38,3 +38,11 @@ class UpdateProductRequest(BaseModel):
     code: str
     quantity: int
     action: str
+
+
+class AddExpenseRequest(BaseModel):
+    loginToken: str
+    username: str
+    categoryIndex: int
+    description: str
+    amount: int

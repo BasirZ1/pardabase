@@ -9,11 +9,11 @@ from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
 
 from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, NewAdminRequest, RemoveProductRequest, \
-    UpdateProductRequest
+    UpdateProductRequest, AddExpenseRequest
 from utils import flatbed, check_username_password_admins, get_admins_data, check_admins_token, \
     search_recent_activities_list, update_admins_password, add_new_admin_ps, insert_into_inventory, send_mail, \
     get_image_for_product, search_products_list, update_in_inventory, get_product_ps, remove_product_ps, \
-    remember_admins_action, update_product_quantity_ps
+    remember_admins_action, update_product_quantity_ps, add_expense_ps
 from utils.config import ADMIN_EMAIL
 from utils.hasher import hash_password
 
@@ -339,6 +339,26 @@ async def update_product_quantity(request: UpdateProductRequest):
     except Exception as e:
         flatbed('exception', f"in update_product_quantity: {e}")
         send_mail("Exception in update_product_quantity", ADMIN_EMAIL, str(e))
+        return "Error", 500
+
+
+@router.post("/add-expense")
+async def add_expense(request: AddExpenseRequest):
+    """
+    Endpoint to add an expense.
+    """
+    try:
+        check_status = check_admins_token(3, request.loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        expense_id = add_expense_ps(request.categoryIndex, request.description, request.amount)
+        if expense_id:
+            remember_admins_action(request.username, f"Added Expense: Desc: {request.description}")
+        return JSONResponse("Success", status_code=200)
+    except Exception as e:
+        flatbed('exception', f"in add_expense: {e}")
+        send_mail("Exception in add_expense", ADMIN_EMAIL, str(e))
         return "Error", 500
 
 
