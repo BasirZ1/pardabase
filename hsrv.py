@@ -9,11 +9,12 @@ from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
 
 from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, NewAdminRequest, RemoveProductRequest, \
-    UpdateProductRequest, AddExpenseRequest
+    UpdateRollRequest, AddExpenseRequest, RemoveRollRequest
 from utils import flatbed, check_username_password_admins, get_admins_data, check_admins_token, \
     search_recent_activities_list, update_admins_password, add_new_admin_ps, insert_into_inventory, send_mail, \
     get_image_for_product, search_products_list, update_in_inventory, get_product_ps, remove_product_ps, \
-    remember_admins_action, update_product_quantity_ps, add_expense_ps
+    remember_admins_action, update_roll_quantity_ps, add_expense_ps, insert_into_rolls, update_in_rolls, \
+    search_rolls_for_product, get_sample_image_for_roll, get_roll_ps, remove_roll_ps
 from utils.config import ADMIN_EMAIL
 from utils.hasher import hash_password
 
@@ -163,10 +164,9 @@ async def add_or_edit_product(
         codeToEdit: Optional[str] = Form(None),
         name: str = Form(...),
         categoryIndex: int = Form(...),
-        quantity: int = Form(...),
+        cost: int = Form(...),
         price: int = Form(...),
         description: Optional[str] = Form(None),
-        color: Optional[str] = Form(None),
         image: UploadFile = File(...),
 ):
     try:
@@ -183,7 +183,7 @@ async def add_or_edit_product(
         image_data = await image.read()
         if codeToEdit is None:
             # Insert registration data and images into the database
-            result = insert_into_inventory(image_data, name, categoryIndex, quantity, price, description, color)
+            result = insert_into_inventory(image_data, name, categoryIndex, cost, price, description)
             if result:
                 remember_admins_action(username, f"Product Added: {result}")
                 return JSONResponse(content={
@@ -192,7 +192,7 @@ async def add_or_edit_product(
                 })
             return "Failure", 500
 
-        result = update_in_inventory(codeToEdit, image_data, name, categoryIndex, quantity, price, description)
+        result = update_in_inventory(codeToEdit, image_data, name, categoryIndex, cost, price, description)
         if result:
             remember_admins_action(username, f"Product updated: {codeToEdit}")
             return JSONResponse(content={
@@ -205,6 +205,53 @@ async def add_or_edit_product(
         # Log the exception for debugging
         flatbed("exception", f"in add_or_edit_product: {e}")
         send_mail("Exception in add_or_edit_product", ADMIN_EMAIL, str(e))
+        return "Error submitting data", 500  # Error response
+
+
+@router.post("/add-or-edit-roll")
+async def add_or_edit_roll(
+        Authorization: str = Header(None),
+        username: str = Form(...),
+        codeToEdit: Optional[str] = Form(None),
+        productCode: Optional[str] = Form(None),
+        quantity: int = Form(...),
+        color: Optional[str] = Form(None),
+        image: Optional[UploadFile] = File(None),
+):
+    try:
+        # Validate authorization header
+        if not Authorization.startswith("Bearer "):
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        login_token = Authorization.split(" ")[1]  # Extract token after "Bearer"
+        check_status = check_admins_token(3, login_token)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        # Read each image file's content (all files are required)
+        image_data = await image.read()
+        if codeToEdit is None:
+            # Insert registration data and images into the database
+            code = insert_into_rolls(productCode, quantity, color, image_data)
+            if code:
+                remember_admins_action(username, f"Roll Added: {code}")
+                return JSONResponse(content={
+                    "code": code
+                })
+            return "Failure", 500
+
+        code = update_in_rolls(codeToEdit, productCode, quantity, color, image_data)
+        if code:
+            remember_admins_action(username, f"Roll updated: {code}")
+            return JSONResponse(content={
+                "code": code
+            })
+        return "Failure", 500
+
+    except Exception as e:
+        # Log the exception for debugging
+        flatbed("exception", f"in add_or_edit_roll: {e}")
+        send_mail("Exception in add_or_edit_roll", ADMIN_EMAIL, str(e))
         return "Error submitting data", 500  # Error response
 
 
@@ -223,15 +270,37 @@ async def get_products_list(
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
         products_data = search_products_list(searchQuery, searchByIndex)
-        print(f"this is the data: {products_data}")
         products_list = get_formatted_products_list(products_data)
-        print(f"this is the list: {products_list}")
         if products_list:
             return JSONResponse(content=products_list, status_code=200)
         else:
             return "not found", 404
     except Exception as e:
         flatbed("exception", f"in get_products_list {e}")
+        return "Error", 500
+
+
+@router.get("/rolls-for-product-get")
+async def get_rolls_for_product(
+        loginToken: str,
+        productCode: str
+):
+    """
+    Retrieve a list of rolls based on product code.
+    """
+    try:
+        check_status = check_admins_token(1, loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        rolls_data = search_rolls_for_product(productCode)
+        rolls_list = get_formatted_rolls_list(rolls_data)
+        if rolls_list:
+            return JSONResponse(content=rolls_data, status_code=200)
+        else:
+            return "not found", 404
+    except Exception as e:
+        flatbed("exception", f"in get_rolls_for_product {e}")
         return "Error", 500
 
 
@@ -272,6 +341,43 @@ async def get_product_image(
         return "Error", 500
 
 
+@router.get("/roll-sample-image-get")
+async def get_roll_sample_image(
+        loginToken: str = Query(...),
+        code: str = Query(...),
+        background_tasks: BackgroundTasks = None
+):
+    """
+    Endpoint to get roll's image by code.
+    """
+    try:
+        check_status = check_admins_token(1, loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        # Get the agent image data
+        sample_image = get_sample_image_for_roll(code)
+
+        if sample_image:
+            # Create a temporary file to store the image data
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                temp_file.write(sample_image)
+                temp_file_path = temp_file.name
+
+            # Schedule the file for deletion after the response is sent
+            background_tasks.add_task(delete_temp_file, temp_file_path)
+            # Return the image file response
+            return FileResponse(temp_file_path, media_type="image/jpeg")
+        else:
+            # Return a message indicating the image is not found with HTTP status code 404
+            return "Image not found", 404
+
+    except Exception as e:
+        flatbed('exception', f"in get_roll_sample_image: {e}")
+        send_mail("Exception in get_roll_sample_image", ADMIN_EMAIL, str(e))
+        return "Error", 500
+
+
 @router.get("/product-get")
 async def get_product(
         loginToken: str,
@@ -291,9 +397,9 @@ async def get_product(
             "name": data[1],
             "category": data[2],
             "quantityInCm": data[3],
-            "pricePerMetre": data[4],
-            "description": data[5],
-            "colorLetter": data[6]
+            "costPerMetre": data[4],
+            "pricePerMetre": data[5],
+            "description": data[6]
         }
         if product:
             return JSONResponse(content=product, status_code=200)
@@ -301,6 +407,35 @@ async def get_product(
             return "not found", 404
     except Exception as e:
         flatbed("exception", f"in get_product {e}")
+        return "Error", 500
+
+
+@router.get("/roll-get")
+async def get_roll(
+        loginToken: str,
+        code: str
+):
+    """
+    Retrieve a roll based on code.
+    """
+    try:
+        check_status = check_admins_token(1, loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        data = get_roll_ps(code)
+        product = {
+            "productCode": data[0],
+            "rollCode": data[1],
+            "quantityInCm": data[2],
+            "colorLetter": data[3]
+        }
+        if product:
+            return JSONResponse(content=product, status_code=200)
+        else:
+            return "not found", 404
+    except Exception as e:
+        flatbed("exception", f"in get_roll {e}")
         return "Error", 500
 
 
@@ -323,22 +458,42 @@ async def remove_product(request: RemoveProductRequest):
         return "Error", 500
 
 
-@router.post("/update-product-quantity")
-async def update_product_quantity(request: UpdateProductRequest):
+@router.post("/remove-roll")
+async def remove_roll(request: RemoveRollRequest):
     """
-    Endpoint to update a product's quantity.
+    Endpoint to remove a roll.
     """
     try:
         check_status = check_admins_token(3, request.loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        update_product_quantity_ps(request.code, request.quantity, request.action)
-        remember_admins_action(request.username, f"Product quantity updated: {request.code}")
+        remove_roll_ps(request.rollCode)
+        remember_admins_action(request.username, f"Roll removed: {request.rollCode}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
-        flatbed('exception', f"in update_product_quantity: {e}")
-        send_mail("Exception in update_product_quantity", ADMIN_EMAIL, str(e))
+        flatbed('exception', f"in remove_roll: {e}")
+        send_mail("Exception in remove_roll", ADMIN_EMAIL, str(e))
+        return "Error", 500
+
+
+@router.post("/update-roll-quantity")
+async def update_roll_quantity(request: UpdateRollRequest):
+    """
+    Endpoint to update a roll's quantity.
+    """
+    try:
+        check_status = check_admins_token(3, request.loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        update_roll_quantity_ps(request.rollCode, request.quantity, request.action)
+        remember_admins_action(request.username, f"Roll quantity updated: "
+                                                 f"{request.rollCode} {request.action} {request.quantity}")
+        return JSONResponse("Success", status_code=200)
+    except Exception as e:
+        flatbed('exception', f"in update_roll_quantity: {e}")
+        send_mail("Exception in update_roll_quantity", ADMIN_EMAIL, str(e))
         return "Error", 500
 
 
@@ -406,14 +561,37 @@ def get_formatted_products_list(products_data):
             product = {
                 "code": data[0],
                 "name": data[1],
-                "quantityInCm": data[3],
-                "pricePerMetre": data[4],
                 "category": data[2],
-                "description": data[5],
-                "colorLetter": data[6]
+                "quantityInCm": data[3],
+                "costPerMetre": data[4],
+                "pricePerMetre": data[5],
+                "description": data[6]
             }
             products_list.append(product)
     return products_list
+
+
+def get_formatted_rolls_list(rolls_data):
+    """
+    Helper function to format rolls data into JSON-compatible objects.
+
+    Parameters:
+    - rolls_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted rolls dictionaries.
+    """
+    rolls_list = []
+    if rolls_data:
+        for data in rolls_data:
+            roll = {
+                "productCode": data[0],
+                "rollCode": data[1],
+                "quantityInCm": data[2],
+                "colorLetter": data[3]
+            }
+            rolls_list.append(roll)
+    return rolls_list
 
 
 def delete_temp_file(file_path: str):
@@ -430,4 +608,5 @@ def delete_temp_file(file_path: str):
 
 if __name__ == '__main__':
     import uvicorn
+
     uvicorn.run(router, host='127.0.0.1', port=8000)

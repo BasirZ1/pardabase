@@ -258,41 +258,9 @@ def search_products_list(search_query, search_by):
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # Base query for retrieving product data
-            query = (
-                "SELECT code, name, category, quantity_in_cm, price_per_metre, description, color "
-                "FROM inventory WHERE 1=1"
-            )
 
-            # List to hold query parameters
-            params = []
-
-            # Add search conditions based on `search_by` field
-            if search_query:
-                search_fields = {
-                    0: 'code',
-                    1: 'name'
-                }
-
-                # Validate `search_by` field, default to `name` if not recognized
-                column_to_search = search_fields.get(search_by, 'name')
-
-                # Log a warning for invalid `search_by` values
-                if search_by not in search_fields:
-                    flatbed('warning', f"Invalid search_by value: {search_by}. Defaulting to 'name'.")
-
-                # Add case-insensitive partial match condition
-                query += f" AND LOWER({column_to_search}) ILIKE %s"
-                params.append(f"%{search_query}%")
-            else:
-                flatbed('warning', "Empty search_query provided. Returning empty results.")
-                return []
-
-            # Limit the result set to 20 items
-            query += " LIMIT 20;"
-
-            # Execute the query with parameters
-            cur.execute(query, tuple(params))
+            # Call the PostgreSQL function with parameters
+            cur.execute("SELECT * FROM search_products_list(%s, %s);", (search_query, search_by))
 
             # Fetch all rows
             products_list = cur.fetchall()
@@ -302,6 +270,40 @@ def search_products_list(search_query, search_by):
     except Exception as e:
         flatbed('exception', f"In search_products_list: {e}")
         raise RuntimeError(f"Failed to search products: {e}")
+
+    finally:
+        conn.close()
+
+
+def search_rolls_for_product(product_code):
+    """
+    Retrieve rolls list based on product_code.
+
+    Parameters:
+    - product_code (str): The code for the product to which the rolls belong.
+
+    Returns:
+    - List of tuples representing rows from the rolls table that match the product code.
+    """
+    # Establish database connection
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+
+            # Call the PostgreSQL function with parameters
+            cur.execute("""
+            SELECT product_code, roll_code, quantity, color FROM public.rolls
+            WHERE product_code = %s
+            """, (product_code,))
+
+            # Fetch all rows
+            rolls_list = cur.fetchall()
+
+        return rolls_list
+
+    except Exception as e:
+        flatbed('exception', f"In search_rolls_for_product: {e}")
+        raise RuntimeError(f"Failed to search rolls: {e}")
 
     finally:
         conn.close()
@@ -325,6 +327,24 @@ def get_image_for_product(code):
         return None
 
 
+def get_sample_image_for_roll(roll_code):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+                SELECT sample_image FROM rolls
+                WHERE roll_code = %s
+            """, (roll_code,))
+
+    sample_image = cur.fetchone()
+
+    cur.close()
+    conn.close()
+    if sample_image:
+        return sample_image[0]
+    else:
+        return None
+
+
 def get_product_ps(code):
     """
         Retrieve product based on code.
@@ -340,12 +360,10 @@ def get_product_ps(code):
     try:
         with conn.cursor() as cur:
 
-            cur.execute("""
-                            SELECT code, name, category, quantity_in_cm, price_per_metre, description, color 
-                            FROM inventory WHERE code = %s
-                        """, (code,))
+            # Call the PostgreSQL function with parameters
+            cur.execute("SELECT * FROM search_products_list(%s, %s, 1, true);", (code, 0))
 
-            # Fetch all rows
+            # Fetch one row
             product = cur.fetchone()
 
         return product
@@ -358,11 +376,44 @@ def get_product_ps(code):
         conn.close()
 
 
+def get_roll_ps(code):
+    """
+        Retrieve roll based on code.
+
+        Parameters:
+        - code (str): The code for the specified roll.
+
+        Returns:
+        - Tuple: a single roll.
+        """
+    # Establish database connection
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+
+            cur.execute("""
+                        SELECT product_code, roll_code, quantity, color FROM rolls
+                        WHERE roll_code = %s
+                        """, (code,))
+
+            # Fetch one row
+            roll = cur.fetchone()
+
+        return roll
+
+    except Exception as e:
+        flatbed('exception', f"In get_roll_ps: {e}")
+        return None
+
+    finally:
+        conn.close()
+
+
 def remove_product_ps(code):
     conn = get_connection()
     cur = conn.cursor()
     try:
-        # Delete the driver profile
+        # Delete the product
         cur.execute("""
             DELETE FROM inventory
             WHERE code = %s
@@ -374,6 +425,28 @@ def remove_product_ps(code):
         # Roll back changes if any errors occur
         conn.rollback()
         flatbed('exception', f"Error removing product: {e}")
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+def remove_roll_ps(code):
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        # Delete the roll
+        cur.execute("""
+            DELETE FROM rolls
+            WHERE roll_code = %s
+        """, (code,))
+
+        conn.commit()
+
+    except Exception as e:
+        # Roll back changes if any errors occur
+        conn.rollback()
+        flatbed('exception', f"Error removing roll: {e}")
 
     finally:
         cur.close()

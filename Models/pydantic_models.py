@@ -32,10 +32,16 @@ class RemoveProductRequest(BaseModel):
     username: str
 
 
-class UpdateProductRequest(BaseModel):
+class RemoveRollRequest(BaseModel):
+    loginToken: str
+    rollCode: str
+    username: str
+
+
+class UpdateRollRequest(BaseModel):
     loginToken: str
     username: str
-    code: str
+    rollCode: str
     quantity: int
     action: str
 
