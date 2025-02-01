@@ -228,8 +228,9 @@ async def add_or_edit_roll(
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        # Read each image file's content (all files are required)
-        image_data = await image.read()
+        # Read image data only if an image is uploaded
+        image_data = await image.read() if image else None
+
         if codeToEdit is None:
             # Insert registration data and images into the database
             code = insert_into_rolls(productCode, quantity, color, image_data)
@@ -395,7 +396,7 @@ async def get_product(
         product = {
             "code": data[0],
             "name": data[1],
-            "category": data[2],
+            "categoryIndex": data[2],
             "quantityInCm": data[3],
             "costPerMetre": data[4],
             "pricePerMetre": data[5],
@@ -561,7 +562,7 @@ def get_formatted_products_list(products_data):
             product = {
                 "code": data[0],
                 "name": data[1],
-                "category": data[2],
+                "categoryIndex": data[2],
                 "quantityInCm": data[3],
                 "costPerMetre": data[4],
                 "pricePerMetre": data[5],
