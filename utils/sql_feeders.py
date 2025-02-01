@@ -113,7 +113,7 @@ def update_in_inventory(codeToEdit, image, name, category_index, cost_per_metre,
             conn.commit()
         return True
     except Exception as e:
-        print(f"Error updating item in inventory: {e}")
+        flatbed('exception', f"Error updating item in inventory: {e}")
         return False
     finally:
         conn.close()
@@ -245,7 +245,7 @@ def insert_into_rolls(product_code, quantity, color_letter, image_data: Optional
 
             cur.execute(sql_insert, values)
             conn.commit()
-        return "{product_code}{roll_code}"  # Return the product code upon success
+        return f"{product_code}{roll_code}"  # Return the product code upon success
     except Exception as e:
         flatbed('exception', f"In insert_into_rolls: {e}")
         return None
