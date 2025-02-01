@@ -297,7 +297,7 @@ async def get_rolls_for_product(
         rolls_data = search_rolls_for_product(productCode)
         rolls_list = get_formatted_rolls_list(rolls_data)
         if rolls_list:
-            return JSONResponse(content=rolls_data, status_code=200)
+            return JSONResponse(content=rolls_list, status_code=200)
         else:
             return "not found", 404
     except Exception as e:
