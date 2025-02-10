@@ -9,12 +9,13 @@ from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
 
 from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, NewAdminRequest, RemoveProductRequest, \
-    UpdateRollRequest, AddExpenseRequest, RemoveRollRequest
+    UpdateRollRequest, AddExpenseRequest, RemoveRollRequest, RemoveBillRequest
 from utils import flatbed, check_username_password_admins, get_admins_data, check_admins_token, \
     search_recent_activities_list, update_admins_password, add_new_admin_ps, insert_into_inventory, send_mail, \
     get_image_for_product, search_products_list, update_in_inventory, get_product_ps, remove_product_ps, \
     remember_admins_action, update_roll_quantity_ps, add_expense_ps, insert_into_rolls, update_in_rolls, \
-    search_rolls_for_product, get_sample_image_for_roll, get_roll_ps, remove_roll_ps
+    search_rolls_for_product, get_sample_image_for_roll, get_roll_ps, remove_roll_ps, insert_into_bills, \
+    update_in_bills, get_bill_ps, remove_bill_ps
 from utils.config import ADMIN_EMAIL
 from utils.hasher import hash_password
 
@@ -204,7 +205,6 @@ async def add_or_edit_product(
     except Exception as e:
         # Log the exception for debugging
         flatbed("exception", f"in add_or_edit_product: {e}")
-        send_mail("Exception in add_or_edit_product", ADMIN_EMAIL, str(e))
         return "Error submitting data", 500  # Error response
 
 
@@ -252,7 +252,64 @@ async def add_or_edit_roll(
     except Exception as e:
         # Log the exception for debugging
         flatbed("exception", f"in add_or_edit_roll: {e}")
-        send_mail("Exception in add_or_edit_roll", ADMIN_EMAIL, str(e))
+        return "Error submitting data", 500  # Error response
+
+
+@router.post("/add-or-edit-bill")
+async def add_or_edit_bill(
+        Authorization: str = Header(None),
+        username: str = Form(...),
+        codeToEdit: Optional[str] = Form(None),
+        billDate: str = Form(...),
+        dueDate: Optional[str] = Form(None),
+        customerName: Optional[str] = Form(None),
+        customerNumber: Optional[str] = Form(None),
+        price: Optional[int] = Form(None),
+        paid: Optional[int] = Form(None),
+        remaining: Optional[int] = Form(None),
+        fabrics: Optional[dict] = Form(None),
+        parts: Optional[dict] = Form(None),
+        status: Optional[str] = Form(None),
+        salesman: Optional[str] = Form(None),
+        tailor: Optional[str] = Form(None),
+        additionalData: Optional[dict] = Form(None),
+        installation: Optional[str] = Form(None)
+):
+    try:
+        # Validate authorization header
+        if not Authorization.startswith("Bearer "):
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        login_token = Authorization.split(" ")[1]  # Extract token after "Bearer"
+        check_status = check_admins_token(2, login_token)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        if codeToEdit is None:
+            # Insert registration data and images into the database
+            code = insert_into_bills(billDate, dueDate, customerName, customerNumber, price, paid, remaining,
+                                     fabrics, parts, status, salesman, tailor, additionalData, installation)
+            if code:
+                remember_admins_action(username, f"Bill Added: {code}")
+                return JSONResponse(content={
+                    "code": code,
+                    "name": customerName
+                })
+            return "Failure", 500
+
+        code = update_in_bills(codeToEdit, billDate, dueDate, customerName, customerNumber, price, paid, remaining,
+                               fabrics, parts, status, salesman, tailor, additionalData, installation)
+        if code:
+            remember_admins_action(username, f"Bill updated: {code}")
+            return JSONResponse(content={
+                "code": code,
+                "name": customerName
+            })
+        return "Failure", 500
+
+    except Exception as e:
+        # Log the exception for debugging
+        flatbed("exception", f"in add_or_edit_bill: {e}")
         return "Error submitting data", 500  # Error response
 
 
@@ -338,7 +395,6 @@ async def get_product_image(
 
     except Exception as e:
         flatbed('exception', f"in get_product_image: {e}")
-        send_mail("Exception in get_product_image", ADMIN_EMAIL, str(e))
         return "Error", 500
 
 
@@ -375,7 +431,6 @@ async def get_roll_sample_image(
 
     except Exception as e:
         flatbed('exception', f"in get_roll_sample_image: {e}")
-        send_mail("Exception in get_roll_sample_image", ADMIN_EMAIL, str(e))
         return "Error", 500
 
 
@@ -393,16 +448,16 @@ async def get_product(
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
         data = get_product_ps(code)
-        product = {
-            "code": data[0],
-            "name": data[1],
-            "categoryIndex": data[2],
-            "quantityInCm": data[3],
-            "costPerMetre": data[4],
-            "pricePerMetre": data[5],
-            "description": data[6]
-        }
-        if product:
+        if data:
+            product = {
+                "code": data[0],
+                "name": data[1],
+                "categoryIndex": data[2],
+                "quantityInCm": data[3],
+                "costPerMetre": data[4],
+                "pricePerMetre": data[5],
+                "description": data[6]
+            }
             return JSONResponse(content=product, status_code=200)
         else:
             return "not found", 404
@@ -425,18 +480,58 @@ async def get_roll(
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
         data = get_roll_ps(code)
-        product = {
-            "productCode": data[0],
-            "rollCode": data[1],
-            "quantityInCm": data[2],
-            "colorLetter": data[3]
-        }
-        if product:
-            return JSONResponse(content=product, status_code=200)
+        if data:
+            roll = {
+                "productCode": data[0],
+                "rollCode": data[1],
+                "quantityInCm": data[2],
+                "colorLetter": data[3]
+            }
+            return JSONResponse(content=roll, status_code=200)
         else:
             return "not found", 404
     except Exception as e:
         flatbed("exception", f"in get_roll {e}")
+        return "Error", 500
+
+
+@router.get("/bill-get")
+async def get_bill(
+        loginToken: str,
+        code: str
+):
+    """
+    Retrieve a bill based on code.
+    """
+    try:
+        check_status = check_admins_token(1, loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        data = get_bill_ps(code)
+        if data:
+            bill = {
+                "billCode": data[0],
+                "billDate": data[1],
+                "dueDate": data[2],
+                "customerName": data[3],
+                "customerNumber": data[4],
+                "price": data[5],
+                "paid": data[6],
+                "remaining": data[7],
+                "fabrics": data[8],
+                "parts": data[9],
+                "status": data[10],
+                "salesman": data[11],
+                "tailor": data[12],
+                "additionalData": data[13],
+                "installation": data[14]
+            }
+            return JSONResponse(content=bill, status_code=200)
+        else:
+            return "not found", 404
+    except Exception as e:
+        flatbed("exception", f"in get_bill {e}")
         return "Error", 500
 
 
@@ -455,7 +550,6 @@ async def remove_product(request: RemoveProductRequest):
         return JSONResponse("Success", status_code=200)
     except Exception as e:
         flatbed('exception', f"in remove_product: {e}")
-        send_mail("Exception in remove_product", ADMIN_EMAIL, str(e))
         return "Error", 500
 
 
@@ -474,7 +568,24 @@ async def remove_roll(request: RemoveRollRequest):
         return JSONResponse("Success", status_code=200)
     except Exception as e:
         flatbed('exception', f"in remove_roll: {e}")
-        send_mail("Exception in remove_roll", ADMIN_EMAIL, str(e))
+        return "Error", 500
+
+
+@router.post("/remove-bill")
+async def remove_bill(request: RemoveBillRequest):
+    """
+    Endpoint to remove a bill.
+    """
+    try:
+        check_status = check_admins_token(3, request.loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        remove_bill_ps(request.billCode)
+        remember_admins_action(request.username, f"Bill removed: {request.rollCode}")
+        return JSONResponse("Success", status_code=200)
+    except Exception as e:
+        flatbed('exception', f"in remove_bill: {e}")
         return "Error", 500
 
 
@@ -494,7 +605,6 @@ async def update_roll_quantity(request: UpdateRollRequest):
         return JSONResponse("Success", status_code=200)
     except Exception as e:
         flatbed('exception', f"in update_roll_quantity: {e}")
-        send_mail("Exception in update_roll_quantity", ADMIN_EMAIL, str(e))
         return "Error", 500
 
 
@@ -518,7 +628,6 @@ async def add_expense(request: AddExpenseRequest):
         return "Failure", 500
     except Exception as e:
         flatbed('exception', f"in add_expense: {e}")
-        send_mail("Exception in add_expense", ADMIN_EMAIL, str(e))
         return "Error", 500
 
 

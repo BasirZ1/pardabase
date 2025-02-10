@@ -409,6 +409,37 @@ def get_roll_ps(code):
         conn.close()
 
 
+def get_bill_ps(code):
+    """
+        Retrieve bill based on code.
+
+        Parameters:
+        - code (str): The code for the specified bill.
+
+        Returns:
+        - Tuple: a single bill.
+        """
+    # Establish database connection
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+
+            # Call the PostgreSQL function with parameters
+            cur.execute("SELECT * FROM search_bills_list(%s, %s, 1, true);", (code, 0))
+
+            # Fetch one row
+            bill = cur.fetchone()
+
+        return bill
+
+    except Exception as e:
+        flatbed('exception', f"In get_bill_ps: {e}")
+        return None
+
+    finally:
+        conn.close()
+
+
 def remove_product_ps(code):
     conn = get_connection()
     cur = conn.cursor()
@@ -447,6 +478,28 @@ def remove_roll_ps(code):
         # Roll back changes if any errors occur
         conn.rollback()
         flatbed('exception', f"Error removing roll: {e}")
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+def remove_bill_ps(code):
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        # Delete the bill
+        cur.execute("""
+            DELETE FROM bills
+            WHERE bill_code = %s
+        """, (code,))
+
+        conn.commit()
+
+    except Exception as e:
+        # Roll back changes if any errors occur
+        conn.rollback()
+        flatbed('exception', f"Error removing bill: {e}")
 
     finally:
         cur.close()

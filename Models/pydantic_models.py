@@ -38,6 +38,12 @@ class RemoveRollRequest(BaseModel):
     username: str
 
 
+class RemoveBillRequest(BaseModel):
+    loginToken: str
+    billCode: str
+    username: str
+
+
 class UpdateRollRequest(BaseModel):
     loginToken: str
     username: str

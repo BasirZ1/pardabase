@@ -292,3 +292,190 @@ def update_in_rolls(codeToEdit, product_code, quantity, color_letter, image_data
         return None
     finally:
         conn.close()
+
+
+def insert_into_bills(
+    bill_date: Optional[str] = None,
+    due_date: Optional[str] = None,
+    customer_name: Optional[str] = None,
+    customer_number: Optional[str] = None,
+    price: Optional[int] = None,
+    paid: Optional[int] = None,
+    remaining: Optional[int] = None,
+    fabrics: Optional[dict] = None,
+    parts: Optional[dict] = None,
+    status: Optional[str] = 'pending',
+    salesman: Optional[str] = None,
+    tailor: Optional[str] = None,
+    additional_data: Optional[dict] = None,
+    installation: Optional[str] = None
+) -> Optional[str]:
+    """
+    Inserts a new bill into the bills table with an auto-generated bill code.
+
+    Args:
+        bill_date: The bill's date.
+        due_date: The bill's due date.
+        customer_name: The customer's name.
+        customer_number: The customer's contact number.
+        price: Total price.
+        paid: Amount paid.
+        remaining: Amount remaining.
+        fabrics: JSON data for fabrics.
+        parts: JSON data for parts.
+        status: Bill status (default 'pending').
+        salesman: Salesman responsible.
+        tailor: Tailor assigned.
+        additional_data: Extra JSON data.
+        installation: Installation details.
+
+    Returns:
+        The generated bill code if successful, or None on error.
+    """
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            # Auto-generate bill_code with prefix "B"
+            cur.execute("SELECT MAX(bill_code) FROM bills WHERE bill_code LIKE 'B%'")
+            last_code = cur.fetchone()[0]
+            if last_code:
+                match = re.search(r'B(\d+)', last_code)
+                new_number = int(match.group(1)) + 1 if match else 1
+            else:
+                new_number = 1
+
+            bill_code = f"B{new_number}"
+
+            sql_insert = """
+                INSERT INTO bills (
+                    bill_code,
+                    bill_date,
+                    due_date,
+                    customer_name,
+                    customer_number,
+                    price,
+                    paid,
+                    remaining,
+                    fabrics,
+                    parts,
+                    status,
+                    salesman,
+                    tailor,
+                    additional_data,
+                    installation
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            values = (
+                bill_code,
+                bill_date,
+                due_date,
+                customer_name,
+                customer_number,
+                price,
+                paid,
+                remaining,
+                fabrics,
+                parts,
+                status,
+                salesman,
+                tailor,
+                additional_data,
+                installation
+            )
+            cur.execute(sql_insert, values)
+            conn.commit()
+        return bill_code
+    except Exception as e:
+        flatbed('exception', f"In insert_into_bills: {e}")
+        return None
+    finally:
+        conn.close()
+
+
+def update_in_bills(
+    bill_code: str,
+    bill_date: Optional[str] = None,
+    due_date: Optional[str] = None,
+    customer_name: Optional[str] = None,
+    customer_number: Optional[str] = None,
+    price: Optional[int] = None,
+    paid: Optional[int] = None,
+    remaining: Optional[int] = None,
+    fabrics: Optional[dict] = None,
+    parts: Optional[dict] = None,
+    status: Optional[str] = None,
+    salesman: Optional[str] = None,
+    tailor: Optional[str] = None,
+    additional_data: Optional[dict] = None,
+    installation: Optional[str] = None
+) -> Optional[str]:
+    """
+    Updates an existing bill in the bills table.
+
+    Args:
+        bill_code: The unique bill code.
+        bill_date: The bill's date.
+        due_date: The due date.
+        customer_name: The customer's name.
+        customer_number: The customer's contact number.
+        price: Total price.
+        paid: Amount paid.
+        remaining: Amount remaining.
+        fabrics: JSON data for fabrics.
+        parts: JSON data for parts.
+        status: Bill status.
+        salesman: Salesman responsible.
+        tailor: Tailor assigned.
+        additional_data: Extra JSON data.
+        installation: Installation details.
+
+    Returns:
+        The bill code if the update was successful, or None on error.
+    """
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            sql_update = """
+                UPDATE bills
+                SET bill_date = %s,
+                    due_date = %s,
+                    customer_name = %s,
+                    customer_number = %s,
+                    price = %s,
+                    paid = %s,
+                    remaining = %s,
+                    fabrics = %s,
+                    parts = %s,
+                    status = %s,
+                    salesman = %s,
+                    tailor = %s,
+                    additional_data = %s,
+                    installation = %s,
+                    updated_at = NOW()
+                WHERE bill_code = %s
+            """
+            values = (
+                bill_date,
+                due_date,
+                customer_name,
+                customer_number,
+                price,
+                paid,
+                remaining,
+                fabrics,
+                parts,
+                status,
+                salesman,
+                tailor,
+                additional_data,
+                installation,
+                bill_code
+            )
+            cur.execute(sql_update, values)
+            conn.commit()
+        return bill_code
+    except Exception as e:
+        flatbed('exception', f"Error updating bill in bills: {e}")
+        return None
+    finally:
+        conn.close()
