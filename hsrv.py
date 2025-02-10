@@ -46,7 +46,6 @@ async def auth(request: AuthRequest):
             return JSONResponse(content={'result': False}, status_code=400)
 
         check_result = check_username_password_admins(request.username, request.password)
-        flatbed('hmm', f"login attempted: {check_result}")
 
         if check_result:
             login_token, full_name, level = get_admins_data(request.username)
@@ -94,9 +93,7 @@ async def get_recent_activity(loginToken: str, date: int):
             return "Access denied", 401
 
         recent_activity_data = search_recent_activities_list(date)
-        flatbed("hmm", f"recent activities: {recent_activity_data} {date}")
         recent_activities_list = get_formatted_recent_activities_list(recent_activity_data)
-        flatbed("hmm", f"recent activities: {recent_activities_list} {date}")
         if recent_activities_list:
             return JSONResponse(content=recent_activities_list, status_code=200)
         else:
