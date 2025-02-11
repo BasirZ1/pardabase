@@ -1,21 +1,20 @@
-import re
 from typing import Optional
 
 from .logger import flatbed
 from utils.conn import get_connection
 
 
-def insert_into_inventory(image, name, category_index, cost_per_metre, price, description):
+def insert_new_product(image, name, category_index, cost_per_metre, price, description):
     """
-    Adds a new item to the inventory with an auto-generated product code.
+    Adds a new product in the products table with an auto-generated product code.
 
     Args:
-        image (bytes): The binary data of the item's image.
-        name (str): The name of the inventory item.
-        category_index (int): The index of the category for the inventory item.
-        cost_per_metre (int): The cost of the item per metre.
-        price (int): The price of the item per metre.
-        description (str): A description of the inventory item.
+        image (bytes): The binary data of the product's image.
+        name (str): The name of the product.
+        category_index (int): The index of the category for the product.
+        cost_per_metre (int): The cost of the product per metre.
+        price (int): The price of the product per metre.
+        description (str): A description of the product.
 
     Returns:
         str: The product code if the item was added successfully, None otherwise.
@@ -23,37 +22,20 @@ def insert_into_inventory(image, name, category_index, cost_per_metre, price, de
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # Generate the new product code
-            cur.execute("SELECT MAX(code) FROM inventory WHERE code LIKE 'P%'")
-            last_code = cur.fetchone()[0]
-
-            if last_code:
-                # Extract only the first numeric part from the code
-                match = re.search(r'P(\d+)', last_code)  # Matches 'P' followed by digits
-                if match:
-                    last_number = int(match.group(1))  # Extract the first number group
-                    new_number = last_number + 1
-                else:
-                    new_number = 1  # Start with 1 if no valid number is found
-            else:
-                new_number = 1  # Start with 1 if no codes exist
-
-            product_code = f"P{new_number}"  # Generate the new product code
 
             # SQL query to insert the item into the inventory table
             sql_insert = """
-                INSERT INTO inventory (
-                    code,
+                INSERT INTO products (
                     image,
                     name,
                     category,
                     cost_per_metre,
                     price_per_metre,
                     description
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING product_code
             """
             values = (
-                product_code,  # Insert the generated product code
                 image,
                 name,
                 category_index,
@@ -63,27 +45,28 @@ def insert_into_inventory(image, name, category_index, cost_per_metre, price, de
             )
 
             cur.execute(sql_insert, values)
+            product_code = cur.fetchone()[0]
             conn.commit()
         return product_code  # Return the product code upon success
     except Exception as e:
-        flatbed('exception', f"In insert_into_inventory: {e}")
+        flatbed('exception', f"In insert_new_product: {e}")
         return None
     finally:
         conn.close()
 
 
-def update_in_inventory(codeToEdit, image, name, category_index, cost_per_metre, price, description):
+def update_product(codeToEdit, image, name, category_index, cost_per_metre, price, description):
     """
-    Update an item in the inventory.
+    Update a product in the products table.
 
     Args:
-        codeToEdit (str): The unique code for the inventory item.
-        image (bytes): The binary data of the item's image.
-        name (str): The name of the inventory item.
-        category_index (int): The category of the inventory item.
-        cost_per_metre (int): The quantity of the item in centimeters.
-        price (int): The price of the item per meter.
-        description (str): A description of the inventory item.
+        codeToEdit (str): The unique code for product.
+        image (bytes): The binary data of the product's image.
+        name (str): The name of the product.
+        category_index (int): The category of the product.
+        cost_per_metre (int): The quantity of the product in centimeters.
+        price (int): The price of the product per meter.
+        description (str): A description of the product.
 
     Returns:
         bool: True if the item was updated successfully, False otherwise.
@@ -91,13 +74,13 @@ def update_in_inventory(codeToEdit, image, name, category_index, cost_per_metre,
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # SQL query to insert the item into the inventory table
+            # SQL query to insert the item into the products table
             sql_insert = """
-                UPDATE inventory
+                UPDATE products
                 SET image = %s, name = %s,
                 category = %s, cost_per_metre = %s,
                 price_per_metre = %s, description = %s
-                WHERE code = %s
+                WHERE product_code = %s
             """
             values = (
                 image,
@@ -113,7 +96,7 @@ def update_in_inventory(codeToEdit, image, name, category_index, cost_per_metre,
             conn.commit()
         return True
     except Exception as e:
-        flatbed('exception', f"Error updating item in inventory: {e}")
+        flatbed('exception', f"in update_product: {e}")
         return False
     finally:
         conn.close()
@@ -192,75 +175,59 @@ def add_expense_ps(category_index, description, amount):
         conn.close()
 
 
-def insert_into_rolls(product_code, quantity, color_letter, image_data: Optional[bytes] = None):
+def insert_new_roll(product_code, quantity, color_letter, image_data: Optional[bytes] = None):
     """
         Adds a new roll to the rolls with an auto-generated roll code.
 
         Args:
-            image_data (bytes): The binary data of the item's image.
-            product_code (str): The name of the inventory item.
+            image_data (bytes): The binary data of the roll's sample image.
+            product_code (str): The name of the product.
             quantity (int): The quantity of the roll in cm.
             color_letter (str): The letter for color.
 
         Returns:
-            str: The roll+product code if the item was added successfully, None otherwise.
+            str: The product+roll code if the item was added successfully, None otherwise.
         """
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # Generate the new product code
-            cur.execute("SELECT MAX(roll_code) FROM rolls WHERE roll_code LIKE 'R%'")
-            last_code = cur.fetchone()[0]
 
-            if last_code:
-                # Extract only the first numeric part from the code
-                match = re.search(r'R(\d+)', last_code)  # Matches 'R' followed by digits
-                if match:
-                    last_number = int(match.group(1))  # Extract the first number group
-                    new_number = last_number + 1
-                else:
-                    new_number = 1  # Start with 1 if no valid number is found
-            else:
-                new_number = 1  # Start with 1 if no codes exist
-
-            roll_code = f"R{new_number}"  # Generate the new roll code
-
-            # SQL query to insert the item into the rolls table
+            # SQL query to insert the roll into the rolls table
             sql_insert = """
                     INSERT INTO rolls (
                         product_code,
-                        roll_code,
                         quantity,
                         color,
                         sample_image
-                    ) VALUES (%s, %s, %s, %s, %s)
+                    ) VALUES (%s, %s, %s, %s)
+                    returning roll_code
                 """
             values = (
                 product_code,
-                roll_code,  # Insert the generated roll code
                 quantity,
                 color_letter,
                 image_data
             )
 
             cur.execute(sql_insert, values)
+            roll_code = cur.fetchone()[0]
             conn.commit()
-        return f"{product_code}{roll_code}"  # Return the product code upon success
+        return f"{product_code}{roll_code}"  # Return the product code + roll code upon success
     except Exception as e:
-        flatbed('exception', f"In insert_into_rolls: {e}")
+        flatbed('exception', f"In insert_new_roll: {e}")
         return None
     finally:
         conn.close()
 
 
-def update_in_rolls(codeToEdit, product_code, quantity, color_letter, image_data: Optional[bytes] = None):
+def update_roll(codeToEdit, product_code, quantity, color_letter, image_data: Optional[bytes] = None):
     """
     Update a roll in the rolls table.
 
     Args:
         codeToEdit (str): The unique code for the roll.
-        image_data (bytes): The binary data of the item's image.
-        product_code (str): The name of the inventory item.
+        image_data (bytes): The binary data of the roll's sample image.
+        product_code (str): The name of the product.
         quantity (int): The quantity of the roll in cm.
         color_letter (str): The letter for color.
 
@@ -270,7 +237,7 @@ def update_in_rolls(codeToEdit, product_code, quantity, color_letter, image_data
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # SQL query to insert the item into the inventory table
+            # SQL query to update a roll in rolls table
             sql_insert = """
                 UPDATE rolls
                 SET quantity = %s,
@@ -288,13 +255,13 @@ def update_in_rolls(codeToEdit, product_code, quantity, color_letter, image_data
             conn.commit()
         return f"{product_code}{codeToEdit}"
     except Exception as e:
-        flatbed('exception', f"Error updating roll in rolls: {e}")
+        flatbed('exception', f"in update_roll: {e}")
         return None
     finally:
         conn.close()
 
 
-def insert_into_bills(
+def insert_new_bill(
     bill_date: Optional[str] = None,
     due_date: Optional[str] = None,
     customer_name: Optional[str] = None,
@@ -335,20 +302,9 @@ def insert_into_bills(
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # Auto-generate bill_code with prefix "B"
-            cur.execute("SELECT MAX(bill_code) FROM bills WHERE bill_code LIKE 'B%'")
-            last_code = cur.fetchone()[0]
-            if last_code:
-                match = re.search(r'B(\d+)', last_code)
-                new_number = int(match.group(1)) + 1 if match else 1
-            else:
-                new_number = 1
-
-            bill_code = f"B{new_number}"
 
             sql_insert = """
                 INSERT INTO bills (
-                    bill_code,
                     bill_date,
                     due_date,
                     customer_name,
@@ -364,9 +320,9 @@ def insert_into_bills(
                     additional_data,
                     installation
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                returning bill_code
             """
             values = (
-                bill_code,
                 bill_date,
                 due_date,
                 customer_name,
@@ -383,16 +339,17 @@ def insert_into_bills(
                 installation
             )
             cur.execute(sql_insert, values)
+            bill_code = cur.fetchone()[0]
             conn.commit()
         return bill_code
     except Exception as e:
-        flatbed('exception', f"In insert_into_bills: {e}")
+        flatbed('exception', f"In insert_new_bill: {e}")
         return None
     finally:
         conn.close()
 
 
-def update_in_bills(
+def update_bill(
     bill_code: str,
     bill_date: Optional[str] = None,
     due_date: Optional[str] = None,
@@ -475,7 +432,7 @@ def update_in_bills(
             conn.commit()
         return bill_code
     except Exception as e:
-        flatbed('exception', f"Error updating bill in bills: {e}")
+        flatbed('exception', f"in update_bill: {e}")
         return None
     finally:
         conn.close()

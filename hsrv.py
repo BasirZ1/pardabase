@@ -11,12 +11,11 @@ from fastapi.responses import FileResponse
 from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, NewAdminRequest, RemoveProductRequest, \
     UpdateRollRequest, AddExpenseRequest, RemoveRollRequest, RemoveBillRequest
 from utils import flatbed, check_username_password_admins, get_admins_data, check_admins_token, \
-    search_recent_activities_list, update_admins_password, add_new_admin_ps, insert_into_inventory, send_mail, \
-    get_image_for_product, search_products_list, update_in_inventory, get_product_ps, remove_product_ps, \
-    remember_admins_action, update_roll_quantity_ps, add_expense_ps, insert_into_rolls, update_in_rolls, \
-    search_rolls_for_product, get_sample_image_for_roll, get_roll_ps, remove_roll_ps, insert_into_bills, \
-    update_in_bills, get_bill_ps, remove_bill_ps
-from utils.config import ADMIN_EMAIL
+    search_recent_activities_list, update_admins_password, add_new_admin_ps, insert_new_product, \
+    get_image_for_product, search_products_list, update_product, get_product_ps, remove_product_ps, \
+    remember_admins_action, update_roll_quantity_ps, add_expense_ps, insert_new_roll, update_roll, \
+    search_rolls_for_product, get_sample_image_for_roll, get_roll_ps, remove_roll_ps, insert_new_bill, \
+    update_bill, get_bill_ps, remove_bill_ps
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -181,7 +180,7 @@ async def add_or_edit_product(
         image_data = await image.read()
         if codeToEdit is None:
             # Insert registration data and images into the database
-            result = insert_into_inventory(image_data, name, categoryIndex, cost, price, description)
+            result = insert_new_product(image_data, name, categoryIndex, cost, price, description)
             if result:
                 remember_admins_action(username, f"Product Added: {result}")
                 return JSONResponse(content={
@@ -190,7 +189,7 @@ async def add_or_edit_product(
                 })
             return "Failure", 500
 
-        result = update_in_inventory(codeToEdit, image_data, name, categoryIndex, cost, price, description)
+        result = update_product(codeToEdit, image_data, name, categoryIndex, cost, price, description)
         if result:
             remember_admins_action(username, f"Product updated: {codeToEdit}")
             return JSONResponse(content={
@@ -230,7 +229,7 @@ async def add_or_edit_roll(
 
         if codeToEdit is None:
             # Insert registration data and images into the database
-            code = insert_into_rolls(productCode, quantity, color, image_data)
+            code = insert_new_roll(productCode, quantity, color, image_data)
             if code:
                 remember_admins_action(username, f"Roll Added: {code}")
                 return JSONResponse(content={
@@ -238,7 +237,7 @@ async def add_or_edit_roll(
                 })
             return "Failure", 500
 
-        code = update_in_rolls(codeToEdit, productCode, quantity, color, image_data)
+        code = update_roll(codeToEdit, productCode, quantity, color, image_data)
         if code:
             remember_admins_action(username, f"Roll updated: {code}")
             return JSONResponse(content={
@@ -284,8 +283,8 @@ async def add_or_edit_bill(
 
         if codeToEdit is None:
             # Insert registration data and images into the database
-            code = insert_into_bills(billDate, dueDate, customerName, customerNumber, price, paid, remaining,
-                                     fabrics, parts, status, salesman, tailor, additionalData, installation)
+            code = insert_new_bill(billDate, dueDate, customerName, customerNumber, price, paid, remaining,
+                                   fabrics, parts, status, salesman, tailor, additionalData, installation)
             if code:
                 remember_admins_action(username, f"Bill Added: {code}")
                 return JSONResponse(content={
@@ -294,8 +293,8 @@ async def add_or_edit_bill(
                 })
             return "Failure", 500
 
-        code = update_in_bills(codeToEdit, billDate, dueDate, customerName, customerNumber, price, paid, remaining,
-                               fabrics, parts, status, salesman, tailor, additionalData, installation)
+        code = update_bill(codeToEdit, billDate, dueDate, customerName, customerNumber, price, paid, remaining,
+                           fabrics, parts, status, salesman, tailor, additionalData, installation)
         if code:
             remember_admins_action(username, f"Bill updated: {code}")
             return JSONResponse(content={

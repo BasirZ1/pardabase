@@ -313,8 +313,8 @@ def get_image_for_product(code):
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("""
-                SELECT image FROM inventory
-                WHERE code = %s
+                SELECT image FROM products
+                WHERE product_code = %s
             """, (code,))
 
     product_image = cur.fetchone()
@@ -446,8 +446,8 @@ def remove_product_ps(code):
     try:
         # Delete the product
         cur.execute("""
-            DELETE FROM inventory
-            WHERE code = %s
+            DELETE FROM products
+            WHERE product_code = %s
         """, (code,))
 
         conn.commit()
