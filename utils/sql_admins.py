@@ -1,4 +1,3 @@
-import re
 from datetime import datetime, timedelta, date
 
 from .logger import flatbed
@@ -86,7 +85,7 @@ def update_admins_password(username, new_password):
     conn.close()
 
 
-def search_recent_activities_list(date):
+def search_recent_activities_list(_date):
     """
     Retrieve recent activities list and filter with date range.
 
@@ -109,7 +108,7 @@ def search_recent_activities_list(date):
     params = []
 
     # Calculate date range based on `date` parameter
-    date_range = get_date_range(date)
+    date_range = get_date_range(_date)
 
     # Add date filter to the query if a valid date range is determined
     if date_range:
@@ -119,11 +118,11 @@ def search_recent_activities_list(date):
 
     # Determine LIMIT based on `date` parameter
     limit = None
-    if date == 0:
+    if _date == 0:
         limit = 10
-    elif date == 1:
+    elif _date == 1:
         limit = 20
-    elif date == 2:
+    elif _date == 2:
         limit = 30
 
     # Add LIMIT clause if applicable
@@ -143,7 +142,7 @@ def search_recent_activities_list(date):
     return recent_activity_list
 
 
-def get_date_range(date: int):
+def get_date_range(_date: int):
     """
     Calculate the date range based on the `date` parameter.
 
@@ -155,13 +154,13 @@ def get_date_range(date: int):
     """
     end_date = datetime.now()  # Current date and time
 
-    if date == 0:
+    if _date == 0:
         start_date = end_date - timedelta(days=1)
-    elif date == 1:
+    elif _date == 1:
         start_date = end_date - timedelta(days=7)
-    elif date == 2:
+    elif _date == 2:
         start_date = end_date - timedelta(days=30)  # Approximate 1 month as 30 days
-    elif date == 3:
+    elif _date == 3:
         start_date = end_date - timedelta(days=365)  # Example: Last year
     else:
         return None  # Invalid date parameter, return None
@@ -425,8 +424,8 @@ def get_product_and_roll_ps(code):
             if roll_code:
                 cur.execute("""
                             SELECT product_code, roll_code, quantity, color FROM rolls
-                            WHERE roll_code = %s
-                            """, (roll_code,))
+                            WHERE product_code = %s and roll_code = %s
+                            """, (product_code, roll_code))
 
                 # Fetch one row
                 roll = cur.fetchone()
