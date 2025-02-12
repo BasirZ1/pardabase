@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 
 from .logger import flatbed
@@ -269,12 +270,12 @@ def insert_new_bill(
     price: Optional[int] = None,
     paid: Optional[int] = None,
     remaining: Optional[int] = None,
-    fabrics: Optional[dict] = None,
-    parts: Optional[dict] = None,
+    fabrics: Optional[str] = None,
+    parts: Optional[str] = None,
     status: Optional[str] = 'pending',
     salesman: Optional[str] = None,
     tailor: Optional[str] = None,
-    additional_data: Optional[dict] = None,
+    additional_data: Optional[str] = None,
     installation: Optional[str] = None
 ) -> Optional[str]:
     """
@@ -288,12 +289,12 @@ def insert_new_bill(
         price: Total price.
         paid: Amount paid.
         remaining: Amount remaining.
-        fabrics: JSON data for fabrics.
-        parts: JSON data for parts.
+        fabrics: JSON string for fabrics.
+        parts: JSON string for parts.
         status: Bill status (default 'pending').
         salesman: Salesman responsible.
         tailor: Tailor assigned.
-        additional_data: Extra JSON data.
+        additional_data: Extra JSON string.
         installation: Installation details.
 
     Returns:
@@ -330,12 +331,12 @@ def insert_new_bill(
                 price,
                 paid,
                 remaining,
-                fabrics,
-                parts,
+                json.loads(fabrics) if fabrics else None,
+                json.loads(parts) if parts else None,
                 status,
                 salesman,
                 tailor,
-                additional_data,
+                json.loads(additional_data) if additional_data else None,
                 installation
             )
             cur.execute(sql_insert, values)
@@ -358,12 +359,12 @@ def update_bill(
     price: Optional[int] = None,
     paid: Optional[int] = None,
     remaining: Optional[int] = None,
-    fabrics: Optional[dict] = None,
-    parts: Optional[dict] = None,
+    fabrics: Optional[str] = None,
+    parts: Optional[str] = None,
     status: Optional[str] = None,
     salesman: Optional[str] = None,
     tailor: Optional[str] = None,
-    additional_data: Optional[dict] = None,
+    additional_data: Optional[str] = None,
     installation: Optional[str] = None
 ) -> Optional[str]:
     """
@@ -378,12 +379,12 @@ def update_bill(
         price: Total price.
         paid: Amount paid.
         remaining: Amount remaining.
-        fabrics: JSON data for fabrics.
-        parts: JSON data for parts.
+        fabrics: JSON string for fabrics.
+        parts: JSON string for parts.
         status: Bill status.
         salesman: Salesman responsible.
         tailor: Tailor assigned.
-        additional_data: Extra JSON data.
+        additional_data: Extra JSON string.
         installation: Installation details.
 
     Returns:
@@ -419,12 +420,12 @@ def update_bill(
                 price,
                 paid,
                 remaining,
-                fabrics,
-                parts,
+                json.loads(fabrics) if fabrics else None,
+                json.loads(parts) if parts else None,
                 status,
                 salesman,
                 tailor,
-                additional_data,
+                json.loads(additional_data) if additional_data else None,
                 installation,
                 bill_code
             )

@@ -263,12 +263,12 @@ async def add_or_edit_bill(
         price: Optional[int] = Form(None),
         paid: Optional[int] = Form(None),
         remaining: Optional[int] = Form(None),
-        fabrics: Optional[dict] = Form(None),
-        parts: Optional[dict] = Form(None),
+        fabrics: Optional[str] = Form(None),
+        parts: Optional[str] = Form(None),
         status: Optional[str] = Form(None),
         salesman: Optional[str] = Form(None),
         tailor: Optional[str] = Form(None),
-        additionalData: Optional[dict] = Form(None),
+        additionalData: Optional[str] = Form(None),
         installation: Optional[str] = Form(None)
 ):
     try:
