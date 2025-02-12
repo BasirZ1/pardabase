@@ -627,7 +627,7 @@ def get_formatted_products_list(products_data):
     if products_data:
         for data in products_data:
             product = {
-                "code": data[0],
+                "productCode": data[0],
                 "name": data[1],
                 "categoryIndex": data[2],
                 "quantityInCm": data[3],

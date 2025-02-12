@@ -376,7 +376,7 @@ def get_product_and_roll_ps(code):
 
             # Convert product tuple to dictionary for easier manipulation
             product_dict = {
-                "code": product[0],
+                "productCode": product[0],
                 "name": product[1],
                 "categoryIndex": product[2],
                 "quantityInCm": product[3],
