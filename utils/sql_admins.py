@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 
 from .logger import flatbed
@@ -392,12 +393,14 @@ def get_product_and_roll_ps(code):
     conn = get_connection()
     try:
         with conn.cursor() as cur:
+            # Normalize code to uppercase for case-insensitive comparison
+            upper_code = code.upper()
             # Check if the code contains a roll identifier
-            if "R" in code:
-                product_code, roll_code = code.split("R", 1)
+            if "R" in upper_code:
+                product_code, roll_code = upper_code.split("R", 1)
                 roll_code = f"R{roll_code}"  # Reattach "R"
             else:
-                product_code, roll_code = code, None
+                product_code, roll_code = upper_code, None
 
             # Fetch the product
             cur.execute("SELECT * FROM search_products_list(%s, %s, 1, true);", (product_code, 0))

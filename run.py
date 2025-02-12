@@ -1,3 +1,3 @@
-from utils import search_recent_activities_list
+from utils import search_recent_activities_list, get_product_and_roll_ps
 
-print(search_recent_activities_list(0))
+print(get_product_and_roll_ps("p1r1"))
