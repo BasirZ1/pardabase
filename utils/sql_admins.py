@@ -252,7 +252,7 @@ def search_products_list(search_query, search_by):
     - search_by (int): The field to search in (0 for 'code', 1 for 'name'). Defaults to 'name' if not recognized.
 
     Returns:
-    - List of tuples representing rows from the inventory table that match the criteria.
+    - List of tuples representing rows from the products table that match the criteria.
     """
     # Establish database connection
     conn = get_connection()
@@ -270,6 +270,38 @@ def search_products_list(search_query, search_by):
     except Exception as e:
         flatbed('exception', f"In search_products_list: {e}")
         raise RuntimeError(f"Failed to search products: {e}")
+
+    finally:
+        conn.close()
+
+
+def search_bills_list(search_query, search_by):
+    """
+    Retrieve bills list based on a search query and filter with search_by.
+
+    Parameters: - search_query (str): The term to search within the specified field. - search_by (int): The field to
+    search in (0 for 'bill_code', 1 for 'customer_name', 2 for 'customer_number'). Defaults to 'name' if not
+    recognized.
+
+    Returns:
+    - List of tuples representing rows from the bills table that match the criteria.
+    """
+    # Establish database connection
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+
+            # Call the PostgreSQL function with parameters
+            cur.execute("SELECT * FROM search_bills_list(%s, %s);", (search_query, search_by))
+
+            # Fetch all rows
+            bills_list = cur.fetchall()
+
+        return bills_list
+
+    except Exception as e:
+        flatbed('exception', f"In search_bills_list: {e}")
+        raise RuntimeError(f"Failed to search bills: {e}")
 
     finally:
         conn.close()
@@ -434,9 +466,29 @@ def get_bill_ps(code):
             cur.execute("SELECT * FROM search_bills_list(%s, %s, 1, true);", (code, 0))
 
             # Fetch one row
-            bill = cur.fetchone()
+            data = cur.fetchone()
 
-        return bill
+            if data:
+                bill = {
+                    "billCode": data[0],
+                    "billDate": data[1],
+                    "dueDate": data[2],
+                    "customerName": data[3],
+                    "customerNumber": data[4],
+                    "price": data[5],
+                    "paid": data[6],
+                    "remaining": data[7],
+                    "fabrics": data[8],
+                    "parts": data[9],
+                    "status": data[10],
+                    "salesman": data[11],
+                    "tailor": data[12],
+                    "additionalData": data[13],
+                    "installation": data[14]
+                }
+                return bill
+
+        return None
 
     except Exception as e:
         flatbed('exception', f"In get_bill_ps: {e}")

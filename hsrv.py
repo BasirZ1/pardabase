@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 from datetime import datetime
 from typing import Optional
@@ -15,7 +16,7 @@ from utils import flatbed, check_username_password_admins, get_admins_data, chec
     get_image_for_product, search_products_list, update_product, get_product_and_roll_ps, remove_product_ps, \
     remember_admins_action, update_roll_quantity_ps, add_expense_ps, insert_new_roll, update_roll, \
     search_rolls_for_product, get_sample_image_for_roll, remove_roll_ps, insert_new_bill, \
-    update_bill, get_bill_ps, remove_bill_ps
+    update_bill, get_bill_ps, remove_bill_ps, search_bills_list
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -324,7 +325,7 @@ async def get_products_list(
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
         products_data = search_products_list(searchQuery, searchByIndex)
-        products_list = get_formatted_products_list(products_data)
+        products_list = get_formatted_search_results_list(products_data, None)
         if products_list:
             return JSONResponse(content=products_list, status_code=200)
         else:
@@ -332,6 +333,64 @@ async def get_products_list(
     except Exception as e:
         flatbed("exception", f"in get_products_list {e}")
         return "Error", 500
+
+
+@router.get("/search-results-list-get")
+async def get_search_results_list(
+        loginToken: str,
+        searchQuery: str
+):
+    """
+    Smart search for products and bills based on different query formats.
+    """
+    try:
+        check_status = check_admins_token(1, loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        search_results_list = []
+
+        # Pattern matching for search query
+        bill_code_pattern = re.fullmatch(r"B\d+", searchQuery)
+        product_code_pattern = re.fullmatch(r"P\d+", searchQuery)
+        roll_code_pattern = re.fullmatch(r"P\d+R\d+", searchQuery)
+        phone_number_pattern = re.fullmatch(r"\+?\d{9,14}", searchQuery)  # Intl. and local formats
+
+        if bill_code_pattern:
+            # Search bill by code
+            bills_data = search_bills_list(searchQuery, 0)
+            search_results_list = get_formatted_search_results_list(None, bills_data)
+
+        elif product_code_pattern:
+            # Search product by code
+            products_data = search_products_list(searchQuery, 0)
+            search_results_list = get_formatted_search_results_list(products_data, None)
+
+        elif roll_code_pattern:
+            # Extract product code and roll code
+            product_code, roll_code = searchQuery.split("R")
+            product_data = get_product_and_roll_ps(product_code)
+            search_results_list.append(product_data)
+
+        elif phone_number_pattern:
+            # Search bill by customer phone number
+            bills_data = search_bills_list(searchQuery, 2)
+            search_results_list = get_formatted_search_results_list(None, bills_data)
+
+        else:
+            # General search (search both products and bills by name)
+            products_data = search_products_list(searchQuery, 1)
+            bills_data = search_bills_list(searchQuery, 1)
+            search_results_list = get_formatted_search_results_list(products_data, bills_data)
+
+        if search_results_list:
+            return JSONResponse(content=search_results_list, status_code=200)
+        else:
+            return "not found", 404
+
+    except Exception as e:
+        flatbed("exception", f"in get_search_results_list {e}")
+        return JSONResponse(content="Error", status_code=500)
 
 
 @router.get("/rolls-for-product-get")
@@ -466,25 +525,9 @@ async def get_bill(
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        data = get_bill_ps(code)
-        if data:
-            bill = {
-                "billCode": data[0],
-                "billDate": data[1],
-                "dueDate": data[2],
-                "customerName": data[3],
-                "customerNumber": data[4],
-                "price": data[5],
-                "paid": data[6],
-                "remaining": data[7],
-                "fabrics": data[8],
-                "parts": data[9],
-                "status": data[10],
-                "salesman": data[11],
-                "tailor": data[12],
-                "additionalData": data[13],
-                "installation": data[14]
-            }
+        bill = get_bill_ps(code)
+
+        if bill:
             return JSONResponse(content=bill, status_code=200)
         else:
             return "not found", 404
@@ -613,20 +656,21 @@ def get_formatted_recent_activities_list(recent_activity_data):
     return recent_activity_list
 
 
-def get_formatted_products_list(products_data):
+def get_formatted_search_results_list(products_data, bills_data):
     """
-    Helper function to format products data into JSON-compatible objects.
+    Helper function to format products data and bills_data into JSON-compatible objects.
 
     Parameters:
     - products_data: Raw data fetched from the database.
+    - bills_data: Raw data fetched from the database.
 
     Returns:
-    - A list of formatted products dictionaries.
+    - A list of formatted search_results dictionaries.
     """
-    products_list = []
+    search_results_list = []
     if products_data:
         for data in products_data:
-            product = {
+            search_result = {
                 "productCode": data[0],
                 "name": data[1],
                 "categoryIndex": data[2],
@@ -635,8 +679,30 @@ def get_formatted_products_list(products_data):
                 "pricePerMetre": data[5],
                 "description": data[6]
             }
-            products_list.append(product)
-    return products_list
+            search_results_list.append(search_result)
+
+    if bills_data:
+        for data in bills_data:
+            search_result = {
+                "billCode": data[0],
+                "billDate": data[1],
+                "dueDate": data[2],
+                "customerName": data[3],
+                "customerNumber": data[4],
+                "price": data[5],
+                "paid": data[6],
+                "remaining": data[7],
+                "fabrics": data[8],
+                "parts": data[9],
+                "status": data[10],
+                "salesman": data[11],
+                "tailor": data[12],
+                "additionalData": data[13],
+                "installation": data[14]
+            }
+            search_results_list.append(search_result)
+
+    return search_results_list
 
 
 def get_formatted_rolls_list(rolls_data):
