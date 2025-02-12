@@ -350,11 +350,10 @@ async def get_search_results_list(
 
         search_results_list = []
 
-        # Pattern matching for search query
-        bill_code_pattern = re.fullmatch(r"B\d+", searchQuery)
-        product_code_pattern = re.fullmatch(r"P\d+", searchQuery)
-        roll_code_pattern = re.fullmatch(r"P\d+R\d+", searchQuery)
-        phone_number_pattern = re.fullmatch(r"\+?\d{9,14}", searchQuery)  # Intl. and local formats
+        bill_code_pattern = re.fullmatch(r"(?i)b\d+", searchQuery)  # `(?i)` makes it case insensitive
+        product_code_pattern = re.fullmatch(r"(?i)p\d+", searchQuery)
+        roll_code_pattern = re.fullmatch(r"(?i)p\d+r\d+", searchQuery)
+        phone_number_pattern = re.fullmatch(r"\+?\d{4,14}", searchQuery)  # Intl. and local formats
 
         if bill_code_pattern:
             # Search bill by code
