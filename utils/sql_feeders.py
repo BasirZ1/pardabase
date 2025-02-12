@@ -320,7 +320,7 @@ def insert_new_bill(
                     tailor,
                     additional_data,
                     installation
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s, %s, %s, %s::jsonb, %s)
                 returning bill_code
             """
             values = (
@@ -331,12 +331,12 @@ def insert_new_bill(
                 price,
                 paid,
                 remaining,
-                json.loads(fabrics) if fabrics else None,
-                json.loads(parts) if parts else None,
+                fabrics,
+                parts,
                 status,
                 salesman,
                 tailor,
-                json.loads(additional_data) if additional_data else None,
+                additional_data,
                 installation
             )
             cur.execute(sql_insert, values)
