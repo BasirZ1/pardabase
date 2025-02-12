@@ -367,7 +367,7 @@ async def get_search_results_list(
 
         elif roll_code_pattern:
             # Extract product code and roll code
-            product_code, roll_code = searchQuery.split("R")
+            product_code, roll_code = re.split(r"r", searchQuery, flags=re.IGNORECASE)
             product_data = get_product_and_roll_ps(product_code)
             search_results_list.append(product_data)
 
