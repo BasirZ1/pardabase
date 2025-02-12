@@ -12,9 +12,9 @@ from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, N
     UpdateRollRequest, AddExpenseRequest, RemoveRollRequest, RemoveBillRequest
 from utils import flatbed, check_username_password_admins, get_admins_data, check_admins_token, \
     search_recent_activities_list, update_admins_password, add_new_admin_ps, insert_new_product, \
-    get_image_for_product, search_products_list, update_product, get_product_ps, remove_product_ps, \
+    get_image_for_product, search_products_list, update_product, get_product_and_roll_ps, remove_product_ps, \
     remember_admins_action, update_roll_quantity_ps, add_expense_ps, insert_new_roll, update_roll, \
-    search_rolls_for_product, get_sample_image_for_roll, get_roll_ps, remove_roll_ps, insert_new_bill, \
+    search_rolls_for_product, get_sample_image_for_roll, remove_roll_ps, insert_new_bill, \
     update_bill, get_bill_ps, remove_bill_ps
 from utils.hasher import hash_password
 
@@ -430,64 +430,26 @@ async def get_roll_sample_image(
         return "Error", 500
 
 
-@router.get("/product-get")
-async def get_product(
+@router.get("/product-and-roll-get")
+async def get_product_and_roll(
         loginToken: str,
         code: str
 ):
     """
-    Retrieve a product based on code.
+    Retrieve a product and roll based on code.
     """
     try:
         check_status = check_admins_token(1, loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        data = get_product_ps(code)
-        if data:
-            product = {
-                "code": data[0],
-                "name": data[1],
-                "categoryIndex": data[2],
-                "quantityInCm": data[3],
-                "costPerMetre": data[4],
-                "pricePerMetre": data[5],
-                "description": data[6]
-            }
+        product = get_product_and_roll_ps(code)
+        if product:
             return JSONResponse(content=product, status_code=200)
         else:
             return "not found", 404
     except Exception as e:
-        flatbed("exception", f"in get_product {e}")
-        return "Error", 500
-
-
-@router.get("/roll-get")
-async def get_roll(
-        loginToken: str,
-        code: str
-):
-    """
-    Retrieve a roll based on code.
-    """
-    try:
-        check_status = check_admins_token(1, loginToken)
-        if not check_status:
-            return JSONResponse(content={"error": "Access denied"}, status_code=401)
-
-        data = get_roll_ps(code)
-        if data:
-            roll = {
-                "productCode": data[0],
-                "rollCode": data[1],
-                "quantityInCm": data[2],
-                "colorLetter": data[3]
-            }
-            return JSONResponse(content=roll, status_code=200)
-        else:
-            return "not found", 404
-    except Exception as e:
-        flatbed("exception", f"in get_roll {e}")
+        flatbed("exception", f"in get_product_and_roll {e}")
         return "Error", 500
 
 

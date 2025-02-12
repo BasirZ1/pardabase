@@ -345,64 +345,70 @@ def get_sample_image_for_roll(roll_code):
         return None
 
 
-def get_product_ps(code):
+def get_product_and_roll_ps(code):
     """
-        Retrieve product based on code.
+    Retrieve product and its specific roll based on the given code.
 
-        Parameters:
-        - code (str): The code for the specified product.
+    Parameters:
+    - code (str): The product code or product-roll code (e.g., "P1" or "P1R1").
 
-        Returns:
-        - Tuple: a single product.
-        """
+    Returns:
+    - dict: A product with rollsList populated if applicable.
+    """
+
     # Establish database connection
     conn = get_connection()
     try:
         with conn.cursor() as cur:
+            # Check if the code contains a roll identifier
+            if "R" in code:
+                product_code, roll_code = code.split("R", 1)
+                roll_code = f"R{roll_code}"  # Reattach "R"
+            else:
+                product_code, roll_code = code, None
 
-            # Call the PostgreSQL function with parameters
-            cur.execute("SELECT * FROM search_products_list(%s, %s, 1, true);", (code, 0))
-
-            # Fetch one row
+            # Fetch the product
+            cur.execute("SELECT * FROM search_products_list(%s, %s, 1, true);", (product_code, 0))
             product = cur.fetchone()
 
-        return product
+            if not product:
+                return None
+
+            # Convert product tuple to dictionary for easier manipulation
+            product_dict = {
+                "code": product[0],
+                "name": product[1],
+                "categoryIndex": product[2],
+                "quantityInCm": product[3],
+                "costPerMetre": product[4],
+                "pricePerMetre": product[5],
+                "description": product[6],
+                "rollsList": []
+            }
+
+            # Fetch the specific roll if roll_code is provided
+            if roll_code:
+                cur.execute("""
+                            SELECT product_code, roll_code, quantity, color FROM rolls
+                            WHERE roll_code = %s
+                            """, (roll_code,))
+
+                # Fetch one row
+                roll = cur.fetchone()
+
+                if roll:
+                    roll_dict = {
+                        "productCode": roll[0],
+                        "rollCode": roll[1],
+                        "quantityInCm": roll[2],
+                        "colorLetter": roll[3]
+                    }
+                    product_dict["rollsList"].append(roll_dict)
+
+            return product_dict
 
     except Exception as e:
-        flatbed('exception', f"In get_product_ps: {e}")
-        return None
-
-    finally:
-        conn.close()
-
-
-def get_roll_ps(code):
-    """
-        Retrieve roll based on code.
-
-        Parameters:
-        - code (str): The code for the specified roll.
-
-        Returns:
-        - Tuple: a single roll.
-        """
-    # Establish database connection
-    conn = get_connection()
-    try:
-        with conn.cursor() as cur:
-
-            cur.execute("""
-                        SELECT product_code, roll_code, quantity, color FROM rolls
-                        WHERE roll_code = %s
-                        """, (code,))
-
-            # Fetch one row
-            roll = cur.fetchone()
-
-        return roll
-
-    except Exception as e:
-        flatbed('exception', f"In get_roll_ps: {e}")
+        flatbed('exception', f"In get_product_and_roll_ps: {e}")
         return None
 
     finally:
