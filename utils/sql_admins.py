@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from .logger import flatbed
 from utils.conn import get_connection
@@ -474,8 +474,8 @@ def get_bill_ps(code):
             if data:
                 bill = {
                     "billCode": data[0],
-                    "billDate": data[1],
-                    "dueDate": data[2],
+                    "billDate": data[1].isoformat() if isinstance(data[1], (date, datetime)) else data[1],
+                    "dueDate": data[2].isoformat() if isinstance(data[2], (date, datetime)) else data[2],
                     "customerName": data[3],
                     "customerNumber": data[4],
                     "price": data[5],

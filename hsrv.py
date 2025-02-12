@@ -1,7 +1,7 @@
 import os
 import re
 import tempfile
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -682,8 +682,8 @@ def get_formatted_search_results_list(products_data, bills_data):
         for data in bills_data:
             search_result = {
                 "billCode": data[0],
-                "billDate": data[1],
-                "dueDate": data[2],
+                "billDate": data[1].isoformat() if isinstance(data[1], (date, datetime)) else data[1],
+                "dueDate": data[2].isoformat() if isinstance(data[2], (date, datetime)) else data[2],
                 "customerName": data[3],
                 "customerNumber": data[4],
                 "price": data[5],
