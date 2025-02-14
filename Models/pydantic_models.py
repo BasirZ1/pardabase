@@ -52,6 +52,13 @@ class UpdateRollRequest(BaseModel):
     action: str
 
 
+class UpdateBillStatusRequest(BaseModel):
+    loginToken: str
+    username: str
+    billCode: str
+    status: str
+
+
 class AddExpenseRequest(BaseModel):
     loginToken: str
     username: str

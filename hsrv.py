@@ -10,13 +10,13 @@ from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
 
 from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, NewAdminRequest, RemoveProductRequest, \
-    UpdateRollRequest, AddExpenseRequest, RemoveRollRequest, RemoveBillRequest
+    UpdateRollRequest, AddExpenseRequest, RemoveRollRequest, RemoveBillRequest, UpdateBillStatusRequest
 from utils import flatbed, check_username_password_admins, get_admins_data, check_admins_token, \
     search_recent_activities_list, update_admins_password, add_new_admin_ps, insert_new_product, \
     get_image_for_product, search_products_list, update_product, get_product_and_roll_ps, remove_product_ps, \
     remember_admins_action, update_roll_quantity_ps, add_expense_ps, insert_new_roll, update_roll, \
     search_rolls_for_product, get_sample_image_for_roll, remove_roll_ps, insert_new_bill, \
-    update_bill, get_bill_ps, remove_bill_ps, search_bills_list
+    update_bill, get_bill_ps, remove_bill_ps, search_bills_list, update_bill_status_ps
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -83,7 +83,7 @@ async def get_dashboard_data(request: TokenValidationRequest):
 
 
 @router.get("/recent-activities-list-get")
-async def get_recent_activity(loginToken: str, date: int):
+async def get_recent_activity(loginToken: str, _date: int):
     """
     Retrieve a list of recent activities.
     """
@@ -92,7 +92,7 @@ async def get_recent_activity(loginToken: str, date: int):
         if not check_status:
             return "Access denied", 401
 
-        recent_activity_data = search_recent_activities_list(date)
+        recent_activity_data = search_recent_activities_list(_date)
         recent_activities_list = get_formatted_recent_activities_list(recent_activity_data)
         if recent_activities_list:
             return JSONResponse(content=recent_activities_list, status_code=200)
@@ -603,6 +603,25 @@ async def update_roll_quantity(request: UpdateRollRequest):
         return JSONResponse("Success", status_code=200)
     except Exception as e:
         flatbed('exception', f"in update_roll_quantity: {e}")
+        return "Error", 500
+
+
+@router.post("/update-bill-status")
+async def update_bill_status(request: UpdateBillStatusRequest):
+    """
+    Endpoint to update a bill's status.
+    """
+    try:
+        check_status = check_admins_token(3, request.loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        update_bill_status_ps(request.billCode, request.status)
+        remember_admins_action(request.username, f"Bill status updated: "
+                                                 f"{request.billCode} {request.status}")
+        return JSONResponse("Success", status_code=200)
+    except Exception as e:
+        flatbed('exception', f"in update_bill_status: {e}")
         return "Error", 500
 
 

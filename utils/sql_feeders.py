@@ -437,3 +437,35 @@ def update_bill(
         return None
     finally:
         conn.close()
+
+
+def update_bill_status_ps(bill_code, status):
+    """
+    Update a bill's status in the bills table.
+
+    Args:
+        bill_code (str): The unique code for the bill.
+        status (str): The new status for the bill.
+
+    Returns:
+        bool: True if the item was updated successfully, False otherwise.
+    """
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            # SQL query to update the bill's status
+            sql_update = f"""
+                UPDATE bills
+                SET status = %s
+                WHERE bill_code = %s
+            """
+            cur.execute(sql_update, (status, bill_code))
+            conn.commit()
+
+        return True
+    except Exception as e:
+        flatbed('exception', f"In update_bill_status_ps: {e}")
+        return False
+    finally:
+        conn.close()

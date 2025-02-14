@@ -387,7 +387,6 @@ def get_product_and_roll_ps(code):
     Returns:
     - dict: A product with rollsList populated if applicable.
     """
-
     # Establish database connection
     conn = get_connection()
     try:
