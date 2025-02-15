@@ -1,11 +1,11 @@
 import os
 import re
 import tempfile
-from datetime import datetime, date
+from datetime import datetime
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Form, Header, File, UploadFile, Query, BackgroundTasks
+from fastapi import APIRouter, Form, Header, File, UploadFile, Query, BackgroundTasks, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
 
@@ -16,11 +16,20 @@ from utils import flatbed, check_username_password_admins, get_admins_data, chec
     get_image_for_product, search_products_list, update_product, get_product_and_roll_ps, remove_product_ps, \
     remember_admins_action, update_roll_quantity_ps, add_expense_ps, insert_new_roll, update_roll, \
     search_rolls_for_product, get_sample_image_for_roll, remove_roll_ps, insert_new_bill, \
-    update_bill, get_bill_ps, remove_bill_ps, search_bills_list, update_bill_status_ps
+    update_bill, get_bill_ps, remove_bill_ps, search_bills_list, update_bill_status_ps, set_current_db, make_bill_dic, \
+    make_product_dic, make_roll_dic
 from utils.hasher import hash_password
 
 router = APIRouter()
 load_dotenv(override=True)
+
+
+def set_db_from_header(tenant: str = Header(None)):
+    """Dependency to extract tenant and set the current database."""
+    if not tenant:
+        raise HTTPException(status_code=400, detail="Missing tenant header")
+
+    set_current_db(tenant)  # Just sets the DB, no return needed
 
 
 @router.get("/")
@@ -29,9 +38,9 @@ async def index():
 
 
 @router.post("/is-token-valid")
-async def is_token_valid(request: TokenValidationRequest):
+async def is_token_valid(request: TokenValidationRequest, _: None = Depends(set_db_from_header)):
     try:
-        check_status = check_admins_token(1, request.loginToken)
+        check_status = await check_admins_token(1, request.loginToken)
         return JSONResponse(content={"check_result": check_status})
 
     except Exception as e:
@@ -40,20 +49,20 @@ async def is_token_valid(request: TokenValidationRequest):
 
 
 @router.post("/auth")
-async def auth(request: AuthRequest):
+async def auth(request: AuthRequest, _: None = Depends(set_db_from_header)):
     try:
         if not request.username or not request.password:
             return JSONResponse(content={'result': False}, status_code=400)
 
-        check_result = check_username_password_admins(request.username, request.password)
+        check_result = await check_username_password_admins(request.username, request.password)
 
         if check_result:
-            login_token, full_name, level = get_admins_data(request.username)
+            data = await get_admins_data(request.username)
             return JSONResponse(content={
                 'result': check_result,
-                'loginToken': login_token,
-                'fullName': full_name,
-                "level": level
+                'loginToken': data['login_token'],
+                'fullName': data['full_name'],
+                "level": data['level']
             })
         else:
             return JSONResponse(content={"result": False})
@@ -63,9 +72,9 @@ async def auth(request: AuthRequest):
 
 
 @router.post("/get-dashboard-data")
-async def get_dashboard_data(request: TokenValidationRequest):
+async def get_dashboard_data(request: TokenValidationRequest, _: None = Depends(set_db_from_header)):
     try:
-        check_status = check_admins_token(1, request.loginToken)
+        check_status = await check_admins_token(1, request.loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
@@ -83,17 +92,17 @@ async def get_dashboard_data(request: TokenValidationRequest):
 
 
 @router.get("/recent-activities-list-get")
-async def get_recent_activity(loginToken: str, _date: int):
+async def get_recent_activity(loginToken: str, _date: int, _: None = Depends(set_db_from_header)):
     """
     Retrieve a list of recent activities.
     """
     try:
-        check_status = check_admins_token(3, loginToken)
+        check_status = await check_admins_token(3, loginToken)
         if not check_status:
             return "Access denied", 401
 
-        recent_activity_data = search_recent_activities_list(_date)
-        recent_activities_list = get_formatted_recent_activities_list(recent_activity_data)
+        recent_activity_data = await search_recent_activities_list(_date)
+        recent_activities_list = await get_formatted_recent_activities_list(recent_activity_data)
         if recent_activities_list:
             return JSONResponse(content=recent_activities_list, status_code=200)
         else:
@@ -104,13 +113,13 @@ async def get_recent_activity(loginToken: str, _date: int):
 
 
 @router.post("/change-password")
-async def change_password(request: ChangePasswordRequest):
+async def change_password(request: ChangePasswordRequest, _: None = Depends(set_db_from_header)):
     """
     Endpoint to change password for Admin accounts.
     """
     try:
         login_token = request.loginToken
-        check_status = check_admins_token(1, login_token)
+        check_status = await check_admins_token(1, login_token)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
@@ -118,11 +127,11 @@ async def change_password(request: ChangePasswordRequest):
         old_password = request.oldPassword
         new_password = request.newPassword
 
-        check_old_password = check_username_password_admins(username, old_password)
+        check_old_password = await check_username_password_admins(username, old_password)
         if check_old_password is False:
             return "Failure", 401
 
-        update_admins_password(username, hash_password(new_password))
+        await update_admins_password(username, hash_password(new_password))
         return "Success", 200
 
     except Exception as e:
@@ -131,13 +140,13 @@ async def change_password(request: ChangePasswordRequest):
 
 
 @router.post("/add-new-admin")
-async def add_new_admin(request: NewAdminRequest):
+async def add_new_admin(request: NewAdminRequest, _: None = Depends(set_db_from_header)):
     """
     Endpoint to add new admin to system.
     """
     try:
         login_token = request.loginToken
-        check_status = check_admins_token(5, login_token)
+        check_status = await check_admins_token(5, login_token)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
@@ -146,7 +155,7 @@ async def add_new_admin(request: NewAdminRequest):
         password = request.password
         level = request.level
 
-        result = add_new_admin_ps(login_token, full_name, username, password, level)
+        result = await add_new_admin_ps(login_token, full_name, username, password, level)
         if result is False:
             return "Failure", 401
         return JSONResponse("Success", status_code=200)
@@ -166,6 +175,7 @@ async def add_or_edit_product(
         price: int = Form(...),
         description: Optional[str] = Form(None),
         image: UploadFile = File(...),
+        _: None = Depends(set_db_from_header)
 ):
     try:
         # Validate authorization header
@@ -173,7 +183,7 @@ async def add_or_edit_product(
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
         login_token = Authorization.split(" ")[1]  # Extract token after "Bearer"
-        check_status = check_admins_token(3, login_token)
+        check_status = await check_admins_token(3, login_token)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
@@ -181,18 +191,18 @@ async def add_or_edit_product(
         image_data = await image.read()
         if codeToEdit is None:
             # Insert registration data and images into the database
-            result = insert_new_product(image_data, name, categoryIndex, cost, price, description)
+            result = await insert_new_product(image_data, name, categoryIndex, cost, price, description)
             if result:
-                remember_admins_action(username, f"Product Added: {result}")
+                await remember_admins_action(username, f"Product Added: {result}")
                 return JSONResponse(content={
                     "code": result,
                     "name": name,
                 })
             return "Failure", 500
 
-        result = update_product(codeToEdit, image_data, name, categoryIndex, cost, price, description)
+        result = await update_product(codeToEdit, image_data, name, categoryIndex, cost, price, description)
         if result:
-            remember_admins_action(username, f"Product updated: {codeToEdit}")
+            await remember_admins_action(username, f"Product updated: {codeToEdit}")
             return JSONResponse(content={
                 "code": codeToEdit,
                 "name": name,
@@ -214,6 +224,7 @@ async def add_or_edit_roll(
         quantity: int = Form(...),
         color: Optional[str] = Form(None),
         image: Optional[UploadFile] = File(None),
+        _: None = Depends(set_db_from_header)
 ):
     try:
         # Validate authorization header
@@ -221,7 +232,7 @@ async def add_or_edit_roll(
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
         login_token = Authorization.split(" ")[1]  # Extract token after "Bearer"
-        check_status = check_admins_token(3, login_token)
+        check_status = await check_admins_token(3, login_token)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
@@ -230,9 +241,9 @@ async def add_or_edit_roll(
 
         if codeToEdit is None:
             # Insert registration data and images into the database
-            code = insert_new_roll(productCode, quantity, color, image_data)
+            code = await insert_new_roll(productCode, quantity, color, image_data)
             if code:
-                remember_admins_action(username, f"Roll Added: {code}")
+                await remember_admins_action(username, f"Roll Added: {code}")
                 return JSONResponse(content={
                     "code": code
                 })
@@ -240,7 +251,7 @@ async def add_or_edit_roll(
 
         code = update_roll(codeToEdit, productCode, quantity, color, image_data)
         if code:
-            remember_admins_action(username, f"Roll updated: {code}")
+            await remember_admins_action(username, f"Roll updated: {code}")
             return JSONResponse(content={
                 "code": code
             })
@@ -270,7 +281,8 @@ async def add_or_edit_bill(
         salesman: Optional[str] = Form(None),
         tailor: Optional[str] = Form(None),
         additionalData: Optional[str] = Form(None),
-        installation: Optional[str] = Form(None)
+        installation: Optional[str] = Form(None),
+        _: None = Depends(set_db_from_header)
 ):
     try:
         # Validate authorization header
@@ -278,26 +290,26 @@ async def add_or_edit_bill(
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
         login_token = Authorization.split(" ")[1]  # Extract token after "Bearer"
-        check_status = check_admins_token(2, login_token)
+        check_status = await check_admins_token(2, login_token)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
         if codeToEdit is None:
             # Insert registration data and images into the database
-            code = insert_new_bill(billDate, dueDate, customerName, customerNumber, price, paid, remaining,
-                                   fabrics, parts, status, salesman, tailor, additionalData, installation)
+            code = await insert_new_bill(billDate, dueDate, customerName, customerNumber, price, paid, remaining,
+                                         fabrics, parts, status, salesman, tailor, additionalData, installation)
             if code:
-                remember_admins_action(username, f"Bill Added: {code}")
+                await remember_admins_action(username, f"Bill Added: {code}")
                 return JSONResponse(content={
                     "code": code,
                     "name": customerName
                 })
             return "Failure", 500
 
-        code = update_bill(codeToEdit, billDate, dueDate, customerName, customerNumber, price, paid, remaining,
-                           fabrics, parts, status, salesman, tailor, additionalData, installation)
+        code = await update_bill(codeToEdit, billDate, dueDate, customerName, customerNumber, price, paid, remaining,
+                                 fabrics, parts, status, salesman, tailor, additionalData, installation)
         if code:
-            remember_admins_action(username, f"Bill updated: {code}")
+            await remember_admins_action(username, f"Bill updated: {code}")
             return JSONResponse(content={
                 "code": code,
                 "name": customerName
@@ -315,17 +327,18 @@ async def get_products_list(
         loginToken: str,
         searchQuery: str,
         searchByIndex: int,
+        _: None = Depends(set_db_from_header)
 ):
     """
     Retrieve a list of products based on search query.
     """
     try:
-        check_status = check_admins_token(1, loginToken)
+        check_status = await check_admins_token(1, loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        products_data = search_products_list(searchQuery, searchByIndex)
-        products_list = get_formatted_search_results_list(products_data, None)
+        products_data = await search_products_list(searchQuery, searchByIndex)
+        products_list = await get_formatted_search_results_list(products_data, None)
         if products_list:
             return JSONResponse(content=products_list, status_code=200)
         else:
@@ -338,13 +351,14 @@ async def get_products_list(
 @router.get("/search-results-list-get")
 async def get_search_results_list(
         loginToken: str,
-        searchQuery: str
+        searchQuery: str,
+        _: None = Depends(set_db_from_header)
 ):
     """
     Smart search for products and bills based on different query formats.
     """
     try:
-        check_status = check_admins_token(1, loginToken)
+        check_status = await check_admins_token(1, loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
@@ -357,28 +371,28 @@ async def get_search_results_list(
 
         if bill_code_pattern:
             # Search bill by code
-            bills_data = search_bills_list(searchQuery, 0)
-            search_results_list = get_formatted_search_results_list(None, bills_data)
+            bills_data = await search_bills_list(searchQuery, 0)
+            search_results_list = await get_formatted_search_results_list(None, bills_data)
 
         elif product_code_pattern:
             # Search product by code
-            products_data = search_products_list(searchQuery, 0)
-            search_results_list = get_formatted_search_results_list(products_data, None)
+            products_data = await search_products_list(searchQuery, 0)
+            search_results_list = await get_formatted_search_results_list(products_data, None)
 
         elif roll_code_pattern:
-            product_data = get_product_and_roll_ps(searchQuery)
+            product_data = await get_product_and_roll_ps(searchQuery)
             search_results_list.append(product_data)
 
         elif phone_number_pattern:
             # Search bill by customer phone number
-            bills_data = search_bills_list(searchQuery, 2)
-            search_results_list = get_formatted_search_results_list(None, bills_data)
+            bills_data = await search_bills_list(searchQuery, 2)
+            search_results_list = await get_formatted_search_results_list(None, bills_data)
 
         else:
             # General search (search both products and bills by name)
-            products_data = search_products_list(searchQuery, 1)
-            bills_data = search_bills_list(searchQuery, 1)
-            search_results_list = get_formatted_search_results_list(products_data, bills_data)
+            products_data = await search_products_list(searchQuery, 1)
+            bills_data = await search_bills_list(searchQuery, 1)
+            search_results_list = await get_formatted_search_results_list(products_data, bills_data)
 
         if search_results_list:
             return JSONResponse(content=search_results_list, status_code=200)
@@ -393,7 +407,8 @@ async def get_search_results_list(
 @router.get("/rolls-for-product-get")
 async def get_rolls_for_product(
         loginToken: str,
-        productCode: str
+        productCode: str,
+        _: None = Depends(set_db_from_header)
 ):
     """
     Retrieve a list of rolls based on product code.
@@ -418,18 +433,19 @@ async def get_rolls_for_product(
 async def get_product_image(
         loginToken: str = Query(...),
         code: str = Query(...),
-        background_tasks: BackgroundTasks = None
+        background_tasks: BackgroundTasks = None,
+        _: None = Depends(set_db_from_header)
 ):
     """
     Endpoint to get product's image by code.
     """
     try:
-        check_status = check_admins_token(1, loginToken)
+        check_status = await check_admins_token(1, loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
         # Get the agent image data
-        product_image = get_image_for_product(code)
+        product_image = await get_image_for_product(code)
 
         if product_image:
             # Create a temporary file to store the image data
@@ -454,18 +470,19 @@ async def get_product_image(
 async def get_roll_sample_image(
         loginToken: str = Query(...),
         code: str = Query(...),
-        background_tasks: BackgroundTasks = None
+        background_tasks: BackgroundTasks = None,
+        _: None = Depends(set_db_from_header)
 ):
     """
     Endpoint to get roll's image by code.
     """
     try:
-        check_status = check_admins_token(1, loginToken)
+        check_status = await check_admins_token(1, loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
         # Get the agent image data
-        sample_image = get_sample_image_for_roll(code)
+        sample_image = await get_sample_image_for_roll(code)
 
         if sample_image:
             # Create a temporary file to store the image data
@@ -489,17 +506,18 @@ async def get_roll_sample_image(
 @router.get("/product-and-roll-get")
 async def get_product_and_roll(
         loginToken: str,
-        code: str
+        code: str,
+        _: None = Depends(set_db_from_header)
 ):
     """
     Retrieve a product and roll based on code.
     """
     try:
-        check_status = check_admins_token(1, loginToken)
+        check_status = await check_admins_token(1, loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        product = get_product_and_roll_ps(code)
+        product = await get_product_and_roll_ps(code)
         if product:
             return JSONResponse(content=product, status_code=200)
         else:
@@ -512,17 +530,18 @@ async def get_product_and_roll(
 @router.get("/bill-get")
 async def get_bill(
         loginToken: str,
-        code: str
+        code: str,
+        _: None = Depends(set_db_from_header)
 ):
     """
     Retrieve a bill based on code.
     """
     try:
-        check_status = check_admins_token(1, loginToken)
+        check_status = await check_admins_token(1, loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        bill = get_bill_ps(code)
+        bill = await get_bill_ps(code)
 
         if bill:
             return JSONResponse(content=bill, status_code=200)
@@ -534,17 +553,17 @@ async def get_bill(
 
 
 @router.post("/remove-product")
-async def remove_product(request: RemoveProductRequest):
+async def remove_product(request: RemoveProductRequest, _: None = Depends(set_db_from_header)):
     """
     Endpoint to remove a product.
     """
     try:
-        check_status = check_admins_token(3, request.loginToken)
+        check_status = await check_admins_token(3, request.loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        remove_product_ps(request.code)
-        remember_admins_action(request.username, f"Product removed: {request.code}")
+        await remove_product_ps(request.code)
+        await remember_admins_action(request.username, f"Product removed: {request.code}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
         flatbed('exception', f"in remove_product: {e}")
@@ -552,17 +571,17 @@ async def remove_product(request: RemoveProductRequest):
 
 
 @router.post("/remove-roll")
-async def remove_roll(request: RemoveRollRequest):
+async def remove_roll(request: RemoveRollRequest, _: None = Depends(set_db_from_header)):
     """
     Endpoint to remove a roll.
     """
     try:
-        check_status = check_admins_token(3, request.loginToken)
+        check_status = await check_admins_token(3, request.loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        remove_roll_ps(request.rollCode)
-        remember_admins_action(request.username, f"Roll removed: {request.rollCode}")
+        await remove_roll_ps(request.rollCode)
+        await remember_admins_action(request.username, f"Roll removed: {request.rollCode}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
         flatbed('exception', f"in remove_roll: {e}")
@@ -570,17 +589,17 @@ async def remove_roll(request: RemoveRollRequest):
 
 
 @router.post("/remove-bill")
-async def remove_bill(request: RemoveBillRequest):
+async def remove_bill(request: RemoveBillRequest, _: None = Depends(set_db_from_header)):
     """
     Endpoint to remove a bill.
     """
     try:
-        check_status = check_admins_token(3, request.loginToken)
+        check_status = await check_admins_token(3, request.loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        remove_bill_ps(request.billCode)
-        remember_admins_action(request.username, f"Bill removed: {request.rollCode}")
+        await remove_bill_ps(request.billCode)
+        await remember_admins_action(request.username, f"Bill removed: {request.rollCode}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
         flatbed('exception', f"in remove_bill: {e}")
@@ -588,18 +607,18 @@ async def remove_bill(request: RemoveBillRequest):
 
 
 @router.post("/update-roll-quantity")
-async def update_roll_quantity(request: UpdateRollRequest):
+async def update_roll_quantity(request: UpdateRollRequest, _: None = Depends(set_db_from_header)):
     """
     Endpoint to update a roll's quantity.
     """
     try:
-        check_status = check_admins_token(3, request.loginToken)
+        check_status = await check_admins_token(3, request.loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        update_roll_quantity_ps(request.rollCode, request.quantity, request.action)
-        remember_admins_action(request.username, f"Roll quantity updated: "
-                                                 f"{request.rollCode} {request.action} {request.quantity}")
+        await update_roll_quantity_ps(request.rollCode, request.quantity, request.action)
+        await remember_admins_action(request.username, f"Roll quantity updated: "
+                                                       f"{request.rollCode} {request.action} {request.quantity}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
         flatbed('exception', f"in update_roll_quantity: {e}")
@@ -607,18 +626,18 @@ async def update_roll_quantity(request: UpdateRollRequest):
 
 
 @router.post("/update-bill-status")
-async def update_bill_status(request: UpdateBillStatusRequest):
+async def update_bill_status(request: UpdateBillStatusRequest, _: None = Depends(set_db_from_header)):
     """
     Endpoint to update a bill's status.
     """
     try:
-        check_status = check_admins_token(3, request.loginToken)
+        check_status = await check_admins_token(3, request.loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        update_bill_status_ps(request.billCode, request.status)
-        remember_admins_action(request.username, f"Bill status updated: "
-                                                 f"{request.billCode} {request.status}")
+        await update_bill_status_ps(request.billCode, request.status)
+        await remember_admins_action(request.username, f"Bill status updated: "
+                                                       f"{request.billCode} {request.status}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
         flatbed('exception', f"in update_bill_status: {e}")
@@ -626,18 +645,18 @@ async def update_bill_status(request: UpdateBillStatusRequest):
 
 
 @router.post("/add-expense")
-async def add_expense(request: AddExpenseRequest):
+async def add_expense(request: AddExpenseRequest, _: None = Depends(set_db_from_header)):
     """
     Endpoint to add an expense.
     """
     try:
-        check_status = check_admins_token(3, request.loginToken)
+        check_status = await check_admins_token(3, request.loginToken)
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        expense_id = add_expense_ps(request.categoryIndex, request.description, request.amount)
+        expense_id = await add_expense_ps(request.categoryIndex, request.description, request.amount)
         if expense_id:
-            remember_admins_action(request.username, f"Added Expense: Desc: {request.description}")
+            await remember_admins_action(request.username, f"Added Expense: Desc: {request.description}")
             return JSONResponse(content={
                 "description": request.description,
                 "amount": request.amount
@@ -649,7 +668,7 @@ async def add_expense(request: AddExpenseRequest):
 
 
 #  Helper Functions
-def get_formatted_recent_activities_list(recent_activity_data):
+async def get_formatted_recent_activities_list(recent_activity_data):
     """
     Helper function to format recent activities data into JSON-compatible objects.
 
@@ -663,16 +682,17 @@ def get_formatted_recent_activities_list(recent_activity_data):
     if recent_activity_data:
         for data in recent_activity_data:
             activity = {
-                "id": data[0],
-                "date": data[1].strftime('%Y-%m-%d %H:%M:%S') if isinstance(data[1], datetime) else data[1],
-                "username": data[2],
-                "action": data[3],
+                "id": data["id"],
+                "date": data["date"].strftime('%Y-%m-%d %H:%M:%S') if isinstance(data["date"], datetime)
+                else data["date"],
+                "username": data["username"],
+                "action": data["action"],
             }
             recent_activity_list.append(activity)
     return recent_activity_list
 
 
-def get_formatted_search_results_list(products_data, bills_data):
+async def get_formatted_search_results_list(products_data, bills_data):
     """
     Helper function to format products data and bills_data into JSON-compatible objects.
 
@@ -686,42 +706,18 @@ def get_formatted_search_results_list(products_data, bills_data):
     search_results_list = []
     if products_data:
         for data in products_data:
-            search_result = {
-                "productCode": data[0],
-                "name": data[1],
-                "categoryIndex": data[2],
-                "quantityInCm": data[3],
-                "costPerMetre": data[4],
-                "pricePerMetre": data[5],
-                "description": data[6]
-            }
+            search_result = make_product_dic(data)
             search_results_list.append(search_result)
 
     if bills_data:
         for data in bills_data:
-            search_result = {
-                "billCode": data[0],
-                "billDate": data[1].isoformat() if isinstance(data[1], (date, datetime)) else data[1],
-                "dueDate": data[2].isoformat() if isinstance(data[2], (date, datetime)) else data[2],
-                "customerName": data[3],
-                "customerNumber": data[4],
-                "price": data[5],
-                "paid": data[6],
-                "remaining": data[7],
-                "fabrics": data[8],
-                "parts": data[9],
-                "status": data[10],
-                "salesman": data[11],
-                "tailor": data[12],
-                "additionalData": data[13],
-                "installation": data[14]
-            }
+            search_result = make_bill_dic(data)
             search_results_list.append(search_result)
 
     return search_results_list
 
 
-def get_formatted_rolls_list(rolls_data):
+async def get_formatted_rolls_list(rolls_data):
     """
     Helper function to format rolls data into JSON-compatible objects.
 
@@ -734,17 +730,12 @@ def get_formatted_rolls_list(rolls_data):
     rolls_list = []
     if rolls_data:
         for data in rolls_data:
-            roll = {
-                "productCode": data[0],
-                "rollCode": data[1],
-                "quantityInCm": data[2],
-                "colorLetter": data[3]
-            }
+            roll = make_roll_dic(data)
             rolls_list.append(roll)
     return rolls_list
 
 
-def delete_temp_file(file_path: str):
+async def delete_temp_file(file_path: str):
     """
     Deletes the specified temporary file.
     """

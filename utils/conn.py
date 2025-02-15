@@ -1,24 +1,61 @@
 import os
+from contextvars import ContextVar
 
-import psycopg2
+import asyncpg
+
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
+current_db = ContextVar("current_db", default="zmt")
 
-def get_connection(db_name="zmt"):
+# Dictionary to hold async connections for different databases
+connection_pools = {}
+
+
+async def get_connection_pool(db_name):
     """
-    Returns a PostgreSQL database connection.
+    Returns a connection pool for the given database name.
+    Creates a new pool if it doesn't exist.
     """
-    # Access the variables using os.getenv()
-    db_host = os.getenv("DB_HOST")
-    db_port = os.getenv("DB_PORT")
-    db_user = os.getenv("DB_USER")
-    db_password = os.getenv("DB_PASSWORD")
-    dsn = f"host={db_host} port={db_port} dbname={db_name} user={db_user} password={db_password}"
-    try:
-        conn = psycopg2.connect(dsn)
-        return conn
-    except (Exception, psycopg2.Error) as error:
-        print("Error connecting to the database:", error)
-        raise error
+    if db_name not in connection_pools:
+        db_host = os.getenv("DB_HOST")
+        db_port = os.getenv("DB_PORT")
+        db_user = os.getenv("DB_USER")
+        db_password = os.getenv("DB_PASSWORD")
+
+        connection_pools[db_name] = await asyncpg.create_pool(
+            user=db_user,
+            password=db_password,
+            database=db_name,
+            host=db_host,
+            port=db_port,
+            min_size=1,
+            max_size=10  # Adjust based on expected traffic
+        )
+
+    return connection_pools[db_name]
+
+
+async def set_current_db(db_name):
+    current_db.set(db_name)
+
+
+async def get_connection():
+    """Gets a connection from the pool based on the current database context."""
+    db_name = current_db.get()
+    pool = await get_connection_pool(db_name)
+    return await pool.acquire()
+
+
+async def release_connection(conn):
+    """Releases the connection back to the pool."""
+    db_name = current_db.get()
+    pool = await get_connection_pool(db_name)
+    await pool.release(conn)
+
+
+async def close_all_pools():
+    """Closes all connection pools when shutting down the application."""
+    for pool in connection_pools.values():
+        await pool.close()

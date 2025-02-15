@@ -1,26 +1,28 @@
 from datetime import datetime, timedelta, date
 
 from .logger import flatbed
-from utils.conn import get_connection
+from utils.conn import get_connection, release_connection
 from utils.hasher import check_password, hash_password
 
 
-def check_admins_token(level, token):
+async def check_admins_token(level, token):
     """
     Function to check the administrator's token and level against the database.
     """
     query = """
-            SELECT 1 FROM admins
-            WHERE login_token = %s AND level >= %s
-            LIMIT 1
-            """
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(query, (token, level))
-            return cur.fetchone() is not None
+        SELECT 1 FROM admins
+        WHERE login_token = $1 AND level >= $2
+        LIMIT 1
+    """
+    conn = await get_connection()  # Get connection from async pool
+    try:
+        result = await conn.fetchval(query, token, level)
+        return result is not None
+    finally:
+        await release_connection(conn)  # Release connection back to the pool
 
 
-def check_username_password_admins(username, password):
+async def check_username_password_admins(username, password):
     """
     Validates an admin's username and password by checking against the database.
 
@@ -31,118 +33,79 @@ def check_username_password_admins(username, password):
     Returns:
         bool: True if the credentials are valid, False otherwise.
     """
-    conn = get_connection()
+    conn = await get_connection()
     try:
-        with conn.cursor() as cur:
-            cur.execute("""
+        stored_password = await conn.fetchval("""
                 SELECT password FROM admins
-                WHERE username ILIKE %s
-            """, (username,))
-
-            stored_password = cur.fetchone()
+                WHERE username = lower($1)
+            """, username)
 
         if stored_password:
             # Check the provided password against the stored hash
-            return check_password(stored_password[0], password)
+            return check_password(stored_password, password)
         return False
     finally:
-        conn.close()
+        await release_connection(conn)
 
 
-def get_admins_data(username):
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("""
-                SELECT login_token, full_name, level FROM admins
-                WHERE username ILIKE %s
-            """, (username,))
-    data = cur.fetchone()
-    cur.close()
-    conn.close()
-    if data:
-        return data
-    else:
-        return None
+async def get_admins_data(username):
+    conn = await get_connection()
+    try:
+        data = await conn.fetchrow("""
+                           SELECT login_token, full_name, level FROM admins
+                           WHERE username = lower($1)
+                       """, username)
+        return data if data else None
+    finally:
+        await release_connection(conn)
 
 
-def update_admins_password(username, new_password):
-    conn = get_connection()
-    cur = conn.cursor()
-
-    sql_update = f"""
-                UPDATE admins
-                SET password = %s
-                WHERE username ILIKE %s
-            """
-    values = (
-        new_password,
-        username
-    )
-
-    cur.execute(sql_update, values)
-    conn.commit()
-    cur.close()
-    conn.close()
+async def update_admins_password(username, new_password):
+    conn = await get_connection()
+    try:
+        await conn.execute("""
+            UPDATE admins
+            SET password = $1
+            WHERE username = lower($2)
+        """, new_password, username)
+    finally:
+        await release_connection(conn)
 
 
-def search_recent_activities_list(_date):
+async def search_recent_activities_list(_date):
     """
     Retrieve recent activities list and filter with date range.
 
     Parameters:
-    - date (int): Date range filter index ('last week', 'last month', 'last year', 'last day').
+    - _date (int): Date range filter index ('last week', 'last month', 'last year', 'last day').
 
     Returns:
-    - List of tuples representing rows from the admins_records table that match the criteria.
+    - List of records from the admins_records table that match the criteria.
     """
 
-    # Establish database connection
-    conn = get_connection()
-    cur = conn.cursor()
+    conn = await get_connection()
 
-    # Base query for retrieving logs data
-    query = (f"SELECT id, date, username, action "
-             f"FROM admins_records WHERE 1=1")
-
-    # List to hold query parameters
+    query = "SELECT id, date, username, action FROM admins_records WHERE 1=1"
     params = []
 
-    # Calculate date range based on `date` parameter
-    date_range = get_date_range(_date)
+    date_range = await get_date_range(_date)
 
-    # Add date filter to the query if a valid date range is determined
     if date_range:
         start_date, end_date = date_range
-        query += " AND date >= %s AND date <= %s ORDER BY date DESC"
+        query += " AND date >= $1 AND date <= $2"
         params.extend([start_date, end_date])
 
-    # Determine LIMIT based on `date` parameter
-    limit = None
-    if _date == 0:
-        limit = 10
-    elif _date == 1:
-        limit = 20
-    elif _date == 2:
-        limit = 30
-
-    # Add LIMIT clause if applicable
+    limit = {0: 10, 1: 20, 2: 30}.get(_date)
     if limit:
-        query += f" LIMIT {limit}"
+        query += f" ORDER BY date DESC LIMIT {limit}"
 
-    # Execute the query with the constructed parameters
-    cur.execute(query, tuple(params))
-
-    # Fetch all matching rows
-    recent_activity_list = cur.fetchall()
-
-    # Close the cursor and connection
-    cur.close()
-    conn.close()
-
-    return recent_activity_list
+    try:
+        return await conn.fetch(query, *params)
+    finally:
+        await release_connection(conn)
 
 
-def get_date_range(_date: int):
+async def get_date_range(_date: int):
     """
     Calculate the date range based on the `date` parameter.
 
@@ -168,34 +131,28 @@ def get_date_range(_date: int):
     return start_date, end_date
 
 
-def remember_admins_action(admin_name, action):
+async def remember_admins_action(admin_name, action):
     """
         Remember admins action
         :param admin_name: username associated with the admin.
         :param action: action performed by the admin.
     """
-    conn = get_connection()
-    cur = conn.cursor()
+    conn = await get_connection()
 
     # SQL query to
     sql_insert = """
             INSERT INTO admins_records (
                 username,
                 action
-            ) VALUES (%s, %s)
+            ) VALUES ($1, $2)
         """
-    values = (
-        admin_name,
-        action,
-    )
-
-    cur.execute(sql_insert, values)
-    conn.commit()
-    cur.close()
-    conn.close()
+    try:
+        await conn.execute(sql_insert, admin_name, action)
+    finally:
+        await release_connection(conn)
 
 
-def add_new_admin_ps(token, full_name, username, password, level):
+async def add_new_admin_ps(token, full_name, username, password, level):
     """
     Adds a new admin to the database.
 
@@ -209,41 +166,32 @@ def add_new_admin_ps(token, full_name, username, password, level):
     Returns:
         bool: True if the admin was added successfully, False otherwise.
     """
-    conn = get_connection()
+    conn = await get_connection()
     try:
-        with conn.cursor() as cur:
-            # Hash the password before storing it
-            hashed_password = hash_password(password)
+        # Hash the password before storing it
+        hashed_password = hash_password(password)
 
-            # SQL query to insert the admin
-            sql_insert = """
-                INSERT INTO admins (
-                    login_token,
-                    full_name,
-                    username,
-                    password,
-                    level
-                ) VALUES (%s, %s, LOWER(%s), %s, %s)
-            """
-            values = (
-                token,
+        # SQL query to insert the admin
+        sql_insert = """
+            INSERT INTO admins (
+                login_token,
                 full_name,
                 username,
-                hashed_password,  # Store the hashed password
+                password,
                 level
-            )
+            ) VALUES ($1, $2, LOWER($3), $4, $5)
+        """
 
-            cur.execute(sql_insert, values)
-            conn.commit()
+        await conn.execute(sql_insert, token, full_name, username, hashed_password, level)
         return True
     except Exception as e:
-        print(f"Error adding new admin: {e}")
+        flatbed('exception', f"in add_new_admin_ps: {e}")
         return False
     finally:
-        conn.close()
+        await release_connection(conn)
 
 
-def search_products_list(search_query, search_by):
+async def search_products_list(search_query, search_by):
     """
     Retrieve products list based on a search query and filter with search_by.
 
@@ -252,62 +200,53 @@ def search_products_list(search_query, search_by):
     - search_by (int): The field to search in (0 for 'code', 1 for 'name'). Defaults to 'name' if not recognized.
 
     Returns:
-    - List of tuples representing rows from the products table that match the criteria.
+    - List of records from the products table that match the criteria.
     """
-    # Establish database connection
-    conn = get_connection()
+    conn = await get_connection()
+
     try:
-        with conn.cursor() as cur:
-
-            # Call the PostgreSQL function with parameters
-            cur.execute("SELECT * FROM search_products_list(%s, %s);", (search_query, search_by))
-
-            # Fetch all rows
-            products_list = cur.fetchall()
-
-        return products_list
+        query = "SELECT * FROM search_products_list($1, $2);"
+        products_list = await conn.fetch(query, search_query, search_by)
+        return products_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
         flatbed('exception', f"In search_products_list: {e}")
         raise RuntimeError(f"Failed to search products: {e}")
 
     finally:
-        conn.close()
+        await release_connection(conn)  # Ensure async release
 
 
-def search_bills_list(search_query, search_by):
+async def search_bills_list(search_query, search_by):
     """
     Retrieve bills list based on a search query and filter with search_by.
 
-    Parameters: - search_query (str): The term to search within the specified field. - search_by (int): The field to
-    search in (0 for 'bill_code', 1 for 'customer_name', 2 for 'customer_number'). Defaults to 'name' if not
-    recognized.
+    Parameters:
+    - search_query (str): The term to search within the specified field.
+    - search_by (int): The field to search in:
+        0 for 'bill_code',
+        1 for 'customer_name',
+        2 for 'customer_number'.
 
     Returns:
-    - List of tuples representing rows from the bills table that match the criteria.
+    - List of records from the bills table that match the criteria.
     """
-    # Establish database connection
-    conn = get_connection()
+    conn = await get_connection()
+
     try:
-        with conn.cursor() as cur:
-
-            # Call the PostgreSQL function with parameters
-            cur.execute("SELECT * FROM search_bills_list(%s, %s);", (search_query, search_by))
-
-            # Fetch all rows
-            bills_list = cur.fetchall()
-
-        return bills_list
+        query = "SELECT * FROM search_bills_list($1, $2);"
+        bills_list = await conn.fetch(query, search_query, search_by)
+        return bills_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
         flatbed('exception', f"In search_bills_list: {e}")
         raise RuntimeError(f"Failed to search bills: {e}")
 
     finally:
-        conn.close()
+        await release_connection(conn)  # Ensure the connection is released properly
 
 
-def search_rolls_for_product(product_code):
+async def search_rolls_for_product(product_code):
     """
     Retrieve rolls list based on product_code.
 
@@ -315,179 +254,193 @@ def search_rolls_for_product(product_code):
     - product_code (str): The code for the product to which the rolls belong.
 
     Returns:
-    - List of tuples representing rows from the rolls table that match the product code.
+    - List of records from the rolls table that match the product code.
     """
-    # Establish database connection
-    conn = get_connection()
+    conn = await get_connection()
+
     try:
-        with conn.cursor() as cur:
-
-            # Call the PostgreSQL function with parameters
-            cur.execute("""
-            SELECT product_code, roll_code, quantity, color FROM public.rolls
-            WHERE product_code = %s
-            """, (product_code,))
-
-            # Fetch all rows
-            rolls_list = cur.fetchall()
-
-        return rolls_list
+        query = """
+        SELECT product_code, roll_code, quantity, color 
+        FROM public.rolls
+        WHERE product_code = $1
+        """
+        rolls_list = await conn.fetch(query, product_code)
+        return rolls_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
         flatbed('exception', f"In search_rolls_for_product: {e}")
         raise RuntimeError(f"Failed to search rolls: {e}")
 
     finally:
-        conn.close()
+        await release_connection(conn)  # Ensure proper connection release
 
 
-def get_image_for_product(code):
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("""
-                SELECT image FROM products
-                WHERE product_code = %s
-            """, (code,))
-
-    product_image = cur.fetchone()
-
-    cur.close()
-    conn.close()
-    if product_image:
-        return product_image[0]
-    else:
-        return None
-
-
-def get_sample_image_for_roll(roll_code):
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("""
-                SELECT sample_image FROM rolls
-                WHERE roll_code = %s
-            """, (roll_code,))
-
-    sample_image = cur.fetchone()
-
-    cur.close()
-    conn.close()
-    if sample_image:
-        return sample_image[0]
-    else:
-        return None
-
-
-def get_product_and_roll_ps(code):
+async def get_image_for_product(code):
     """
-    Retrieve product and its specific roll based on the given code.
+    Retrieve the image for a given product based on its product code.
 
     Parameters:
-    - code (str): The product code or product-roll code (e.g., "P1" or "P1R1").
+    - code (str): The product code.
 
     Returns:
-    - dict: A product with rollsList populated if applicable.
+    - The image (bytes) if found, otherwise None.
     """
-    # Establish database connection
-    conn = get_connection()
+    conn = await get_connection()
+
     try:
-        with conn.cursor() as cur:
-            # Normalize code to uppercase for case-insensitive comparison
-            upper_code = code.upper()
-            # Check if the code contains a roll identifier
-            if "R" in upper_code:
-                product_code, roll_code = upper_code.split("R", 1)
-                roll_code = f"R{roll_code}"  # Reattach "R"
-            else:
-                product_code, roll_code = upper_code, None
+        query = """
+        SELECT image FROM products
+        WHERE product_code = $1
+        """
+        product_image = await conn.fetchval(query, code)  # fetchval() returns a single column value
 
-            # Fetch the product
-            cur.execute("SELECT * FROM search_products_list(%s, %s, 1, true);", (product_code, 0))
-            product = cur.fetchone()
+        return product_image  # Returns the image bytes or None if not found
 
-            if not product:
-                return None
+    except Exception as e:
+        flatbed('exception', f"In get_image_for_product: {e}")
+        raise RuntimeError(f"Failed to retrieve image: {e}")
 
-            # Convert product tuple to dictionary for easier manipulation
-            product_dict = {
-                "productCode": product[0],
-                "name": product[1],
-                "categoryIndex": product[2],
-                "quantityInCm": product[3],
-                "costPerMetre": product[4],
-                "pricePerMetre": product[5],
-                "description": product[6],
-                "rollsList": []
-            }
+    finally:
+        await release_connection(conn)  # Ensure proper connection release
 
-            # Fetch the specific roll if roll_code is provided
-            if roll_code:
-                cur.execute("""
-                            SELECT product_code, roll_code, quantity, color FROM rolls
-                            WHERE product_code = %s and roll_code = %s
-                            """, (product_code, roll_code))
 
-                # Fetch one row
-                roll = cur.fetchone()
+async def get_sample_image_for_roll(roll_code):
+    """
+    Retrieve the sample image for a given roll based on its roll code.
 
-                if roll:
-                    roll_dict = {
-                        "productCode": roll[0],
-                        "rollCode": roll[1],
-                        "quantityInCm": roll[2],
-                        "colorLetter": roll[3]
-                    }
-                    product_dict["rollsList"].append(roll_dict)
+    Parameters:
+    - roll_code (str): The roll code.
 
-            return product_dict
+    Returns:
+    - The image (bytes) if found, otherwise None.
+    """
+    conn = await get_connection()
+
+    try:
+        query = """
+        SELECT sample_image FROM rolls
+        WHERE roll_code = $1
+        """
+        sample_image = await conn.fetchval(query, roll_code)  # fetchval() returns a single column value
+
+        return sample_image  # Returns the image bytes or None if not found
+
+    except Exception as e:
+        flatbed('exception', f"In get_sample_image_for_roll: {e}")
+        raise RuntimeError(f"Failed to retrieve sample image: {e}")
+
+    finally:
+        await release_connection(conn)  # Ensure proper connection release
+
+
+async def get_product_and_roll_ps(code):
+    conn = await get_connection()
+    try:
+        upper_code = code.upper()
+        if "R" in upper_code:
+            product_code, roll_code = upper_code.split("R", 1)
+            roll_code = f"R{roll_code}"
+        else:
+            product_code, roll_code = upper_code, None
+
+        # Fetch the product
+        query_product = "SELECT * FROM search_products_list($1, $2, 1, true);"
+        product = await conn.fetchrow(query_product, product_code, 0)
+
+        if not product:
+            return None
+
+        # asyncpg returns a dictionary-like object, so we use column names directly
+        product_dict = await make_product_dic(product)
+
+        # Fetch the specific roll
+        if roll_code:
+            query_roll = """
+                SELECT product_code, roll_code, quantity, color FROM rolls
+                WHERE product_code = $1 AND roll_code = $2
+            """
+            roll = await conn.fetchrow(query_roll, product_code, roll_code)
+
+            if roll:
+                roll_dict = make_product_dic(roll)
+                product_dict["rollsList"].append(roll_dict)
+
+        return product_dict
 
     except Exception as e:
         flatbed('exception', f"In get_product_and_roll_ps: {e}")
         return None
 
     finally:
-        conn.close()
+        await release_connection(conn)
 
 
-def get_bill_ps(code):
+#  Helper
+async def make_bill_dic(data):
+    bill = {
+        "billCode": data["bill_code"],
+        "billDate": data["bill_date"].isoformat() if isinstance(data["bill_date"],
+                                                                (date, datetime)) else data["bill_date"],
+        "dueDate": data["due_date"].isoformat() if isinstance(data["due_date"],
+                                                              (date, datetime)) else data["due_date"],
+        "customerName": data["customer_name"],
+        "customerNumber": data["customer_number"],
+        "price": data["price"],
+        "paid": data["paid"],
+        "remaining": data["remaining"],
+        "fabrics": data["fabrics"],
+        "parts": data["parts"],
+        "status": data["status"],
+        "salesman": data["salesman"],
+        "tailor": data["tailor"],
+        "additionalData": data["additional_data"],
+        "installation": data["installation"]
+    }
+    return bill
+
+
+async def make_product_dic(data):
+    product = {
+        "productCode": data["product_code"],
+        "name": data["name"],
+        "categoryIndex": data["category"],
+        "quantityInCm": data["quantity"],
+        "costPerMetre": data["cost_per_metre"],
+        "pricePerMetre": data["price_per_metre"],
+        "description": data["description"],
+        "rollsList": []
+    }
+    return product
+
+
+async def make_roll_dic(data):
+    roll = {
+        "productCode": data["product_code"],
+        "rollCode": data["roll_code"],
+        "quantityInCm": data["quantity"],
+        "colorLetter": data["color"]
+    }
+    return roll
+
+
+async def get_bill_ps(code):
     """
-        Retrieve bill based on code.
+    Retrieve bill based on code (Async Version for asyncpg).
 
-        Parameters:
-        - code (str): The code for the specified bill.
+    Parameters:
+    - code (str): The code for the specified bill.
 
-        Returns:
-        - Tuple: a single bill.
-        """
-    # Establish database connection
-    conn = get_connection()
+    Returns:
+    - dict: A single bill.
+    """
+    conn = await get_connection()
     try:
-        with conn.cursor() as cur:
+        query = "SELECT * FROM search_bills_list($1, $2, 1, true);"
+        data = await conn.fetchrow(query, code, 0)
 
-            # Call the PostgreSQL function with parameters
-            cur.execute("SELECT * FROM search_bills_list(%s, %s, 1, true);", (code, 0))
-
-            # Fetch one row
-            data = cur.fetchone()
-
-            if data:
-                bill = {
-                    "billCode": data[0],
-                    "billDate": data[1].isoformat() if isinstance(data[1], (date, datetime)) else data[1],
-                    "dueDate": data[2].isoformat() if isinstance(data[2], (date, datetime)) else data[2],
-                    "customerName": data[3],
-                    "customerNumber": data[4],
-                    "price": data[5],
-                    "paid": data[6],
-                    "remaining": data[7],
-                    "fabrics": data[8],
-                    "parts": data[9],
-                    "status": data[10],
-                    "salesman": data[11],
-                    "tailor": data[12],
-                    "additionalData": data[13],
-                    "installation": data[14]
-                }
-                return bill
+        if data:
+            bill = make_bill_dic(data)
+            return bill
 
         return None
 
@@ -496,70 +449,34 @@ def get_bill_ps(code):
         return None
 
     finally:
-        conn.close()
+        await release_connection(conn)
 
 
-def remove_product_ps(code):
-    conn = get_connection()
-    cur = conn.cursor()
+async def remove_product_ps(code):
+    conn = await get_connection()
     try:
-        # Delete the product
-        cur.execute("""
-            DELETE FROM products
-            WHERE product_code = %s
-        """, (code,))
-
-        conn.commit()
-
+        await conn.execute("DELETE FROM products WHERE product_code = $1", code)
     except Exception as e:
-        # Roll back changes if any errors occur
-        conn.rollback()
-        flatbed('exception', f"Error removing product: {e}")
-
+        flatbed('exception', f"in remove_product_ps: {e}")
     finally:
-        cur.close()
-        conn.close()
+        await release_connection(conn)
 
 
-def remove_roll_ps(code):
-    conn = get_connection()
-    cur = conn.cursor()
+async def remove_roll_ps(code):
+    conn = await get_connection()
     try:
-        # Delete the roll
-        cur.execute("""
-            DELETE FROM rolls
-            WHERE roll_code = %s
-        """, (code,))
-
-        conn.commit()
-
+        await conn.execute("DELETE FROM rolls WHERE roll_code = $1", code)
     except Exception as e:
-        # Roll back changes if any errors occur
-        conn.rollback()
-        flatbed('exception', f"Error removing roll: {e}")
-
+        flatbed('exception', f"in remove_roll_ps: {e}")
     finally:
-        cur.close()
-        conn.close()
+        await release_connection(conn)
 
 
-def remove_bill_ps(code):
-    conn = get_connection()
-    cur = conn.cursor()
+async def remove_bill_ps(code):
+    conn = await get_connection()
     try:
-        # Delete the bill
-        cur.execute("""
-            DELETE FROM bills
-            WHERE bill_code = %s
-        """, (code,))
-
-        conn.commit()
-
+        await conn.execute("DELETE FROM bills WHERE bill_code = $1", code)
     except Exception as e:
-        # Roll back changes if any errors occur
-        conn.rollback()
-        flatbed('exception', f"Error removing bill: {e}")
-
+        flatbed('exception', f"in remove_bill_ps: {e}")
     finally:
-        cur.close()
-        conn.close()
+        await release_connection(conn)
