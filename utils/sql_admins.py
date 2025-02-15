@@ -88,7 +88,7 @@ async def search_recent_activities_list(_date):
     query = "SELECT id, date, username, action FROM admins_records WHERE 1=1"
     params = []
 
-    date_range = await get_date_range(_date)
+    date_range = get_date_range(_date)
 
     if date_range:
         start_date, end_date = date_range
@@ -105,7 +105,7 @@ async def search_recent_activities_list(_date):
         await release_connection(conn)
 
 
-async def get_date_range(_date: int):
+def get_date_range(_date: int):
     """
     Calculate the date range based on the `date` parameter.
 
@@ -351,7 +351,7 @@ async def get_product_and_roll_ps(code):
             return None
 
         # asyncpg returns a dictionary-like object, so we use column names directly
-        product_dict = await make_product_dic(product)
+        product_dict = make_product_dic(product)
 
         # Fetch the specific roll
         if roll_code:
@@ -376,7 +376,7 @@ async def get_product_and_roll_ps(code):
 
 
 #  Helper
-async def make_bill_dic(data):
+def make_bill_dic(data):
     bill = {
         "billCode": data["bill_code"],
         "billDate": data["bill_date"].isoformat() if isinstance(data["bill_date"],
@@ -399,7 +399,7 @@ async def make_bill_dic(data):
     return bill
 
 
-async def make_product_dic(data):
+def make_product_dic(data):
     product = {
         "productCode": data["product_code"],
         "name": data["name"],
@@ -413,7 +413,7 @@ async def make_product_dic(data):
     return product
 
 
-async def make_roll_dic(data):
+def make_roll_dic(data):
     roll = {
         "productCode": data["product_code"],
         "rollCode": data["roll_code"],

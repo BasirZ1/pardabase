@@ -37,7 +37,7 @@ async def get_connection_pool(db_name):
     return connection_pools[db_name]
 
 
-async def set_current_db(db_name):
+def set_current_db(db_name):
     current_db.set(db_name)
 
 

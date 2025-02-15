@@ -24,7 +24,7 @@ router = APIRouter()
 load_dotenv(override=True)
 
 
-def set_db_from_header(tenant: str = Header(None)):
+async def set_db_from_header(tenant: str = Header(None)):
     """Dependency to extract tenant and set the current database."""
     if not tenant:
         raise HTTPException(status_code=400, detail="Missing tenant header")
@@ -102,7 +102,7 @@ async def get_recent_activity(loginToken: str, _date: int, _: None = Depends(set
             return "Access denied", 401
 
         recent_activity_data = await search_recent_activities_list(_date)
-        recent_activities_list = await get_formatted_recent_activities_list(recent_activity_data)
+        recent_activities_list = get_formatted_recent_activities_list(recent_activity_data)
         if recent_activities_list:
             return JSONResponse(content=recent_activities_list, status_code=200)
         else:
@@ -338,7 +338,7 @@ async def get_products_list(
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
         products_data = await search_products_list(searchQuery, searchByIndex)
-        products_list = await get_formatted_search_results_list(products_data, None)
+        products_list = get_formatted_search_results_list(products_data, None)
         if products_list:
             return JSONResponse(content=products_list, status_code=200)
         else:
@@ -372,12 +372,12 @@ async def get_search_results_list(
         if bill_code_pattern:
             # Search bill by code
             bills_data = await search_bills_list(searchQuery, 0)
-            search_results_list = await get_formatted_search_results_list(None, bills_data)
+            search_results_list = get_formatted_search_results_list(None, bills_data)
 
         elif product_code_pattern:
             # Search product by code
             products_data = await search_products_list(searchQuery, 0)
-            search_results_list = await get_formatted_search_results_list(products_data, None)
+            search_results_list = get_formatted_search_results_list(products_data, None)
 
         elif roll_code_pattern:
             product_data = await get_product_and_roll_ps(searchQuery)
@@ -386,13 +386,13 @@ async def get_search_results_list(
         elif phone_number_pattern:
             # Search bill by customer phone number
             bills_data = await search_bills_list(searchQuery, 2)
-            search_results_list = await get_formatted_search_results_list(None, bills_data)
+            search_results_list = get_formatted_search_results_list(None, bills_data)
 
         else:
             # General search (search both products and bills by name)
             products_data = await search_products_list(searchQuery, 1)
             bills_data = await search_bills_list(searchQuery, 1)
-            search_results_list = await get_formatted_search_results_list(products_data, bills_data)
+            search_results_list = get_formatted_search_results_list(products_data, bills_data)
 
         if search_results_list:
             return JSONResponse(content=search_results_list, status_code=200)
@@ -418,7 +418,7 @@ async def get_rolls_for_product(
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        rolls_data = search_rolls_for_product(productCode)
+        rolls_data = await search_rolls_for_product(productCode)
         rolls_list = get_formatted_rolls_list(rolls_data)
         if rolls_list:
             return JSONResponse(content=rolls_list, status_code=200)
@@ -668,7 +668,7 @@ async def add_expense(request: AddExpenseRequest, _: None = Depends(set_db_from_
 
 
 #  Helper Functions
-async def get_formatted_recent_activities_list(recent_activity_data):
+def get_formatted_recent_activities_list(recent_activity_data):
     """
     Helper function to format recent activities data into JSON-compatible objects.
 
@@ -692,7 +692,7 @@ async def get_formatted_recent_activities_list(recent_activity_data):
     return recent_activity_list
 
 
-async def get_formatted_search_results_list(products_data, bills_data):
+def get_formatted_search_results_list(products_data, bills_data):
     """
     Helper function to format products data and bills_data into JSON-compatible objects.
 
@@ -717,7 +717,7 @@ async def get_formatted_search_results_list(products_data, bills_data):
     return search_results_list
 
 
-async def get_formatted_rolls_list(rolls_data):
+def get_formatted_rolls_list(rolls_data):
     """
     Helper function to format rolls data into JSON-compatible objects.
 
@@ -735,7 +735,7 @@ async def get_formatted_rolls_list(rolls_data):
     return rolls_list
 
 
-async def delete_temp_file(file_path: str):
+def delete_temp_file(file_path: str):
     """
     Deletes the specified temporary file.
     """
