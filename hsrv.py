@@ -174,7 +174,7 @@ async def add_or_edit_product(
         cost: int = Form(...),
         price: int = Form(...),
         description: Optional[str] = Form(None),
-        image: UploadFile = File(...),
+        image: Optional[UploadFile] = File(...),
         _: None = Depends(set_db_from_header)
 ):
     try:
@@ -187,8 +187,9 @@ async def add_or_edit_product(
         if not check_status:
             return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
-        # Read each image file's content (all files are required)
-        image_data = await image.read()
+        # Read each image file's content (all files are required
+        image_data = await image.read() if image is not None else None
+
         if codeToEdit is None:
             # Insert registration data and images into the database
             result = await insert_new_product(image_data, name, categoryIndex, cost, price, description)
