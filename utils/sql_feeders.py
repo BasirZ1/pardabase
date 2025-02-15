@@ -194,14 +194,16 @@ async def update_roll_quantity_ps(roll_code, quantity, action):
 
     conn = await get_connection()
     try:
+        # Using Python logic instead of relying on PostgreSQL CASE
+        quantity = -quantity if action == "subtract" else quantity
+
         sql_update = """
                     UPDATE rolls
-                    SET quantity = quantity + 
-                        CASE WHEN $1 = 'subtract' THEN -$2 ELSE $2 END
-                    WHERE roll_code = $3
+                    SET quantity = quantity + $1
+                    WHERE roll_code = $2
                     RETURNING quantity
                 """
-        updated_quantity = await conn.fetchval(sql_update, action, quantity, roll_code)
+        updated_quantity = await conn.fetchval(sql_update, quantity, roll_code)
 
         return updated_quantity is not None
 
