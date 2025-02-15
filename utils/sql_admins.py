@@ -98,6 +98,8 @@ async def search_recent_activities_list(_date):
     limit = {0: 10, 1: 20, 2: 30}.get(_date)
     if limit:
         query += f" ORDER BY date DESC LIMIT {limit}"
+    else:
+        query += " ORDER BY date DESC"
 
     try:
         return await conn.fetch(query, *params)

@@ -135,12 +135,12 @@ async def update_product(codeToEdit, image, name, category_index, cost_per_metre
             category = $3, cost_per_metre = $4,
             price_per_metre = $5, description = $6
             WHERE product_code = $7
+            RETURNING product_code
         """
-        result = await conn.execute(sql_update, image, name,
-                                    category_index, cost_per_metre, price, description, codeToEdit)
+        product_code = await conn.fetchval(sql_update, image, name,
+                                           category_index, cost_per_metre, price, description, codeToEdit)
 
-        # asyncpg's execute returns a string like "UPDATE 1" if successful
-        return result.startswith("UPDATE")
+        return product_code is not None
     except Exception as e:
         flatbed('exception', f"in update_product: {e}")
         return False
@@ -195,16 +195,18 @@ async def update_roll_quantity_ps(roll_code, quantity, action):
     conn = await get_connection()
     try:
         sql_update = """
-            UPDATE rolls
-            SET quantity = quantity + 
-                CASE WHEN $1 = 'subtract' THEN -$2 ELSE $2 END
-            WHERE roll_code = $3
-        """
-        result = await conn.execute(sql_update, action, quantity, roll_code)
+                    UPDATE rolls
+                    SET quantity = quantity + 
+                        CASE WHEN $1 = 'subtract' THEN -$2 ELSE $2 END
+                    WHERE roll_code = $3
+                    RETURNING quantity
+                """
+        updated_quantity = await conn.fetchval(sql_update, action, quantity, roll_code)
 
-        return result.startswith("UPDATE")
+        return updated_quantity is not None
+
     except Exception as e:
-        flatbed('exception', f"In update_roll_quantity: {e}")
+        flatbed('exception', f"In update_roll_quantity_ps: {e}")
         return False
     finally:
         await release_connection(conn)
@@ -260,6 +262,7 @@ async def add_expense_ps(category_index, description, amount):
         return None
     finally:
         await release_connection(conn)
+
 
 #
 # def insert_new_roll(product_code, quantity, color_letter, image_data: Optional[bytes] = None):
@@ -479,20 +482,20 @@ async def update_roll(codeToEdit, product_code, quantity, color_letter, image_da
 
 
 async def insert_new_bill(
-    bill_date: Optional[str] = None,
-    due_date: Optional[str] = None,
-    customer_name: Optional[str] = None,
-    customer_number: Optional[str] = None,
-    price: Optional[int] = None,
-    paid: Optional[int] = None,
-    remaining: Optional[int] = None,
-    fabrics: Optional[str] = None,
-    parts: Optional[str] = None,
-    status: Optional[str] = 'pending',
-    salesman: Optional[str] = None,
-    tailor: Optional[str] = None,
-    additional_data: Optional[str] = None,
-    installation: Optional[str] = None
+        bill_date: Optional[str] = None,
+        due_date: Optional[str] = None,
+        customer_name: Optional[str] = None,
+        customer_number: Optional[str] = None,
+        price: Optional[int] = None,
+        paid: Optional[int] = None,
+        remaining: Optional[int] = None,
+        fabrics: Optional[str] = None,
+        parts: Optional[str] = None,
+        status: Optional[str] = 'pending',
+        salesman: Optional[str] = None,
+        tailor: Optional[str] = None,
+        additional_data: Optional[str] = None,
+        installation: Optional[str] = None
 ) -> Optional[str]:
     conn = await get_connection()
     try:
@@ -631,21 +634,21 @@ async def insert_new_bill(
 
 
 async def update_bill(
-    bill_code: str,
-    bill_date: Optional[str] = None,
-    due_date: Optional[str] = None,
-    customer_name: Optional[str] = None,
-    customer_number: Optional[str] = None,
-    price: Optional[int] = None,
-    paid: Optional[int] = None,
-    remaining: Optional[int] = None,
-    fabrics: Optional[str] = None,
-    parts: Optional[str] = None,
-    status: Optional[str] = None,
-    salesman: Optional[str] = None,
-    tailor: Optional[str] = None,
-    additional_data: Optional[str] = None,
-    installation: Optional[str] = None
+        bill_code: str,
+        bill_date: Optional[str] = None,
+        due_date: Optional[str] = None,
+        customer_name: Optional[str] = None,
+        customer_number: Optional[str] = None,
+        price: Optional[int] = None,
+        paid: Optional[int] = None,
+        remaining: Optional[int] = None,
+        fabrics: Optional[str] = None,
+        parts: Optional[str] = None,
+        status: Optional[str] = None,
+        salesman: Optional[str] = None,
+        tailor: Optional[str] = None,
+        additional_data: Optional[str] = None,
+        installation: Optional[str] = None
 ) -> Optional[str]:
     conn = await get_connection()
     try:
@@ -692,6 +695,7 @@ async def update_bill(
         return None
     finally:
         await release_connection(conn)
+
 
 # def update_bill_status_ps(bill_code, status):
 #     """
@@ -743,11 +747,12 @@ async def update_bill_status_ps(bill_code: str, status: str) -> bool:
             UPDATE bills
             SET status = $1
             WHERE bill_code = $2
+            RETURNING status
         """
-        result = await conn.execute(sql_update, status, bill_code)
+        updated_status = await conn.fetchval(sql_update, status, bill_code)
 
         # asyncpg returns a string like 'UPDATE 1' if successful
-        return result.startswith("UPDATE")
+        return updated_status is not None
     except Exception as e:
         flatbed('exception', f"In update_bill_status_ps: {e}")
         return False
