@@ -174,7 +174,7 @@ async def add_or_edit_product(
         cost: int = Form(...),
         price: int = Form(...),
         description: Optional[str] = Form(None),
-        image: Optional[UploadFile] = File(...),
+        image: Optional[UploadFile] = File(None),
         _: None = Depends(set_db_from_header)
 ):
     try:
