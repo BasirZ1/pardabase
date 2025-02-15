@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-current_db = ContextVar("current_db", default="zmt")
+current_db = ContextVar("current_db")
 
 # Dictionary to hold async connections for different databases
 connection_pools = {}
