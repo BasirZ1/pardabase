@@ -1,15 +1,16 @@
 from utils.email_sender import send_mail
 from utils.config import ADMIN_EMAIL
-from utils.conn import get_connection
+from utils.conn import get_connection, release_connection
 
 
-# The modified logs function
-def flatbed(prefix, message):
+# logs function
+async def flatbed(prefix, message):
     send_mail(f"{prefix}", ADMIN_EMAIL, message)
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(f"""INSERT INTO log (prefix, message)
-    VALUES (%s, %s);""", (prefix, message, ))
-    conn.commit()
-    cur.close()
-    conn.close()
+    conn = await get_connection()
+    try:
+        await conn.execute(
+            "INSERT INTO log (prefix, message) VALUES ($1, $2);",
+            prefix, message
+        )
+    finally:
+        await release_connection(conn)

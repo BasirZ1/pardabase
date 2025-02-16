@@ -45,7 +45,7 @@ async def is_token_valid(request: TokenValidationRequest, _: None = Depends(set_
         return JSONResponse(content={"check_result": check_status})
 
     except Exception as e:
-        flatbed('exception', f"in is_token_valid {e}")
+        await flatbed('exception', f"in is_token_valid {e}")
         return "Error", 500
 
 
@@ -68,7 +68,7 @@ async def auth(request: AuthRequest, _: None = Depends(set_db_from_header)):
         else:
             return JSONResponse(content={"result": False})
     except Exception as e:
-        flatbed('exception', f"in auth {e}")
+        await flatbed('exception', f"in auth {e}")
         return "Error", 500
 
 
@@ -88,7 +88,7 @@ async def get_dashboard_data(request: TokenValidationRequest, _: None = Depends(
         })
 
     except Exception as e:
-        flatbed('exception', f"Error in get-dashboard-data: {str(e)}")
+        await flatbed('exception', f"Error in get-dashboard-data: {str(e)}")
         return "Error"
 
 
@@ -109,7 +109,7 @@ async def get_recent_activity(loginToken: str, _date: int, _: None = Depends(set
         else:
             return "not found", 404
     except Exception as e:
-        flatbed("exception", f"in get_recent_activity {e}")
+        await flatbed("exception", f"in get_recent_activity {e}")
         return "Error", 500
 
 
@@ -136,7 +136,7 @@ async def change_password(request: ChangePasswordRequest, _: None = Depends(set_
         return "Success", 200
 
     except Exception as e:
-        flatbed('exception', f"in change password {e}")
+        await flatbed('exception', f"in change password {e}")
         return "Error", 500
 
 
@@ -161,7 +161,7 @@ async def add_new_admin(request: NewAdminRequest, _: None = Depends(set_db_from_
             return "Failure", 401
         return JSONResponse("Success", status_code=200)
     except Exception as e:
-        flatbed('exception', f"in add_new_admin {e}")
+        await flatbed('exception', f"in add_new_admin {e}")
         return "Error", 500
 
 
@@ -213,7 +213,7 @@ async def add_or_edit_product(
 
     except Exception as e:
         # Log the exception for debugging
-        flatbed("exception", f"in add_or_edit_product: {e}")
+        await flatbed("exception", f"in add_or_edit_product: {e}")
         return "Error submitting data", 500  # Error response
 
 
@@ -261,7 +261,7 @@ async def add_or_edit_roll(
 
     except Exception as e:
         # Log the exception for debugging
-        flatbed("exception", f"in add_or_edit_roll: {e}")
+        await flatbed("exception", f"in add_or_edit_roll: {e}")
         return "Error submitting data", 500  # Error response
 
 
@@ -320,7 +320,7 @@ async def add_or_edit_bill(
 
     except Exception as e:
         # Log the exception for debugging
-        flatbed("exception", f"in add_or_edit_bill: {e}")
+        await flatbed("exception", f"in add_or_edit_bill: {e}")
         return "Error submitting data", 500  # Error response
 
 
@@ -346,7 +346,7 @@ async def get_products_list(
         else:
             return "not found", 404
     except Exception as e:
-        flatbed("exception", f"in get_products_list {e}")
+        await flatbed("exception", f"in get_products_list {e}")
         return "Error", 500
 
 
@@ -402,7 +402,7 @@ async def get_search_results_list(
             return "not found", 404
 
     except Exception as e:
-        flatbed("exception", f"in get_search_results_list {e}")
+        await flatbed("exception", f"in get_search_results_list {e}")
         return JSONResponse(content="Error", status_code=500)
 
 
@@ -427,7 +427,7 @@ async def get_rolls_for_product(
         else:
             return "not found", 404
     except Exception as e:
-        flatbed("exception", f"in get_rolls_for_product {e}")
+        await flatbed("exception", f"in get_rolls_for_product {e}")
         return "Error", 500
 
 
@@ -464,7 +464,7 @@ async def get_product_image(
             return "Image not found", 404
 
     except Exception as e:
-        flatbed('exception', f"in get_product_image: {e}")
+        await flatbed('exception', f"in get_product_image: {e}")
         return "Error", 500
 
 
@@ -501,7 +501,7 @@ async def get_roll_sample_image(
             return "Image not found", 404
 
     except Exception as e:
-        flatbed('exception', f"in get_roll_sample_image: {e}")
+        await flatbed('exception', f"in get_roll_sample_image: {e}")
         return "Error", 500
 
 
@@ -525,7 +525,7 @@ async def get_product_and_roll(
         else:
             return "not found", 404
     except Exception as e:
-        flatbed("exception", f"in get_product_and_roll {e}")
+        await flatbed("exception", f"in get_product_and_roll {e}")
         return "Error", 500
 
 
@@ -550,7 +550,7 @@ async def get_bill(
         else:
             return "not found", 404
     except Exception as e:
-        flatbed("exception", f"in get_bill {e}")
+        await flatbed("exception", f"in get_bill {e}")
         return "Error", 500
 
 
@@ -568,7 +568,7 @@ async def remove_product(request: RemoveProductRequest, _: None = Depends(set_db
         await remember_admins_action(request.username, f"Product removed: {request.code}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
-        flatbed('exception', f"in remove_product: {e}")
+        await flatbed('exception', f"in remove_product: {e}")
         return "Error", 500
 
 
@@ -586,7 +586,7 @@ async def remove_roll(request: RemoveRollRequest, _: None = Depends(set_db_from_
         await remember_admins_action(request.username, f"Roll removed: {request.rollCode}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
-        flatbed('exception', f"in remove_roll: {e}")
+        await flatbed('exception', f"in remove_roll: {e}")
         return "Error", 500
 
 
@@ -604,7 +604,7 @@ async def remove_bill(request: RemoveBillRequest, _: None = Depends(set_db_from_
         await remember_admins_action(request.username, f"Bill removed: {request.rollCode}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
-        flatbed('exception', f"in remove_bill: {e}")
+        await flatbed('exception', f"in remove_bill: {e}")
         return "Error", 500
 
 
@@ -623,7 +623,7 @@ async def update_roll_quantity(request: UpdateRollRequest, _: None = Depends(set
                                                        f"{request.rollCode} {request.action} {request.quantity}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
-        flatbed('exception', f"in update_roll_quantity: {e}")
+        await flatbed('exception', f"in update_roll_quantity: {e}")
         return "Error", 500
 
 
@@ -642,7 +642,7 @@ async def update_bill_status(request: UpdateBillStatusRequest, _: None = Depends
                                                        f"{request.billCode} {request.status}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
-        flatbed('exception', f"in update_bill_status: {e}")
+        await flatbed('exception', f"in update_bill_status: {e}")
         return "Error", 500
 
 
@@ -661,7 +661,7 @@ async def update_bill_tailor(request: UpdateBillTailorRequest, _: None = Depends
                                                        f"{request.billCode} {request.tailor}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
-        flatbed('exception', f"in update_bill_tailor: {e}")
+        await flatbed('exception', f"in update_bill_tailor: {e}")
         return "Error", 500
 
 
@@ -680,7 +680,7 @@ async def add_payment_bill(request: AddPaymentBillRequest, _: None = Depends(set
                                                        f"{request.billCode} {request.amount}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
-        flatbed('exception', f"in add_payment_bill: {e}")
+        await flatbed('exception', f"in add_payment_bill: {e}")
         return "Error", 500
 
 
@@ -703,7 +703,7 @@ async def add_expense(request: AddExpenseRequest, _: None = Depends(set_db_from_
             })
         return "Failure", 500
     except Exception as e:
-        flatbed('exception', f"in add_expense: {e}")
+        await flatbed('exception', f"in add_expense: {e}")
         return "Error", 500
 
 

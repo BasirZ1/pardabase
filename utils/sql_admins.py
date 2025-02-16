@@ -187,7 +187,7 @@ async def add_new_admin_ps(token, full_name, username, password, level):
         await conn.execute(sql_insert, token, full_name, username, hashed_password, level)
         return True
     except Exception as e:
-        flatbed('exception', f"in add_new_admin_ps: {e}")
+        await flatbed('exception', f"in add_new_admin_ps: {e}")
         return False
     finally:
         await release_connection(conn)
@@ -212,7 +212,7 @@ async def search_products_list(search_query, search_by):
         return products_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
-        flatbed('exception', f"In search_products_list: {e}")
+        await flatbed('exception', f"In search_products_list: {e}")
         raise RuntimeError(f"Failed to search products: {e}")
 
     finally:
@@ -241,7 +241,7 @@ async def search_bills_list(search_query, search_by):
         return bills_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
-        flatbed('exception', f"In search_bills_list: {e}")
+        await flatbed('exception', f"In search_bills_list: {e}")
         raise RuntimeError(f"Failed to search bills: {e}")
 
     finally:
@@ -270,7 +270,7 @@ async def search_rolls_for_product(product_code):
         return rolls_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
-        flatbed('exception', f"In search_rolls_for_product: {e}")
+        await flatbed('exception', f"In search_rolls_for_product: {e}")
         raise RuntimeError(f"Failed to search rolls: {e}")
 
     finally:
@@ -299,7 +299,7 @@ async def get_image_for_product(code):
         return product_image  # Returns the image bytes or None if not found
 
     except Exception as e:
-        flatbed('exception', f"In get_image_for_product: {e}")
+        await flatbed('exception', f"In get_image_for_product: {e}")
         raise RuntimeError(f"Failed to retrieve image: {e}")
 
     finally:
@@ -328,7 +328,7 @@ async def get_sample_image_for_roll(roll_code):
         return sample_image  # Returns the image bytes or None if not found
 
     except Exception as e:
-        flatbed('exception', f"In get_sample_image_for_roll: {e}")
+        await flatbed('exception', f"In get_sample_image_for_roll: {e}")
         raise RuntimeError(f"Failed to retrieve sample image: {e}")
 
     finally:
@@ -370,7 +370,7 @@ async def get_product_and_roll_ps(code):
         return product_dict
 
     except Exception as e:
-        flatbed('exception', f"In get_product_and_roll_ps: {e}")
+        await flatbed('exception', f"In get_product_and_roll_ps: {e}")
         return None
 
     finally:
@@ -447,7 +447,7 @@ async def get_bill_ps(code):
         return None
 
     except Exception as e:
-        flatbed('exception', f"In get_bill_ps: {e}")
+        await flatbed('exception', f"In get_bill_ps: {e}")
         return None
 
     finally:
@@ -459,7 +459,7 @@ async def remove_product_ps(code):
     try:
         await conn.execute("DELETE FROM products WHERE product_code = $1", code)
     except Exception as e:
-        flatbed('exception', f"in remove_product_ps: {e}")
+        await flatbed('exception', f"in remove_product_ps: {e}")
     finally:
         await release_connection(conn)
 
@@ -469,7 +469,7 @@ async def remove_roll_ps(code):
     try:
         await conn.execute("DELETE FROM rolls WHERE roll_code = $1", code)
     except Exception as e:
-        flatbed('exception', f"in remove_roll_ps: {e}")
+        await flatbed('exception', f"in remove_roll_ps: {e}")
     finally:
         await release_connection(conn)
 
@@ -479,6 +479,6 @@ async def remove_bill_ps(code):
     try:
         await conn.execute("DELETE FROM bills WHERE bill_code = $1", code)
     except Exception as e:
-        flatbed('exception', f"in remove_bill_ps: {e}")
+        await flatbed('exception', f"in remove_bill_ps: {e}")
     finally:
         await release_connection(conn)

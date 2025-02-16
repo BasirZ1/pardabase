@@ -1,4 +1,3 @@
-import json
 from typing import Optional
 
 from .logger import flatbed
@@ -22,7 +21,7 @@ async def insert_new_product(image, name, category_index, cost_per_metre, price,
         product_code = await conn.fetchval(sql_insert, image, name, category_index, cost_per_metre, price, description)
         return product_code
     except Exception as e:
-        flatbed('exception', f"In insert_new_product: {e}")
+        await flatbed('exception', f"In insert_new_product: {e}")
         return None
     finally:
         await release_connection(conn)
@@ -44,7 +43,7 @@ async def update_product(codeToEdit, image, name, category_index, cost_per_metre
 
         return product_code is not None
     except Exception as e:
-        flatbed('exception', f"in update_product: {e}")
+        await flatbed('exception', f"in update_product: {e}")
         return False
     finally:
         await release_connection(conn)
@@ -52,7 +51,7 @@ async def update_product(codeToEdit, image, name, category_index, cost_per_metre
 
 async def update_roll_quantity_ps(roll_code, quantity, action):
     if action not in ["subtract", "add"]:
-        flatbed('error', f"Invalid action: {action}. Expected 'subtract' or 'add'.")
+        await flatbed('error', f"Invalid action: {action}. Expected 'subtract' or 'add'.")
         return False
 
     conn = await get_connection()
@@ -71,7 +70,7 @@ async def update_roll_quantity_ps(roll_code, quantity, action):
         return updated_quantity is not None
 
     except Exception as e:
-        flatbed('exception', f"In update_roll_quantity_ps: {e}")
+        await flatbed('exception', f"In update_roll_quantity_ps: {e}")
         return False
     finally:
         await release_connection(conn)
@@ -89,7 +88,7 @@ async def add_expense_ps(category_index, description, amount):
 
         return expense_id
     except Exception as e:
-        flatbed('exception', f"In add_expense: {e}")
+        await flatbed('exception', f"In add_expense: {e}")
         return None
     finally:
         await release_connection(conn)
@@ -111,7 +110,7 @@ async def insert_new_roll(product_code, quantity, color_letter, image_data: Opti
 
         return f"{product_code}{roll_code}" if roll_code else None
     except Exception as e:
-        flatbed('exception', f"In insert_new_roll: {e}")
+        await flatbed('exception', f"In insert_new_roll: {e}")
         return None
     finally:
         await release_connection(conn)
@@ -131,7 +130,7 @@ async def update_roll(codeToEdit, product_code, quantity, color_letter, image_da
 
         return f"{product_code}{codeToEdit}"
     except Exception as e:
-        flatbed('exception', f"In update_roll: {e}")
+        await flatbed('exception', f"In update_roll: {e}")
         return None
     finally:
         await release_connection(conn)
@@ -194,7 +193,7 @@ async def insert_new_bill(
         )
         return bill_code
     except Exception as e:
-        flatbed('exception', f"In insert_new_bill: {e}")
+        await flatbed('exception', f"In insert_new_bill: {e}")
         return None
     finally:
         await release_connection(conn)
@@ -238,15 +237,15 @@ async def update_bill(
             price,
             paid,
             remaining,
-            json.loads(fabrics) if fabrics else None,
-            json.loads(parts) if parts else None,
-            json.loads(additional_data) if additional_data else None,
+            fabrics,
+            parts,
+            additional_data,
             installation,
             bill_code
         )
         return bill_code
     except Exception as e:
-        flatbed('exception', f"In update_bill: {e}")
+        await flatbed('exception', f"In update_bill: {e}")
         return None
     finally:
         await release_connection(conn)
@@ -275,7 +274,7 @@ async def update_bill_status_ps(bill_code: str, status: str) -> bool:
 
         return updated_status is not None
     except Exception as e:
-        flatbed('exception', f"In update_bill_status_ps: {e}")
+        await flatbed('exception', f"In update_bill_status_ps: {e}")
         return False
     finally:
         await release_connection(conn)
@@ -304,7 +303,7 @@ async def update_bill_tailor_ps(bill_code: str, tailor: str) -> bool:
 
         return updated_tailor is not None
     except Exception as e:
-        flatbed('exception', f"In update_bill_tailor_ps: {e}")
+        await flatbed('exception', f"In update_bill_tailor_ps: {e}")
         return False
     finally:
         await release_connection(conn)
@@ -328,7 +327,7 @@ async def add_payment_bill_ps(bill_code: str, amount: int) -> bool:
         await conn.execute(sql_query, bill_code, amount)
         return True  # If execution reaches here, the update was successful
     except Exception as e:
-        flatbed('exception', f"In add_payment_bill_ps: {e}")
+        await flatbed('exception', f"In add_payment_bill_ps: {e}")
         return False
     finally:
         await release_connection(conn)
