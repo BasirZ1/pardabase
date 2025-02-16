@@ -308,3 +308,27 @@ async def update_bill_tailor_ps(bill_code: str, tailor: str) -> bool:
         return False
     finally:
         await release_connection(conn)
+
+
+async def add_payment_bill_ps(bill_code: str, amount: int) -> bool:
+    """
+    Update a bill's payment in the bills table.
+
+    Args:
+        bill_code (str): The unique code for the bill.
+        amount (int): The amount added as payment for the bill.
+
+    Returns:
+        bool: True if the item was updated successfully, False otherwise.
+    """
+    conn = await get_connection()
+    try:
+        sql_query = "CALL update_bill_payment($1, $2);"
+
+        await conn.execute(sql_query, bill_code, amount)
+        return True  # If execution reaches here, the update was successful
+    except Exception as e:
+        flatbed('exception', f"In add_payment_bill_ps: {e}")
+        return False
+    finally:
+        await release_connection(conn)

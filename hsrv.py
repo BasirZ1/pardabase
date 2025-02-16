@@ -11,14 +11,14 @@ from fastapi.responses import FileResponse
 
 from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, NewAdminRequest, RemoveProductRequest, \
     UpdateRollRequest, AddExpenseRequest, RemoveRollRequest, RemoveBillRequest, UpdateBillStatusRequest, \
-    UpdateBillTailorRequest
+    UpdateBillTailorRequest, AddPaymentBillRequest
 from utils import flatbed, check_username_password_admins, get_admins_data, check_admins_token, \
     search_recent_activities_list, update_admins_password, add_new_admin_ps, insert_new_product, \
     get_image_for_product, search_products_list, update_product, get_product_and_roll_ps, remove_product_ps, \
     remember_admins_action, update_roll_quantity_ps, add_expense_ps, insert_new_roll, update_roll, \
     search_rolls_for_product, get_sample_image_for_roll, remove_roll_ps, insert_new_bill, \
     update_bill, get_bill_ps, remove_bill_ps, search_bills_list, update_bill_status_ps, set_current_db, make_bill_dic, \
-    make_product_dic, make_roll_dic, update_bill_tailor_ps
+    make_product_dic, make_roll_dic, update_bill_tailor_ps, add_payment_bill_ps
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -662,6 +662,25 @@ async def update_bill_tailor(request: UpdateBillTailorRequest, _: None = Depends
         return JSONResponse("Success", status_code=200)
     except Exception as e:
         flatbed('exception', f"in update_bill_tailor: {e}")
+        return "Error", 500
+
+
+@router.post("/add-payment-bill")
+async def add_payment_bill(request: AddPaymentBillRequest, _: None = Depends(set_db_from_header)):
+    """
+    Endpoint to update a bill's payment.
+    """
+    try:
+        check_status = await check_admins_token(2, request.loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        await add_payment_bill_ps(request.billCode, request.amount)
+        await remember_admins_action(request.username, f"Added payment to bill: "
+                                                       f"{request.billCode} {request.amount}")
+        return JSONResponse("Success", status_code=200)
+    except Exception as e:
+        flatbed('exception', f"in add_payment_bill: {e}")
         return "Error", 500
 
 

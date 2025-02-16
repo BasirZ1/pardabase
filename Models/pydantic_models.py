@@ -66,6 +66,13 @@ class UpdateBillTailorRequest(BaseModel):
     tailor: str
 
 
+class AddPaymentBillRequest(BaseModel):
+    loginToken: str
+    username: str
+    billCode: str
+    amount: int
+
+
 class AddExpenseRequest(BaseModel):
     loginToken: str
     username: str
