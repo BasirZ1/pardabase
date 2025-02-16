@@ -59,6 +59,13 @@ class UpdateBillStatusRequest(BaseModel):
     status: str
 
 
+class UpdateBillTailorRequest(BaseModel):
+    loginToken: str
+    username: str
+    billCode: str
+    tailor: str
+
+
 class AddExpenseRequest(BaseModel):
     loginToken: str
     username: str
