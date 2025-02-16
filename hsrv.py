@@ -270,7 +270,7 @@ async def add_or_edit_bill(
         Authorization: str = Header(None),
         username: str = Form(...),
         codeToEdit: Optional[str] = Form(None),
-        billDate: str = Form(...),
+        billDate: Optional[str] = Form(None),
         dueDate: Optional[str] = Form(None),
         customerName: Optional[str] = Form(None),
         customerNumber: Optional[str] = Form(None),
