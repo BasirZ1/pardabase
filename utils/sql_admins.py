@@ -5,12 +5,12 @@ from utils.conn import get_connection, release_connection
 from utils.hasher import check_password, hash_password
 
 
-async def check_admins_token(level, token):
+async def check_users_token(level, token):
     """
-    Function to check the administrator's token and level against the database.
+    Function to check the user's token and level against the database.
     """
     query = """
-        SELECT 1 FROM admins
+        SELECT 1 FROM users
         WHERE login_token = $1 AND level >= $2
         LIMIT 1
     """
@@ -22,9 +22,9 @@ async def check_admins_token(level, token):
         await release_connection(conn)  # Release connection back to the pool
 
 
-async def check_username_password_admins(username, password):
+async def check_username_password(username, password):
     """
-    Validates an admin's username and password by checking against the database.
+    Validates a user's username and password by checking against the database.
 
     Args:
         username (str): The username provided by the admin.
@@ -36,7 +36,7 @@ async def check_username_password_admins(username, password):
     conn = await get_connection()
     try:
         stored_password = await conn.fetchval("""
-                SELECT password FROM admins
+                SELECT password FROM users
                 WHERE username = lower($1)
             """, username)
 
@@ -48,11 +48,11 @@ async def check_username_password_admins(username, password):
         await release_connection(conn)
 
 
-async def get_admins_data(username):
+async def get_users_data(username):
     conn = await get_connection()
     try:
         data = await conn.fetchrow("""
-                           SELECT login_token, full_name, level FROM admins
+                           SELECT login_token, full_name, level FROM users
                            WHERE username = lower($1)
                        """, username)
         return data if data else None
@@ -60,11 +60,11 @@ async def get_admins_data(username):
         await release_connection(conn)
 
 
-async def update_admins_password(username, new_password):
+async def update_users_password(username, new_password):
     conn = await get_connection()
     try:
         await conn.execute("""
-            UPDATE admins
+            UPDATE users
             SET password = $1
             WHERE username = lower($2)
         """, new_password, username)
@@ -133,11 +133,11 @@ def get_date_range(_date: int):
     return start_date, end_date
 
 
-async def remember_admins_action(admin_name, action):
+async def remember_users_action(username, action):
     """
         Remember admins action
-        :param admin_name: username associated with the admin.
-        :param action: action performed by the admin.
+        :param username: username associated with the user.
+        :param action: action performed by the user.
     """
     conn = await get_connection()
 
@@ -149,33 +149,33 @@ async def remember_admins_action(admin_name, action):
             ) VALUES ($1, $2)
         """
     try:
-        await conn.execute(sql_insert, admin_name, action)
+        await conn.execute(sql_insert, username, action)
     finally:
         await release_connection(conn)
 
 
-async def add_new_admin_ps(token, full_name, username, password, level):
+async def add_new_user_ps(token, full_name, username, password, level):
     """
-    Adds a new admin to the database.
+    Adds a new user to the database.
 
     Args:
-        token (str): The login token for the admin.
-        full_name (str): The full name of the admin.
-        username (str): The username of the admin.
-        password (str): The plain-text password for the admin (will be hashed before storage).
-        level (int): The access level of the admin.
+        token (str): The login token for the user.
+        full_name (str): The full name of the user.
+        username (str): The username of the user.
+        password (str): The plain-text password for the user (will be hashed before storage).
+        level (int): The access level of the user.
 
     Returns:
-        bool: True if the admin was added successfully, False otherwise.
+        bool: True if the user was added successfully, False otherwise.
     """
     conn = await get_connection()
     try:
         # Hash the password before storing it
         hashed_password = hash_password(password)
 
-        # SQL query to insert the admin
+        # SQL query to insert the user
         sql_insert = """
-            INSERT INTO admins (
+            INSERT INTO users (
                 login_token,
                 full_name,
                 username,
@@ -187,7 +187,7 @@ async def add_new_admin_ps(token, full_name, username, password, level):
         await conn.execute(sql_insert, token, full_name, username, hashed_password, level)
         return True
     except Exception as e:
-        await flatbed('exception', f"in add_new_admin_ps: {e}")
+        await flatbed('exception', f"in add_new_user_ps: {e}")
         return False
     finally:
         await release_connection(conn)

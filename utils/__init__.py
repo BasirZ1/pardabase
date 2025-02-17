@@ -1,6 +1,6 @@
-from .sql_admins import check_admins_token, check_username_password_admins, \
-    get_admins_data, update_admins_password, remember_admins_action, \
-    search_recent_activities_list, add_new_admin_ps, get_image_for_product, \
+from .sql_admins import check_users_token, check_username_password, \
+    get_users_data, update_users_password, remember_users_action, \
+    search_recent_activities_list, add_new_user_ps, get_image_for_product, \
     search_products_list, get_product_and_roll_ps, remove_product_ps, \
     get_sample_image_for_roll, search_rolls_for_product, remove_roll_ps, \
     get_bill_ps, remove_bill_ps, search_bills_list, make_bill_dic, \
