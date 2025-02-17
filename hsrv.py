@@ -9,16 +9,17 @@ from fastapi import APIRouter, Form, Header, File, UploadFile, Query, Background
 from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
 
-from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, NewAdminRequest, RemoveProductRequest, \
+from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, RemoveProductRequest, \
     UpdateRollRequest, AddExpenseRequest, RemoveRollRequest, RemoveBillRequest, UpdateBillStatusRequest, \
-    UpdateBillTailorRequest, AddPaymentBillRequest
+    UpdateBillTailorRequest, AddPaymentBillRequest, RemoveUserRequest
 from utils import flatbed, check_username_password, get_users_data, check_users_token, \
     search_recent_activities_list, update_users_password, add_new_user_ps, insert_new_product, \
     get_image_for_product, search_products_list, update_product, get_product_and_roll_ps, remove_product_ps, \
     remember_users_action, update_roll_quantity_ps, add_expense_ps, insert_new_roll, update_roll, \
     search_rolls_for_product, get_sample_image_for_roll, remove_roll_ps, insert_new_bill, \
     update_bill, get_bill_ps, remove_bill_ps, search_bills_list, update_bill_status_ps, set_current_db, make_bill_dic, \
-    make_product_dic, make_roll_dic, update_bill_tailor_ps, add_payment_bill_ps
+    make_product_dic, make_roll_dic, update_bill_tailor_ps, add_payment_bill_ps, get_users_list_ps, \
+    get_image_for_user, remove_user_ps, generate_token, update_user
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -114,7 +115,7 @@ async def get_recent_activity(loginToken: str, _date: int, _: None = Depends(set
 
 
 @router.get("/users-list-get")
-async def get_users_list(loginToken: str, _date: int, _: None = Depends(set_db_from_header)):
+async def get_users_list(loginToken: str, _: None = Depends(set_db_from_header)):
     """
     Retrieve a list of recent activities.
     """
@@ -123,10 +124,10 @@ async def get_users_list(loginToken: str, _date: int, _: None = Depends(set_db_f
         if not check_status:
             return "Access denied", 401
 
-        recent_activity_data = await search_recent_activities_list(_date)
-        recent_activities_list = get_formatted_recent_activities_list(recent_activity_data)
-        if recent_activities_list:
-            return JSONResponse(content=recent_activities_list, status_code=200)
+        users_data = await get_users_list_ps()
+        users_list = get_formatted_users_list(users_data)
+        if users_list:
+            return JSONResponse(content=users_list, status_code=200)
         else:
             return "not found", 404
     except Exception as e:
@@ -158,31 +159,6 @@ async def change_password(request: ChangePasswordRequest, _: None = Depends(set_
 
     except Exception as e:
         await flatbed('exception', f"in change password {e}")
-        return "Error", 500
-
-
-@router.post("/add-new-user")
-async def add_new_user(request: NewAdminRequest, _: None = Depends(set_db_from_header)):
-    """
-    Endpoint to add new user to system.
-    """
-    try:
-        login_token = request.loginToken
-        check_status = await check_users_token(5, login_token)
-        if not check_status:
-            return JSONResponse(content={"error": "Access denied"}, status_code=401)
-
-        full_name = request.fullName
-        username = request.username
-        password = request.password
-        level = request.level
-
-        result = await add_new_user_ps(login_token, full_name, username, password, level)
-        if result is False:
-            return "Failure", 401
-        return JSONResponse("Success", status_code=200)
-    except Exception as e:
-        await flatbed('exception', f"in add_new_user {e}")
         return "Error", 500
 
 
@@ -345,6 +321,54 @@ async def add_or_edit_bill(
         return "Error submitting data", 500  # Error response
 
 
+@router.post("/add-or-edit-user")
+async def add_or_edit_user(
+        Authorization: str = Header(None),
+        username: str = Form(...),
+        usernameToEdit: Optional[str] = Form(None),
+        fullName: str = Form(...),
+        usernameChange: str = Form(...),
+        password: Optional[str] = Form(None),
+        level: int = Form(...),
+        image: Optional[UploadFile] = File(None),
+        _: None = Depends(set_db_from_header)
+):
+    try:
+        # Validate authorization header
+        if not Authorization.startswith("Bearer "):
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        login_token = Authorization.split(" ")[1]  # Extract token after "Bearer"
+        check_status = await check_users_token(3, login_token)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        # Read image data only if an image is uploaded
+        image_data = await image.read() if image else None
+
+        if usernameToEdit is None:
+            if password is None:
+                return JSONResponse(content={"error": "Password is missing"}, status_code=403)
+            token = generate_token(username)
+            # Insert registration data and images into the database
+            result = await add_new_user_ps(token, fullName, usernameChange, password, level, image_data)
+            if result:
+                await remember_users_action(username, f"User added: {usernameChange}")
+                return "Success", 200
+            return "Failure", 500
+
+        result = await update_user(usernameToEdit, fullName, usernameChange, level, password, image_data)
+        if result:
+            await remember_users_action(username, f"user updated: {usernameChange}")
+            return "Success", 200
+        return "Failure", 500
+
+    except Exception as e:
+        # Log the exception for debugging
+        await flatbed("exception", f"in add_or_edit_user: {e}")
+        return "Error submitting data", 500  # Error response
+
+
 @router.get("/products-list-get")
 async def get_products_list(
         loginToken: str,
@@ -489,6 +513,43 @@ async def get_product_image(
         return "Error", 500
 
 
+@router.get("/user-image-get")
+async def get_user_image(
+        loginToken: str = Query(...),
+        username: str = Query(...),
+        background_tasks: BackgroundTasks = None,
+        _: None = Depends(set_db_from_header)
+):
+    """
+    Endpoint to get user's image by username.
+    """
+    try:
+        check_status = await check_users_token(1, loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        # Get the agent image data
+        user_image = await get_image_for_user(username)
+
+        if user_image:
+            # Create a temporary file to store the image data
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                temp_file.write(user_image)
+                temp_file_path = temp_file.name
+
+            # Schedule the file for deletion after the response is sent
+            background_tasks.add_task(delete_temp_file, temp_file_path)
+            # Return the image file response
+            return FileResponse(temp_file_path, media_type="image/jpeg")
+        else:
+            # Return a message indicating the image is not found with HTTP status code 404
+            return "Image not found", 404
+
+    except Exception as e:
+        await flatbed('exception', f"in get_user_image: {e}")
+        return "Error", 500
+
+
 @router.get("/roll-sample-image-get")
 async def get_roll_sample_image(
         loginToken: str = Query(...),
@@ -611,6 +672,24 @@ async def remove_roll(request: RemoveRollRequest, _: None = Depends(set_db_from_
         return "Error", 500
 
 
+@router.post("/remove-user")
+async def remove_user(request: RemoveUserRequest, _: None = Depends(set_db_from_header)):
+    """
+    Endpoint to remove a user.
+    """
+    try:
+        check_status = await check_users_token(3, request.loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        await remove_user_ps(request.usernameToRemove)
+        await remember_users_action(request.username, f"User removed: {request.usernameToRemove}")
+        return JSONResponse("Success", status_code=200)
+    except Exception as e:
+        await flatbed('exception', f"in remove_user: {e}")
+        return "Error", 500
+
+
 @router.post("/remove-bill")
 async def remove_bill(request: RemoveBillRequest, _: None = Depends(set_db_from_header)):
     """
@@ -641,7 +720,7 @@ async def update_roll_quantity(request: UpdateRollRequest, _: None = Depends(set
 
         await update_roll_quantity_ps(request.rollCode, request.quantity, request.action)
         await remember_users_action(request.username, f"Roll quantity updated: "
-                                                       f"{request.rollCode} {request.action} {request.quantity}")
+                                                      f"{request.rollCode} {request.action} {request.quantity}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
         await flatbed('exception', f"in update_roll_quantity: {e}")
@@ -660,7 +739,7 @@ async def update_bill_status(request: UpdateBillStatusRequest, _: None = Depends
 
         await update_bill_status_ps(request.billCode, request.status)
         await remember_users_action(request.username, f"Bill status updated: "
-                                                       f"{request.billCode} {request.status}")
+                                                      f"{request.billCode} {request.status}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
         await flatbed('exception', f"in update_bill_status: {e}")
@@ -679,7 +758,7 @@ async def update_bill_tailor(request: UpdateBillTailorRequest, _: None = Depends
 
         await update_bill_tailor_ps(request.billCode, request.tailor)
         await remember_users_action(request.username, f"Bill's tailor updated: "
-                                                       f"{request.billCode} {request.tailor}")
+                                                      f"{request.billCode} {request.tailor}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
         await flatbed('exception', f"in update_bill_tailor: {e}")
@@ -698,7 +777,7 @@ async def add_payment_bill(request: AddPaymentBillRequest, _: None = Depends(set
 
         await add_payment_bill_ps(request.billCode, request.amount)
         await remember_users_action(request.username, f"Added payment to bill: "
-                                                       f"{request.billCode} {request.amount}")
+                                                      f"{request.billCode} {request.amount}")
         return JSONResponse("Success", status_code=200)
     except Exception as e:
         await flatbed('exception', f"in add_payment_bill: {e}")
@@ -794,6 +873,28 @@ def get_formatted_rolls_list(rolls_data):
             roll = make_roll_dic(data)
             rolls_list.append(roll)
     return rolls_list
+
+
+def get_formatted_users_list(users_data):
+    """
+    Helper function to format users data into JSON-compatible objects.
+
+    Parameters:
+    - users_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted users dictionaries.
+    """
+    users_list = []
+    if users_data:
+        for data in users_data:
+            user = {
+                "fullName": data["full_name"],
+                "username": data["username"],
+                "level": data["level"]
+            }
+            users_list.append(user)
+    return users_list
 
 
 def delete_temp_file(file_path: str):

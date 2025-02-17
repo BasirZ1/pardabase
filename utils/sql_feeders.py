@@ -1,5 +1,6 @@
 from typing import Optional
 
+from .hasher import hash_password
 from .logger import flatbed
 from utils.conn import get_connection, release_connection
 
@@ -132,6 +133,93 @@ async def update_roll(codeToEdit, product_code, quantity, color_letter, image_da
     except Exception as e:
         await flatbed('exception', f"In update_roll: {e}")
         return None
+    finally:
+        await release_connection(conn)
+
+
+async def update_user(usernameToEdit: str, full_name: str, user_name: str,
+                      level: int, password: Optional[str] = None, image_data: Optional[bytes] = None):
+    """
+    Updates user details in the database.
+
+    Args:
+        usernameToEdit (str): The username of the user to be updated.
+        full_name (str): The new full name of the user.
+        user_name (str): The new username.
+        level (int): The new access level.
+        password (Optional[str]): The new password (hashed before storage) or None to keep the existing one.
+        image_data (Optional[bytes]): The new profile photo or None to keep the existing one.
+
+    Returns:
+        bool: True if the update was successful, False otherwise.
+    """
+    conn = await get_connection()
+    try:
+
+        # Base query
+        update_fields = ["full_name = $1", "username = $2, level = $3, photo = $4"]
+        values = [full_name, user_name, level, image_data]
+
+        # Conditional updates
+        index = 5  # Start at $5
+        if password:
+            update_fields.append(f"password = ${index}")
+            values.append(hash_password(password))  # Hash password before storage
+            index += 1
+
+        values.append(usernameToEdit)  # WHERE condition
+
+        sql_update = f"""
+            UPDATE users
+            SET {", ".join(update_fields)}
+            WHERE username = ${index}
+        """
+
+        await conn.execute(sql_update, *values)
+        return True
+
+    except Exception as e:
+        await flatbed('exception', f"In update_user: {e}")
+        return False
+
+    finally:
+        await release_connection(conn)
+
+
+async def add_new_user_ps(token, full_name, username, password, level, photo):
+    """
+    Adds a new user to the database.
+
+    Args:
+        token (str): The login token for the user.
+        full_name (str): The full name of the user.
+        username (str): The username of the user.
+        password (str): The plain-text password for the user (will be hashed before storage).
+        level (int): The access level of the user.
+        photo (bytes | None): The photo for the user (can be None).
+
+    Returns:
+        bool: True if the user was added successfully, False otherwise.
+    """
+    conn = await get_connection()
+    try:
+
+        # Hash the password before storing it (ensure it's not async)
+        hashed_password = hash_password(password)
+
+        # Insert user into the table with explicit column names
+        sql_insert = """
+            INSERT INTO users (login_token, full_name, username, password, level, photo) 
+            VALUES ($1, $2, LOWER($3), $4, $5, $6)
+        """
+
+        await conn.execute(sql_insert, token, full_name, username, hashed_password, level, photo)
+        return True
+
+    except Exception as e:
+        await flatbed('exception', f"in add_new_user_ps: {e}")
+        return False
+
     finally:
         await release_connection(conn)
 

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, date
 
 from .logger import flatbed
 from utils.conn import get_connection, release_connection
-from utils.hasher import check_password, hash_password
+from utils.hasher import check_password
 
 
 async def check_users_token(level, token):
@@ -133,6 +133,28 @@ def get_date_range(_date: int):
     return start_date, end_date
 
 
+async def get_users_list_ps():
+    """
+    Retrieve all users from users table.
+
+    Returns:
+    - All users from the users table.
+    """
+    conn = await get_connection()
+
+    try:
+        query = "SELECT full_name, username, level FROM users;"
+        users_list = await conn.fetch(query)
+        return users_list  # Returns a list of asyncpg Record objects
+
+    except Exception as e:
+        await flatbed('exception', f"In get_users_list_ps: {e}")
+        raise RuntimeError(f"Failed to get users list: {e}")
+
+    finally:
+        await release_connection(conn)  # Ensure async release
+
+
 async def remember_users_action(username, action):
     """
         Remember admins action
@@ -150,45 +172,6 @@ async def remember_users_action(username, action):
         """
     try:
         await conn.execute(sql_insert, username, action)
-    finally:
-        await release_connection(conn)
-
-
-async def add_new_user_ps(token, full_name, username, password, level):
-    """
-    Adds a new user to the database.
-
-    Args:
-        token (str): The login token for the user.
-        full_name (str): The full name of the user.
-        username (str): The username of the user.
-        password (str): The plain-text password for the user (will be hashed before storage).
-        level (int): The access level of the user.
-
-    Returns:
-        bool: True if the user was added successfully, False otherwise.
-    """
-    conn = await get_connection()
-    try:
-        # Hash the password before storing it
-        hashed_password = hash_password(password)
-
-        # SQL query to insert the user
-        sql_insert = """
-            INSERT INTO users (
-                login_token,
-                full_name,
-                username,
-                password,
-                level
-            ) VALUES ($1, $2, LOWER($3), $4, $5)
-        """
-
-        await conn.execute(sql_insert, token, full_name, username, hashed_password, level)
-        return True
-    except Exception as e:
-        await flatbed('exception', f"in add_new_user_ps: {e}")
-        return False
     finally:
         await release_connection(conn)
 
@@ -300,6 +283,35 @@ async def get_image_for_product(code):
 
     except Exception as e:
         await flatbed('exception', f"In get_image_for_product: {e}")
+        raise RuntimeError(f"Failed to retrieve image: {e}")
+
+    finally:
+        await release_connection(conn)  # Ensure proper connection release
+
+
+async def get_image_for_user(username):
+    """
+    Retrieve the image for a given username.
+
+    Parameters:
+    - username (str): Username for user.
+
+    Returns:
+    - The image (bytes) if found, otherwise None.
+    """
+    conn = await get_connection()
+
+    try:
+        query = """
+        SELECT photo FROM users
+        WHERE username = $1
+        """
+        user_image = await conn.fetchval(query, username)  # fetchval() returns a single column value
+
+        return user_image  # Returns the image bytes or None if not found
+
+    except Exception as e:
+        await flatbed('exception', f"In get_image_for_user: {e}")
         raise RuntimeError(f"Failed to retrieve image: {e}")
 
     finally:
@@ -480,5 +492,15 @@ async def remove_bill_ps(code):
         await conn.execute("DELETE FROM bills WHERE bill_code = $1", code)
     except Exception as e:
         await flatbed('exception', f"in remove_bill_ps: {e}")
+    finally:
+        await release_connection(conn)
+
+
+async def remove_user_ps(username):
+    conn = await get_connection()
+    try:
+        await conn.execute("DELETE FROM users WHERE username = $1", username)
+    except Exception as e:
+        await flatbed('exception', f"in remove_user_ps: {e}")
     finally:
         await release_connection(conn)

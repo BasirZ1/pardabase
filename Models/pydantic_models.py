@@ -32,6 +32,12 @@ class RemoveProductRequest(BaseModel):
     username: str
 
 
+class RemoveUserRequest(BaseModel):
+    loginToken: str
+    usernameToRemove: str
+    username: str
+
+
 class RemoveRollRequest(BaseModel):
     loginToken: str
     rollCode: str
