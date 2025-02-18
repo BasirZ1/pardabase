@@ -19,7 +19,7 @@ from utils import flatbed, check_username_password, get_users_data, check_users_
     search_rolls_for_product, get_sample_image_for_roll, remove_roll_ps, insert_new_bill, \
     update_bill, get_bill_ps, remove_bill_ps, search_bills_list, update_bill_status_ps, set_current_db, make_bill_dic, \
     make_product_dic, make_roll_dic, update_bill_tailor_ps, add_payment_bill_ps, get_users_list_ps, \
-    get_image_for_user, remove_user_ps, generate_token, update_user
+    get_image_for_user, remove_user_ps, generate_token, update_user, search_bills_list_filtered
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -117,7 +117,7 @@ async def get_recent_activity(loginToken: str, _date: int, _: None = Depends(set
 @router.get("/users-list-get")
 async def get_users_list(loginToken: str, _: None = Depends(set_db_from_header)):
     """
-    Retrieve a list of recent activities.
+    Retrieve a list of users.
     """
     try:
         check_status = await check_users_token(3, loginToken)
@@ -392,6 +392,32 @@ async def get_products_list(
             return "not found", 404
     except Exception as e:
         await flatbed("exception", f"in get_products_list {e}")
+        return "Error", 500
+
+
+@router.get("/bills-list-get")
+async def get_bills_list(
+        loginToken: str,
+        date: int,
+        state: int,
+        _: None = Depends(set_db_from_header)
+):
+    """
+    Retrieve a list of bills based on date or state.
+    """
+    try:
+        check_status = await check_users_token(1, loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        bills_data = await search_bills_list_filtered(date, state)
+        bills_list = get_formatted_search_results_list(None, bills_data)
+        if bills_list:
+            return JSONResponse(content=bills_list, status_code=200)
+        else:
+            return "not found", 404
+    except Exception as e:
+        await flatbed("exception", f"in get_bills_list {e}")
         return "Error", 500
 
 

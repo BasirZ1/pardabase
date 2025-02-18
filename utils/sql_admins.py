@@ -231,6 +231,32 @@ async def search_bills_list(search_query, search_by):
         await release_connection(conn)  # Ensure the connection is released properly
 
 
+async def search_bills_list_filtered(_date, state):
+    """
+    Retrieve bills list based on a date or state filter.
+
+    Parameters:
+    - date (int): The date filter for bills list.
+    - state (int): The index for the state of the bill:
+
+    Returns:
+    - List of records from the bills table that match the criteria.
+    """
+    conn = await get_connection()
+
+    try:
+        query = "SELECT * FROM search_bills_list_filtered($1, $2);"
+        bills_list = await conn.fetch(query, _date, state)
+        return bills_list  # Returns a list of asyncpg Record objects
+
+    except Exception as e:
+        await flatbed('exception', f"In search_bills_list_filtered: {e}")
+        raise RuntimeError(f"Failed to search bills: {e}")
+
+    finally:
+        await release_connection(conn)  # Ensure the connection is released properly
+
+
 async def search_rolls_for_product(product_code):
     """
     Retrieve rolls list based on product_code.
