@@ -928,7 +928,8 @@ async def subscribe_newsletter(
     set_current_db("pardaaf_db_7072")
     try:
         result = await subscribe_newsletter_ps(email)
-        await send_mail_async("Subscribed successfully", email, "YOu have successfully subscribed to our newsletter")
+        if result == "success":
+            await send_mail_async("Subscribed successfully", email, "YOu have successfully subscribed to our newsletter")
         return JSONResponse(content={"result": result})
     except Exception as e:
         await flatbed('exception', f"in subscribe_newsletter: {e}")

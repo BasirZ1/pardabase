@@ -1,5 +1,4 @@
 import smtplib
-from email.message import EmailMessage
 
 from aiosmtplib import SMTP
 from email.mime.multipart import MIMEMultipart
@@ -92,7 +91,6 @@ async def send_mail_async(subject: str, recipient_email: str, body: str):
     try:
         # Connect and send
         await smtp.connect()
-        await smtp.starttls()  # Explicitly start TLS if needed
         await smtp.login(sender_email, sender_password)
         await smtp.send_message(msg)
         print("Email sent successfully!")
