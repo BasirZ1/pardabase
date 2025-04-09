@@ -26,3 +26,27 @@ Content-Type: application/json
 
 ###
 
+### Add Online Order Test
+POST https://zmt.basirsoft.tech/add-online-order
+Content-Type: application/json
+
+{
+  "api": "123456",
+  "firstName": "Ali",
+  "lastName": "Ahmadi",
+  "phone": "+93700111222",
+  "email": "ali@example.com",
+  "country": "Afghanistan",
+  "address": "Kabul, District 10",
+  "city": "Kabul",
+  "state": "Kabul",
+  "zipCode": "1001",
+  "paymentMethod": "Cash",
+  "cartItems": "[{\"id\": 1, \"name\": \"Curtain A\", \"qty\": 2}]",
+  "totalAmount": 2000,
+  "notes": "Deliver ASAP"
+}
+
+### Subscribe to Newsletter Test
+GET https://zmt.basirsoft.tech/subscribe-newsletter?email=tester@example.com
+

@@ -21,6 +21,7 @@ from utils import flatbed, check_username_password, get_users_data, check_users_
     get_image_for_user, remove_user_ps, generate_token, update_user, search_bills_list_filtered, \
     search_expenses_list_filtered, make_expense_dic, search_products_list_filtered, insert_new_online_order, \
     subscribe_newsletter_ps, send_mail
+from utils.email_sender import send_mail_async
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -927,7 +928,7 @@ async def subscribe_newsletter(
     set_current_db("pardaaf_db_7072")
     try:
         result = await subscribe_newsletter_ps(email)
-        await send_mail("Subscribed successfully", email, "YOu have successfully subscribed to our newsletter")
+        await send_mail_async("Subscribed successfully", email, "YOu have successfully subscribed to our newsletter")
         return JSONResponse(content={"result": result})
     except Exception as e:
         await flatbed('exception', f"in subscribe_newsletter: {e}")
