@@ -6,12 +6,11 @@ from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Form, Header, File, UploadFile, Query, BackgroundTasks, HTTPException, Depends
-from fastapi.responses import JSONResponse
-from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse, FileResponse, RedirectResponse
 
 from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, RemoveProductRequest, \
     UpdateRollRequest, AddExpenseRequest, RemoveRollRequest, RemoveBillRequest, UpdateBillStatusRequest, \
-    UpdateBillTailorRequest, AddPaymentBillRequest, RemoveUserRequest
+    UpdateBillTailorRequest, AddPaymentBillRequest, RemoveUserRequest, AddOnlineOrderRequest
 from utils import flatbed, check_username_password, get_users_data, check_users_token, \
     search_recent_activities_list, update_users_password, add_new_user_ps, insert_new_product, \
     get_image_for_product, search_products_list, update_product, get_product_and_roll_ps, remove_product_ps, \
@@ -19,7 +18,9 @@ from utils import flatbed, check_username_password, get_users_data, check_users_
     search_rolls_for_product, get_sample_image_for_roll, remove_roll_ps, insert_new_bill, \
     update_bill, get_bill_ps, remove_bill_ps, search_bills_list, update_bill_status_ps, set_current_db, make_bill_dic, \
     make_product_dic, make_roll_dic, update_bill_tailor_ps, add_payment_bill_ps, get_users_list_ps, \
-    get_image_for_user, remove_user_ps, generate_token, update_user, search_bills_list_filtered
+    get_image_for_user, remove_user_ps, generate_token, update_user, search_bills_list_filtered, \
+    search_expenses_list_filtered, make_expense_dic, search_products_list_filtered, insert_new_online_order, \
+    subscribe_newsletter_ps, send_mail
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -369,32 +370,6 @@ async def add_or_edit_user(
         return "Error submitting data", 500  # Error response
 
 
-@router.get("/products-list-get")
-async def get_products_list(
-        loginToken: str,
-        searchQuery: str,
-        searchByIndex: int,
-        _: None = Depends(set_db_from_header)
-):
-    """
-    Retrieve a list of products based on search query.
-    """
-    try:
-        check_status = await check_users_token(1, loginToken)
-        if not check_status:
-            return JSONResponse(content={"error": "Access denied"}, status_code=401)
-
-        products_data = await search_products_list(searchQuery, searchByIndex)
-        products_list = get_formatted_search_results_list(products_data, None)
-        if products_list:
-            return JSONResponse(content=products_list, status_code=200)
-        else:
-            return "not found", 404
-    except Exception as e:
-        await flatbed("exception", f"in get_products_list {e}")
-        return "Error", 500
-
-
 @router.get("/bills-list-get")
 async def get_bills_list(
         loginToken: str,
@@ -418,6 +393,57 @@ async def get_bills_list(
             return "not found", 404
     except Exception as e:
         await flatbed("exception", f"in get_bills_list {e}")
+        return "Error", 500
+
+
+async def get_expenses_list(
+        loginToken: str,
+        date: int,
+        category: int,
+        _: None = Depends(set_db_from_header)
+):
+    """
+    Retrieve a list of expenses based on date and category.
+    """
+    try:
+        check_status = await check_users_token(1, loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        expenses_data = await search_expenses_list_filtered(date, category)
+        expenses_list = get_formatted_expenses_list(expenses_data)
+        if expenses_list:
+            return JSONResponse(content=expenses_list, status_code=200)
+        else:
+            return "not found", 404
+    except Exception as e:
+        await flatbed("exception", f"in get_expenses_list {e}")
+        return "Error", 500
+
+
+@router.get("/products-list-get")
+async def get_products_list(
+        loginToken: str,
+        date: int,
+        category: int,
+        _: None = Depends(set_db_from_header)
+):
+    """
+    Retrieve a list of products based on date and category.
+    """
+    try:
+        check_status = await check_users_token(1, loginToken)
+        if not check_status:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        products_data = await search_products_list_filtered(date, category)
+        products_list = get_formatted_search_results_list(products_data, None)
+        if products_list:
+            return JSONResponse(content=products_list, status_code=200)
+        else:
+            return "not found", 404
+    except Exception as e:
+        await flatbed("exception", f"in get_products_list {e}")
         return "Error", 500
 
 
@@ -833,6 +859,80 @@ async def add_expense(request: AddExpenseRequest, _: None = Depends(set_db_from_
         return "Error", 500
 
 
+@router.get("/submit-request")
+async def submit_request(
+        currentLang: str,
+        category: str,
+        name: str,
+        phone: str,
+        message: str = Query(...)
+):
+    """
+    Endpoint to submit a request from website.
+    """
+    try:
+        body = f"Name: {name}\nPhone: {phone}\nCategory: {category}\nMessage: {message}"
+        send_mail(f"Custom Order Request {name}", "sales@parda.af", body)
+        # Redirect to the thank-you page after email is sent
+        if currentLang == "en":
+            url = "https://parda.af/thank-you.html"
+        elif currentLang == "fa":
+            url = "https://parda.af/fa/thank-you.html"
+        elif currentLang == "ps":
+            url = "https://parda.af/ps/thank-you.html"
+        else:
+            url = "https://parda.af/thank-you.html"
+        return RedirectResponse(url=url, status_code=303)
+
+    except Exception as e:
+        await flatbed('exception', f"in submit_request: {e}")
+        return "Error", 500
+
+
+@router.post("/add-online-order")
+async def add_online_order(request: AddOnlineOrderRequest):
+    """
+    Endpoint to add an online order.
+    """
+    set_current_db("pardaaf_db_7072")
+    try:
+        is_from_web_app = request.api == "123456"
+        if not is_from_web_app:
+            return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
+        order_id = await insert_new_online_order(request.firstName, request.phone, request.country, request.address,
+                                                 request.city, request.state, request.zipCode, request.paymentMethod,
+                                                 request.cartItems, request.totalAmount, request.lastName,
+                                                 request.email, request.notes)
+        if order_id:
+            return JSONResponse(content={
+                "order_id": order_id,
+                "totalAmount": request.totalAmount,
+                "paymentMethod": request.paymentMethod
+            })
+        return JSONResponse(content={"error": "Failed to create order"}, status_code=500)
+    except Exception as e:
+        await flatbed('exception', f"in add_online_order: {e}")
+        return JSONResponse(content={"error": "Internal server error"}, status_code=500)
+
+
+@router.get("/subscribe-newsletter")
+async def subscribe_newsletter(
+        email: str
+):
+    """
+    Endpoint to let users subscribe to the newsletter.
+    """
+    set_current_db("pardaaf_db_7072")
+    try:
+        result = await subscribe_newsletter_ps(email)
+        await send_mail("Subscribed successfully", email, "YOu have successfully subscribed to our newsletter")
+        return JSONResponse(content={"result": result})
+    except Exception as e:
+        await flatbed('exception', f"in subscribe_newsletter: {e}")
+        return JSONResponse(content={"error": "Internal server error"}, status_code=500)
+
+
 #  Helper Functions
 def get_formatted_recent_activities_list(recent_activity_data):
     """
@@ -856,6 +956,25 @@ def get_formatted_recent_activities_list(recent_activity_data):
             }
             recent_activity_list.append(activity)
     return recent_activity_list
+
+
+def get_formatted_expenses_list(expenses_data):
+    """
+    Helper function to format expenses data into JSON-compatible objects.
+
+    Parameters:
+    - expenses_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted expenses dictionaries.
+    """
+    expenses_list = []
+    if expenses_data:
+        for data in expenses_data:
+            search_result = make_expense_dic(data)
+            expenses_list.append(search_result)
+
+    return expenses_list
 
 
 def get_formatted_search_results_list(products_data, bills_data):

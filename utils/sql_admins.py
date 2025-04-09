@@ -257,6 +257,58 @@ async def search_bills_list_filtered(_date, state):
         await release_connection(conn)  # Ensure the connection is released properly
 
 
+async def search_expenses_list_filtered(_date, category):
+    """
+    Retrieve expenses list based on a date or type filter.
+
+    Parameters:
+    - date (int): The date filter for expenses list.
+    - category (int): The index for the category of the expense:
+
+    Returns:
+    - List of records from the expenses table that match the criteria.
+    """
+    conn = await get_connection()
+
+    try:
+        query = "SELECT * FROM search_expenses_list_filtered($1, $2);"
+        expenses_list = await conn.fetch(query, _date, category)
+        return expenses_list  # Returns a list of asyncpg Record objects
+
+    except Exception as e:
+        await flatbed('exception', f"In search_expenses_list_filtered: {e}")
+        raise RuntimeError(f"Failed to search expenses: {e}")
+
+    finally:
+        await release_connection(conn)  # Ensure the connection is released properly
+
+
+async def search_products_list_filtered(_date, category):
+    """
+    Retrieve products list based on a date or category filter.
+
+    Parameters:
+    - date (int): The date filter for products list.
+    - category (int): The index for the type of the category:
+
+    Returns:
+    - List of records from the products table that match the criteria.
+    """
+    conn = await get_connection()
+
+    try:
+        query = "SELECT * FROM search_products_list_filtered($1, $2);"
+        expenses_list = await conn.fetch(query, _date, category)
+        return expenses_list  # Returns a list of asyncpg Record objects
+
+    except Exception as e:
+        await flatbed('exception', f"In search_products_list_filtered: {e}")
+        raise RuntimeError(f"Failed to search products: {e}")
+
+    finally:
+        await release_connection(conn)  # Ensure the connection is released properly
+
+
 async def search_rolls_for_product(product_code):
     """
     Retrieve rolls list based on product_code.
@@ -437,6 +489,18 @@ def make_bill_dic(data):
         "installation": data["installation"]
     }
     return bill
+
+
+def make_expense_dic(data):
+    expense = {
+        "id": data["id"],
+        "categoryIndex": data["category_index"],
+        "description": data["description"],
+        "amount": data["amount"],
+        "date": data["date"].isoformat() if isinstance(data["date"],
+                                                                (date, datetime)) else data["date"]
+    }
+    return expense
 
 
 def make_product_dic(data):
