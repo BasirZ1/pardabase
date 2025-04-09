@@ -483,9 +483,17 @@ async def insert_new_online_order(
 
 async def subscribe_newsletter_ps(
         email: str
-) -> bool:
+) -> str:
     conn = await get_connection()
     try:
+        # Check if the email already exists
+        sql_check = "SELECT 1 FROM newsletter_emails WHERE email = $1"
+        existing_email = await conn.fetchval(sql_check, email)
+
+        if existing_email:
+            # If email already exists, return an appropriate message
+            return "subscribed"
+
         sql_insert = """
             INSERT INTO newsletter_emails (
                 email
@@ -493,9 +501,9 @@ async def subscribe_newsletter_ps(
         """
 
         await conn.execute(sql_insert, email)
-        return True
+        return "success"
     except Exception as e:
         await flatbed('exception', f"In subscribe_newsletter_ps: {e}")
-        return False
+        return "failed"
     finally:
         await release_connection(conn)

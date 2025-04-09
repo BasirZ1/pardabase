@@ -40,7 +40,7 @@ def send_mail(subject, recipient_email, body):
 async def send_mail_async(subject, recipient_email, body):
     smtp_host = "smtp.mailgun.org"
     smtp_port = 587
-    sender_email = "noreply@parda.af"
+    sender_email = "parda.af-noreply@parda.af"
     sender_password = "afc6e1d2c40ed5202c114de70fc8a983-3af52e3b-10f63034"
 
     msg = MIMEMultipart()
