@@ -3,7 +3,7 @@ from aiosmtplib import SMTP
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from utils import flatbed
+from .logger import flatbed
 
 
 def send_mail(subject, recipient_email, body):
