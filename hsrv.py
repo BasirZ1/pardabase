@@ -396,6 +396,7 @@ async def get_bills_list(
         return "Error", 500
 
 
+@router.get("/expenses-list-get")
 async def get_expenses_list(
         loginToken: str,
         date: int,
