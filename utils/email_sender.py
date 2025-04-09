@@ -3,8 +3,6 @@ from aiosmtplib import SMTP
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from .logger import flatbed
-
 
 def send_mail(subject, recipient_email, body):
     # SMTP server configuration
@@ -38,6 +36,7 @@ def send_mail(subject, recipient_email, body):
     finally:
         server.quit()
 
+
 async def send_mail_async(subject, recipient_email, body):
     smtp_host = "smtp.mailgun.org"
     smtp_port = 587
@@ -56,9 +55,10 @@ async def send_mail_async(subject, recipient_email, body):
         await smtp.connect()
         await smtp.login(sender_email, sender_password)
         await smtp.send_message(msg)
-        await flatbed("hmm", "Email sent successfully!")
+        print("Email sent successfully!")
     except Exception as e:
-        await flatbed("exception", f"Error sending email: {e}")
+        print(f"Error sending email: {e}")
     finally:
         if smtp.is_connected:
             await smtp.quit()
+            
