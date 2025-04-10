@@ -24,7 +24,7 @@ async def send_mail(subject, recipient_email, body) -> str:
 
     try:
         # Send email asynchronously using aiosmtplib
-        async with aiosmtplib.SMTP(hostname="localhost", port=25) as server:
+        async with aiosmtplib.SMTP(hostname="localhost", port=25, start_tls=False) as server:
             await server.send_message(message)
         return "Email sent successfully!"
     except Exception as e:
@@ -55,7 +55,7 @@ async def send_mail_html(subject, recipient_email, html_content, text_content) -
 
     try:
         # Send email asynchronously using aiosmtplib
-        async with aiosmtplib.SMTP(hostname="localhost", port=25) as server:
+        async with aiosmtplib.SMTP(hostname="localhost", port=25, start_tls=False) as server:
             await server.send_message(message)
         return "Email sent successfully!"
     except Exception as e:
