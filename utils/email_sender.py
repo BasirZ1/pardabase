@@ -1,6 +1,7 @@
 import smtplib
 from email.message import EmailMessage
 
+import aiosmtplib
 from aiosmtplib import send
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -99,13 +100,11 @@ async def send_mail_html(subject, recipient_email, html_content, text_content) -
     message.attach(html_part)
 
     try:
-        await send(
-            message,
-            hostname="localhost",
-            port=25,  # or 587 if you use auth
-            start_tls=True
-        )
-        return "email sent successfully!"
+        # Send email asynchronously using aiosmtplib
+        async with aiosmtplib.SMTP(hostname="localhost", port=25) as server:
+            await server.starttls()  # Use STARTTLS for encryption if Postfix supports it
+            await server.send_message(message)
+        return "Email sent successfully!"
     except Exception as e:
         return f"Error sending email: {e}"
 
