@@ -1,5 +1,6 @@
 import smtplib
 from email.message import EmailMessage
+from email.utils import formataddr
 
 import aiosmtplib
 from aiosmtplib import send
@@ -88,7 +89,7 @@ async def send_mail_async(subject, recipient_email, body) -> str:
 async def send_mail_html(subject, recipient_email, html_content, text_content) -> str:
     # Create message
     message = MIMEMultipart("alternative")
-    message["From"] = "noreply-parda.af@parda.af"
+    message["From"] = formataddr(("parda.af", "noreply-parda.af@parda.af"))
     message["To"] = recipient_email
     message["Subject"] = subject
 
