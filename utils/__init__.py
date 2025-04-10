@@ -13,6 +13,6 @@ from .sql_feeders import insert_new_product, update_product, \
     update_bill_tailor_ps, add_payment_bill_ps, add_new_user_ps, \
     update_user, insert_new_online_order, subscribe_newsletter_ps
 from .generate_token import generate_token
-from .email_sender import send_mail
+from .email_sender import send_mail, send_mail_html
 from .logger import flatbed
 from .conn import set_current_db
