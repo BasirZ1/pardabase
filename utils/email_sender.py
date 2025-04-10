@@ -101,8 +101,7 @@ async def send_mail_html(subject, recipient_email, html_content, text_content) -
 
     try:
         # Send email asynchronously using aiosmtplib
-        async with aiosmtplib.SMTP(hostname="mail.basirsoft.tech", port=587) as server:
-            await server.starttls()  # Use STARTTLS for encryption if Postfix supports it
+        async with aiosmtplib.SMTP(hostname="mail.basirsoft.tech", port=587, start_tls=True) as server:
             await server.send_message(message)
         return "Email sent successfully!"
     except Exception as e:
@@ -132,9 +131,8 @@ async def send_mail_html(subject, recipient_email, html_content, text_content) -
 #     message["To"] = recipient_email
 #     message["Subject"] = subject
 #
-#     # Attach both plain text and HTML versions
-#     text_part = MIMEText("Please confirm your subscription by visiting the following link: " + confirmation_link, "plain")
-#     html_part = MIMEText(html_content, "html")
+# # Attach both plain text and HTML versions text_part = MIMEText("Please confirm your subscription by visiting the
+# following link: " + confirmation_link, "plain") html_part = MIMEText(html_content, "html")
 #
 #     message.attach(text_part)
 #     message.attach(html_part)
