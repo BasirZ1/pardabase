@@ -102,7 +102,7 @@ async def send_mail_html(subject, recipient_email, html_content, text_content) -
 
     try:
         # Send email asynchronously using aiosmtplib
-        async with aiosmtplib.SMTP(hostname="mail.basirsoft.tech", port=587, start_tls=True) as server:
+        async with aiosmtplib.SMTP(hostname="localhost", port=587, start_tls=True) as server:
             await server.send_message(message)
         return "Email sent successfully!"
     except Exception as e:
