@@ -939,7 +939,6 @@ async def subscribe_newsletter(
 
 @router.get("/send-html-mail")
 async def send_html_mail(
-        loginToken: str,
         email: str,
         subject: str,
         html_content: str,
@@ -948,9 +947,9 @@ async def send_html_mail(
     """
     Endpoint to let me send mail for testing.
     """
-    check_status = await check_users_token(5, loginToken)
-    if not check_status:
-        return JSONResponse(content={"error": "Access denied"}, status_code=401)
+    # check_status = await check_users_token(5, loginToken)
+    # if not check_status:
+    #     return JSONResponse(content={"error": "Access denied"}, status_code=401)
 
     try:
         result = await send_mail_html(subject, email, html_content, text_content)

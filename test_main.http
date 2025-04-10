@@ -51,4 +51,4 @@ Content-Type: application/json
 GET https://zmt.basirsoft.tech/subscribe-newsletter?email=tester@example.com
 
 ### MAIL TEST
-GET https://zmt.basirsoft.tech/send-html-mail?email=ba3irzurmati@gmail.com&subject=Newsletter%20Confirmation&html_content=<h1>Test</h1>&text_content=Test%20Body
+GET https://zmt.basirsoft.tech/send-html-mail?loginToken=xkTIijaVqHSCAvZ-GDzZ9pRCr45_fJLQudu4uTgnbG4%3D&email=ba3irzurmati@gmail.com&subject=Newsletter%20Confirmation&html_content=<h1>Test</h1>&text_content=Test%20Body
