@@ -20,8 +20,7 @@ from utils import flatbed, check_username_password, get_users_data, check_users_
     make_product_dic, make_roll_dic, update_bill_tailor_ps, add_payment_bill_ps, get_users_list_ps, \
     get_image_for_user, remove_user_ps, generate_token, update_user, search_bills_list_filtered, \
     search_expenses_list_filtered, make_expense_dic, search_products_list_filtered, insert_new_online_order, \
-    subscribe_newsletter_ps, send_mail
-from utils.email_sender import send_mail_async, send_mail_html
+    subscribe_newsletter_ps, send_mail, send_mail_html
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -874,7 +873,7 @@ async def submit_request(
     """
     try:
         body = f"Name: {name}\nPhone: {phone}\nCategory: {category}\nMessage: {message}"
-        send_mail(f"Custom Order Request {name}", "sales@parda.af", body)
+        await send_mail(f"Custom Order Request {name}", "sales@parda.af", body)
         # Redirect to the thank-you page after email is sent
         if currentLang == "en":
             url = "https://parda.af/thank-you.html"
@@ -929,8 +928,9 @@ async def subscribe_newsletter(
     try:
         result = await subscribe_newsletter_ps(email)
         if result == "success":
-            await send_mail_async("Subscribed successfully", email,
-                                  "YOu have successfully subscribed to our newsletter")
+            html_content = "You have successfully subscribed to our newsletter"
+            text_content = "You have successfully subscribed to our newsletter"
+            await send_mail_html("Subscribed successfully", email, html_content, text_content)
         return JSONResponse(content={"result": result})
     except Exception as e:
         await flatbed('exception', f"in subscribe_newsletter: {e}")
@@ -939,6 +939,7 @@ async def subscribe_newsletter(
 
 @router.get("/send-html-mail")
 async def send_html_mail(
+        loginToken: str,
         email: str,
         subject: str,
         html_content: str,
@@ -947,6 +948,10 @@ async def send_html_mail(
     """
     Endpoint to let me send mail for testing.
     """
+    check_status = await check_users_token(5, loginToken)
+    if not check_status:
+        return JSONResponse(content={"error": "Access denied"}, status_code=401)
+
     try:
         result = await send_mail_html(subject, email, html_content, text_content)
         return JSONResponse(content={"result": result})
