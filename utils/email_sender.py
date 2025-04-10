@@ -101,7 +101,7 @@ async def send_mail_html(subject, recipient_email, html_content, text_content) -
 
     try:
         # Send email asynchronously using aiosmtplib
-        async with aiosmtplib.SMTP(hostname="mail.basirsoft.tech", port=25) as server:
+        async with aiosmtplib.SMTP(hostname="mail.basirsoft.tech", port=587) as server:
             await server.starttls()  # Use STARTTLS for encryption if Postfix supports it
             await server.send_message(message)
         return "Email sent successfully!"
