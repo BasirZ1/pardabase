@@ -486,23 +486,33 @@ async def subscribe_newsletter_ps(
 ) -> str:
     conn = await get_connection()
     try:
-        # Check if the email already exists
-        sql_check = "SELECT 1 FROM newsletter_emails WHERE email = LOWER($1) and is_verified = True"
-        existing_email = await conn.fetchval(sql_check, email)
+        # Standardize email to lowercase
+        email_lower = email.lower()
+
+        # Check if the email already exists and whether it is verified
+        sql_check = """
+            SELECT token, is_verified 
+            FROM newsletter_emails 
+            WHERE email = $1
+        """
+        existing_email = await conn.fetchrow(sql_check, email_lower)
 
         if existing_email:
-            # If email already exists, return an appropriate message
-            return "subscribed"
+            # If email exists and is verified
+            if existing_email["is_verified"]:
+                return "subscribed"
+            # If email exists but not verified, return the existing token for verification
+            return existing_email["token"]
 
+        # Insert the new email and return the generated token
         sql_insert = """
-            INSERT INTO newsletter_emails (
-                email
-            ) VALUES (LOWER($1))
+            INSERT INTO newsletter_emails (email)
+            VALUES ($1)
             RETURNING token
         """
-
-        token = await conn.fetchval(sql_insert, email)
+        token = await conn.fetchval(sql_insert, email_lower)
         return token
+
     except Exception as e:
         await flatbed('exception', f"In subscribe_newsletter_ps: {e}")
         return "failed"
