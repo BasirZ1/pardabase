@@ -1021,7 +1021,7 @@ async def subscribe_newsletter(
           <!-- Logo -->
           <tr>
             <td>
-              <a href="https://parda.af"><img class="logo" src="https://cdn.parda.af/img/logo.svg" alt="parda.af Logo" /></a>
+              <a href="https://parda.af"><img class="logo" src="https://cdn.parda.af/img/logo.png" alt="parda.af Logo" /></a>
             </td>
           </tr>
 
@@ -1047,7 +1047,7 @@ async def subscribe_newsletter(
           <!-- Confirm button -->
           <tr>
             <td>
-              <a href="https://zmt.basirsoft.tech/confirm?token={result}" class="btn">
+              <a href="https://zmt.basirsoft.tech/confirm-email-newsletter?token={result}" class="btn">
                 Confirm Subscription
               </a>
             </td>
