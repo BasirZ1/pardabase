@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm Your Subscription</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f6f6f6;
+    }
+    table {
+      width: 100%;
+      border-spacing: 0;
+    }
+    td {
+      padding: 0;
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin: 50px auto;  /* Added top margin for spacing */
+      background: #ffffff;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .logo {
+      display: block;
+      max-width: 120px;
+      margin: 0;
+    }
+    .hero-image {
+      width: 100%;
+      max-width: 180px;
+      margin: 30px auto;
+    }
+    .header-text {
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+      text-align: center;
+    }
+    .sub-header-text {
+      padding: 10px 0 30px;
+      color: #555;
+      text-align: center;
+    }
+    .btn {
+      display: block;
+      padding: 12px 25px;
+      background-color: #ce1e1e;
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+      border-radius: 5px;
+      text-align: center;
+      width: 100%;  /* Added to ensure button stays centered */
+      max-width: 300px;  /* Limit button size */
+      margin: 0 auto;  /* Center the button */
+    }
+    .footer {
+      padding: 30px 0 0;
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+    }
+    /* Mobile responsiveness */
+    @media only screen and (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+      .btn {
+        padding: 10px 20px;
+        font-size: 14px;
+        max-width: 250px;  /* Adjust button width for smaller screens */
+      }
+      .hero-image {
+        max-width: 120px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <table>
+    <tr>
+      <td align="center">
+        <table class="container">
+          <!-- Logo -->
+          <tr>
+            <td>
+              <a href="https://parda.af"><img class="logo" src="https://cdn.parda.af/img/logo.svg" alt="parda.af Logo" /></a>
+            </td>
+          </tr>
+
+          <!-- SVG illustration -->
+          <tr>
+            <td align="center">
+              <img class="hero-image" src="https://cdn.parda.af/img/mailbox.webp" alt="mailbox" />
+            </td>
+          </tr>
+
+          <!-- Text -->
+          <tr>
+            <td class="header-text">
+              One last step…
+            </td>
+          </tr>
+          <tr>
+            <td class="sub-header-text">
+              Please confirm your subscription to stay connected.
+            </td>
+          </tr>
+
+          <!-- Confirm button -->
+          <tr>
+            <td>
+              <a href="https://zmt.basirsoft.tech/confirm?token=YOUR_TOKEN_HERE" class="btn">
+                Confirm Subscription
+              </a>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td class="footer">
+              If you didn’t request this, you can safely ignore this email.<br />
+              Sent with ❤️ from parda.af
+              <br /><br />
+              <small>If you have any questions, contact us at <a href="mailto:support@parda.af">support@parda.af</a></small>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

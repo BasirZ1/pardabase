@@ -11,7 +11,8 @@ from .sql_feeders import insert_new_product, update_product, \
     update_roll_quantity_ps, add_expense_ps, insert_new_roll, \
     update_roll, insert_new_bill, update_bill, update_bill_status_ps, \
     update_bill_tailor_ps, add_payment_bill_ps, add_new_user_ps, \
-    update_user, insert_new_online_order, subscribe_newsletter_ps
+    update_user, insert_new_online_order, subscribe_newsletter_ps, \
+    unsubscribe_newsletter_ps, confirm_email_newsletter_ps
 from .generate_token import generate_token
 from .email_sender import send_mail, send_mail_html
 from .logger import flatbed

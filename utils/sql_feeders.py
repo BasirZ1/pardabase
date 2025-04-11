@@ -487,7 +487,7 @@ async def subscribe_newsletter_ps(
     conn = await get_connection()
     try:
         # Check if the email already exists
-        sql_check = "SELECT 1 FROM newsletter_emails WHERE email = $1"
+        sql_check = "SELECT 1 FROM newsletter_emails WHERE email = LOWER($1) and is_verified = True"
         existing_email = await conn.fetchval(sql_check, email)
 
         if existing_email:
@@ -497,13 +497,53 @@ async def subscribe_newsletter_ps(
         sql_insert = """
             INSERT INTO newsletter_emails (
                 email
-            ) VALUES ($1)
+            ) VALUES (LOWER($1))
+            RETURNING token
         """
 
-        await conn.execute(sql_insert, email)
-        return "success"
+        token = await conn.fetchval(sql_insert, email)
+        return token
     except Exception as e:
         await flatbed('exception', f"In subscribe_newsletter_ps: {e}")
         return "failed"
+    finally:
+        await release_connection(conn)
+
+
+async def confirm_email_newsletter_ps(
+        token: str
+) -> bool:
+    conn = await get_connection()
+    try:
+        sql_update = """
+            UPDATE newsletter_emails
+            SET is_verified = TRUE
+            where token = $1
+        """
+
+        await conn.execute(sql_update, token)
+        return True
+    except Exception as e:
+        await flatbed('exception', f"In confirm_email_newsletter_ps: {e}")
+        return False
+    finally:
+        await release_connection(conn)
+
+
+async def unsubscribe_newsletter_ps(
+        token: str
+) -> bool:
+    conn = await get_connection()
+    try:
+        sql_delete = """
+            DELETE FROM newsletter_emails
+            WHERE token = $1
+        """
+
+        await conn.execute(sql_delete, token)
+        return True
+    except Exception as e:
+        await flatbed('exception', f"In unsubscribe_newsletter_ps: {e}")
+        return False
     finally:
         await release_connection(conn)

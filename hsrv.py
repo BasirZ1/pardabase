@@ -6,7 +6,7 @@ from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Form, Header, File, UploadFile, Query, BackgroundTasks, HTTPException, Depends
-from fastapi.responses import JSONResponse, FileResponse, RedirectResponse
+from fastapi.responses import JSONResponse, FileResponse, RedirectResponse, HTMLResponse
 
 from Models import TokenValidationRequest, AuthRequest, ChangePasswordRequest, RemoveProductRequest, \
     UpdateRollRequest, AddExpenseRequest, RemoveRollRequest, RemoveBillRequest, UpdateBillStatusRequest, \
@@ -20,7 +20,7 @@ from utils import flatbed, check_username_password, get_users_data, check_users_
     make_product_dic, make_roll_dic, update_bill_tailor_ps, add_payment_bill_ps, get_users_list_ps, \
     get_image_for_user, remove_user_ps, generate_token, update_user, search_bills_list_filtered, \
     search_expenses_list_filtered, make_expense_dic, search_products_list_filtered, insert_new_online_order, \
-    subscribe_newsletter_ps, send_mail, send_mail_html
+    subscribe_newsletter_ps, send_mail, send_mail_html, unsubscribe_newsletter_ps, confirm_email_newsletter_ps
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -927,13 +927,211 @@ async def subscribe_newsletter(
     set_current_db("pardaaf_db_7072")
     try:
         result = await subscribe_newsletter_ps(email)
-        if result == "success":
-            html_content = "You have successfully subscribed to our newsletter"
-            text_content = "You have successfully subscribed to our newsletter"
-            await send_mail_html("Subscribed successfully", email, html_content, text_content)
-        return JSONResponse(content={"result": result})
+        if result != "failed" and result != "subscribed":
+            html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm Your Subscription</title>
+  <style>
+    body {{
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f6f6f6;
+    }}
+    table {{
+      width: 100%;
+      border-spacing: 0;
+    }}
+    td {{
+      padding: 0;
+    }}
+    .container {{
+      width: 100%;
+      max-width: 600px;
+      margin: 50px auto;  /* Added top margin for spacing */
+      background: #ffffff;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }}
+    .logo {{
+      display: block;
+      max-width: 120px;
+      margin: 0;
+    }}
+    .hero-image {{
+      width: 100%;
+      max-width: 180px;
+      margin: 30px auto;
+    }}
+    .header-text {{
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+      text-align: center;
+    }}
+    .sub-header-text {{
+      padding: 10px 0 30px;
+      color: #555;
+      text-align: center;
+    }}
+    .btn {{
+      display: block;
+      padding: 12px 25px;
+      background-color: #ce1e1e;
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+      border-radius: 5px;
+      text-align: center;
+      width: 100%;  /* Added to ensure button stays centered */
+      max-width: 300px;  /* Limit button size */
+      margin: 0 auto;  /* Center the button */
+    }}
+    .footer {{
+      padding: 30px 0 0;
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+    }}
+    /* Mobile responsiveness */
+    @media only screen and (max-width: 600px) {{
+      .container {{
+        padding: 20px;
+      }}
+      .btn {{
+        padding: 10px 20px;
+        font-size: 14px;
+        max-width: 250px;  /* Adjust button width for smaller screens */
+      }}
+      .hero-image {{
+        max-width: 120px;
+      }}
+    }}
+  </style>
+</head>
+<body>
+  <table>
+    <tr>
+      <td align="center">
+        <table class="container">
+          <!-- Logo -->
+          <tr>
+            <td>
+              <a href="https://parda.af"><img class="logo" src="https://cdn.parda.af/img/logo.svg" alt="parda.af Logo" /></a>
+            </td>
+          </tr>
+
+          <!-- SVG illustration -->
+          <tr>
+            <td align="center">
+              <img class="hero-image" src="https://cdn.parda.af/img/mailbox.webp" alt="mailbox" />
+            </td>
+          </tr>
+
+          <!-- Text -->
+          <tr>
+            <td class="header-text">
+              One last step…
+            </td>
+          </tr>
+          <tr>
+            <td class="sub-header-text">
+              Please confirm your subscription to stay connected.
+            </td>
+          </tr>
+
+          <!-- Confirm button -->
+          <tr>
+            <td>
+              <a href="https://zmt.basirsoft.tech/confirm?token={result}" class="btn">
+                Confirm Subscription
+              </a>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td class="footer">
+              If you didn’t request this, you can safely ignore this email.<br />
+              Sent with ❤️ from parda.af
+              <br /><br />
+              <small>If you have any questions, contact us at <a href="mailto:sales@parda.af">sales@parda.af</a></small>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+"""
+            text_content = f"""One last step…\n
+            Please confirm your subscription to stay connected.\n
+            Click the link below to confirm.\n
+            https://zmt.basirsoft.tech/confirm-email-newsletter?token={result}\n\n
+            If you didn’t request this, you can safely ignore this email.\n
+              Sent with ❤️ from parda.af"""
+            await send_mail_html("Confirm your subscription", email, html_content, text_content)
+
+        if result == "subscribed":
+            return JSONResponse(content={"result": "Already subscribed"}, status_code=200)
+        elif result == "failed":
+            return JSONResponse(content={"error": "Failed to subscribe"}, status_code=400)
+        return JSONResponse(content={"result": result}, status_code=200)
+
     except Exception as e:
         await flatbed('exception', f"in subscribe_newsletter: {e}")
+        return JSONResponse(content={"error": "Internal server error"}, status_code=500)
+
+
+@router.get("/unsubscribe-newsletter", response_class=HTMLResponse)
+async def unsubscribe_newsletter(
+        token: str
+):
+    """
+    Endpoint to let users unsubscribe from the newsletter.
+    """
+    set_current_db("pardaaf_db_7072")
+    try:
+        if not token:
+            raise HTTPException(status_code=400, detail="Invalid Method")
+
+        result = await unsubscribe_newsletter_ps(token)
+        if result:
+            return f"<h3>You have been unsubscribed successfully.</h3>"
+
+        return (f"<h3>Failed to unsubscribe.</h3>"
+                f"<p> Please try again later.")
+    except Exception as e:
+        await flatbed('exception', f"in unsubscribe_newsletter: {e}")
+        return JSONResponse(content={"error": "Internal server error"}, status_code=500)
+
+
+@router.get("/confirm-email-newsletter", response_class=HTMLResponse)
+async def confirm_email_newsletter(
+        token: str
+):
+    """
+    Endpoint to let users confirm their email.
+    """
+    set_current_db("pardaaf_db_7072")
+    try:
+        if not token:
+            raise HTTPException(status_code=400, detail="Invalid Method")
+
+        result = await confirm_email_newsletter_ps(token)
+        if result:
+            return (f"<h3>Your email has been confirmed successfully.</h3>"
+                    f"<p>If this was an accident email unsubscribe to sales@parda.af")
+
+        return (f"<h3>Failed to confirm your email.</h3>"
+                f"<p> Please try again later.")
+    except Exception as e:
+        await flatbed('exception', f"in confirm_email_newsletter: {e}")
         return JSONResponse(content={"error": "Internal server error"}, status_code=500)
 
 

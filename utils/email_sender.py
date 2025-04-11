@@ -44,6 +44,8 @@ async def send_mail_html(subject, recipient_email, html_content, text_content) -
     message = MIMEMultipart("alternative")
     message["From"] = formataddr(("parda.af", "noreply@parda.af"))
     message["To"] = recipient_email
+    # message["List-Unsubscribe"] = (f"<mailto:sales@parda.af>,"
+    #                                f"<https://zmt.basirsoft.tech/unsubscribe-newsletter?={recipient_email}>")
     message["Subject"] = subject
 
     # Attach both plain text and HTML versions
