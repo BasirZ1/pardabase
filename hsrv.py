@@ -20,7 +20,7 @@ from utils import flatbed, check_username_password, get_users_data, check_users_
     make_product_dic, make_roll_dic, update_bill_tailor_ps, add_payment_bill_ps, get_users_list_ps, \
     get_image_for_user, remove_user_ps, generate_token, update_user, search_bills_list_filtered, \
     search_expenses_list_filtered, make_expense_dic, search_products_list_filtered, insert_new_online_order, \
-    subscribe_newsletter_ps, send_mail, send_mail_html, unsubscribe_newsletter_ps, confirm_email_newsletter_ps
+    subscribe_newsletter_ps, send_mail_html, unsubscribe_newsletter_ps, confirm_email_newsletter_ps
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -866,14 +866,23 @@ async def submit_request(
         category: str,
         name: str,
         phone: str,
+        email: str = Query(...),
         message: str = Query(...)
 ):
     """
     Endpoint to submit a request from website.
     """
     try:
-        body = f"Name: {name}\nPhone: {phone}\nCategory: {category}\nMessage: {message}"
-        await send_mail(f"Custom Order Request {name}", "sales@parda.af", body)
+        html_content = """
+        Html Content Here
+        """
+        text_content = f"""
+        Name: {name}\nPhone: {phone}\nCategory: {category}\nMessage: {message}
+        Text Content Here
+        """
+        await send_mail_html(f"Custom order requested", "parda.af@gmail.com", html_content, text_content)
+        if email is not None:
+            await send_mail_html(f"Custom order requested", email, html_content, text_content)
         # Redirect to the thank-you page after email is sent
         if currentLang == "en":
             url = "https://parda.af/thank-you.html"
@@ -905,7 +914,17 @@ async def add_online_order(request: AddOnlineOrderRequest):
                                                  request.city, request.state, request.zipCode, request.paymentMethod,
                                                  request.cartItems, request.totalAmount, request.lastName,
                                                  request.email, request.notes)
+
         if order_id:
+            html_content = """
+            Html Content Here
+            """
+            text_content = """
+            Text Content Here
+            """
+            await send_mail_html(f"Order Confirmed #{order_id}", "parda.af@gmail.com", html_content, text_content)
+            if request.email is not None:
+                await send_mail_html(f"Order Confirmed #{order_id}", request.email, html_content, text_content)
             return JSONResponse(content={
                 "order_id": order_id,
                 "totalAmount": request.totalAmount,

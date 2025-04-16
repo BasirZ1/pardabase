@@ -498,7 +498,7 @@ def make_expense_dic(data):
         "description": data["description"],
         "amount": data["amount"],
         "date": data["date"].isoformat() if isinstance(data["date"],
-                                                                (date, datetime)) else data["date"]
+                                                       (date, datetime)) else data["date"]
     }
     return expense
 
