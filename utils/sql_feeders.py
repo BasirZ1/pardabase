@@ -258,7 +258,7 @@ async def insert_new_bill(
                 tailor,
                 additional_data,
                 installation
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10, $11, $12, $13::jsonb, $14)
+            ) VALUES ($1::DATE, $2::DATE, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10, $11, $12, $13::jsonb, $14)
             RETURNING bill_code
         """
 
@@ -304,7 +304,7 @@ async def update_bill(
     try:
         sql_update = """
             UPDATE bills
-            SET due_date = $1,
+            SET due_date = $1::DATE,
                 customer_name = $2,
                 customer_number = $3,
                 price = $4,
