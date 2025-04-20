@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from contextvars import ContextVar
 
 import asyncpg
@@ -46,29 +47,23 @@ async def get_connection():
     db_name = current_db.get()
     pool = await get_connection_pool(db_name)
     conn = await pool.acquire()
-    conn._db_name = db_name
     return conn
 
 
 async def release_connection(conn):
     """Releases the connection back to the pool."""
-    # db_name = current_db.get()
-    # pool = await get_connection_pool(db_name)
-    # await pool.release(conn)
-    db_name = getattr(conn, '_db_name', None)
-    if not db_name:
-        raise RuntimeError("Cannot release connection: missing db name.")
+    db_name = current_db.get()
     pool = await get_connection_pool(db_name)
     await pool.release(conn)
 
 
-# @asynccontextmanager
-# async def connection_context():
-#     conn = await get_connection()
-#     try:
-#         yield conn
-#     finally:
-#         await release_connection(conn)
+@asynccontextmanager
+async def connection_context():
+    conn = await get_connection()
+    try:
+        yield conn
+    finally:
+        await release_connection(conn)
 
 
 async def close_all_pools():

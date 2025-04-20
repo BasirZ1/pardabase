@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, date
 
 from .logger import flatbed
-from utils.conn import get_connection, release_connection
+from utils.conn import get_connection, release_connection, connection_context
 from utils.hasher import check_password
 
 
@@ -14,12 +14,14 @@ async def check_users_token(level, token):
         WHERE login_token = $1 AND level >= $2
         LIMIT 1
     """
-    conn = await get_connection()  # Get connection from async pool
     try:
-        result = await conn.fetchval(query, token, level)
-        return result is not None
-    finally:
-        await release_connection(conn)  # Release connection back to the pool
+        async with connection_context() as conn:
+            result = await conn.fetchval(query, token, level)
+            return result is not None
+
+    except Exception as e:
+        await flatbed('exception', f"In check_users_token: {e}")
+        raise RuntimeError(f"Failed to check_users_token: {e}")
 
 
 async def check_username_password(username, password):
@@ -33,21 +35,24 @@ async def check_username_password(username, password):
     Returns:
         bool: True if the credentials are valid, False otherwise.
     """
-    conn = await get_connection()
     try:
-        stored_password = await conn.fetchval("""
-                SELECT password FROM users
-                WHERE username = lower($1)
-            """, username)
+        async with connection_context() as conn:
+            stored_password = await conn.fetchval("""
+                    SELECT password FROM users
+                    WHERE username = lower($1)
+                """, username)
 
-        if stored_password:
-            # Check the provided password against the stored hash
-            return check_password(stored_password, password)
-        return False
-    finally:
-        await release_connection(conn)
+            if stored_password:
+                # Check the provided password against the stored hash
+                return check_password(stored_password, password)
+            return False
+
+    except Exception as e:
+        await flatbed('exception', f"In check_username_password: {e}")
+        raise RuntimeError(f"Failed to check username and password: {e}")
 
 
+#   Change with async with connection_context() as conn: from here on
 async def get_users_data(username):
     conn = await get_connection()
     try:
