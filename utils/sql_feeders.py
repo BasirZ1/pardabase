@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 
 from .hasher import hash_password
@@ -242,6 +243,14 @@ async def insert_new_bill(
 ) -> Optional[str]:
     conn = await get_connection()
     try:
+        # Convert bill_date and due_date from string to date if provided
+        if bill_date:
+            bill_date = datetime.datetime.strptime(bill_date, "%Y-%m-%d").date() if isinstance(bill_date,
+                                                                                               str) else bill_date
+        if due_date:
+            due_date = datetime.datetime.strptime(due_date, "%Y-%m-%d").date() if isinstance(due_date,
+                                                                                             str) else due_date
+
         sql_insert = """
             INSERT INTO bills (
                 bill_date,
@@ -258,7 +267,7 @@ async def insert_new_bill(
                 tailor,
                 additional_data,
                 installation
-            ) VALUES ($1::DATE, $2::DATE, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10, $11, $12, $13::jsonb, $14)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10, $11, $12, $13::jsonb, $14)
             RETURNING bill_code
         """
 
