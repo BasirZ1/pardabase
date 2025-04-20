@@ -36,7 +36,8 @@ async def update_product(codeToEdit, image, name, category_index, cost_per_metre
             UPDATE products
             SET image = $1, name = $2,
             category = $3, cost_per_metre = $4,
-            price_per_metre = $5, description = $6
+            price_per_metre = $5, description = $6,
+            updated_at = now()
             WHERE product_code = $7
             RETURNING product_code
         """
@@ -363,7 +364,8 @@ async def update_bill_status_ps(bill_code: str, status: str) -> bool:
     try:
         sql_update = """
             UPDATE bills
-            SET status = $1
+            SET status = $1,
+            updated_at = now()
             WHERE bill_code = $2
             RETURNING status
         """
@@ -392,7 +394,8 @@ async def update_bill_tailor_ps(bill_code: str, tailor: str) -> bool:
     try:
         sql_update = """
             UPDATE bills
-            SET tailor = $1
+            SET tailor = $1,
+            updated_at = now()
             WHERE bill_code = $2
             RETURNING tailor
         """
