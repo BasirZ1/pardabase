@@ -312,9 +312,13 @@ async def update_bill(
 ) -> Optional[str]:
     conn = await get_connection()
     try:
+        if due_date:
+            due_date = datetime.datetime.strptime(due_date, "%Y-%m-%d").date() if isinstance(due_date,
+                                                                                             str) else due_date
+
         sql_update = """
             UPDATE bills
-            SET due_date = $1::DATE,
+            SET due_date = $1,
                 customer_name = $2,
                 customer_number = $3,
                 price = $4,
