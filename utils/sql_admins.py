@@ -459,7 +459,7 @@ async def get_product_and_roll_ps(code):
                 roll = await conn.fetchrow(query_roll, product_code, roll_code)
 
                 if roll:
-                    roll_dict = make_product_dic(roll)
+                    roll_dict = make_roll_dic(roll)
                     product_dict["rollsList"].append(roll_dict)
 
             return product_dict
