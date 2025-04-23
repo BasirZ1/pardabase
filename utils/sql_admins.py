@@ -431,45 +431,42 @@ async def get_sample_image_for_roll(roll_code):
 
 
 async def get_product_and_roll_ps(code):
-    conn = await get_connection()
     try:
-        upper_code = code.upper()
-        if "R" in upper_code:
-            product_code, roll_code = upper_code.split("R", 1)
-            roll_code = f"R{roll_code}"
-        else:
-            product_code, roll_code = upper_code, None
+        async with connection_context() as conn:
+            upper_code = code.upper()
+            if "R" in upper_code:
+                product_code, roll_code = upper_code.split("R", 1)
+                roll_code = f"R{roll_code}"
+            else:
+                product_code, roll_code = upper_code, None
 
-        # Fetch the product
-        query_product = "SELECT * FROM search_products_list($1, $2, 1, true);"
-        product = await conn.fetchrow(query_product, product_code, 0)
+            # Fetch the product
+            query_product = "SELECT * FROM search_products_list($1, 0, 1, true);"
+            product = await conn.fetchrow(query_product, product_code)
 
-        if not product:
-            return None
+            if not product:
+                return None
 
-        # asyncpg returns a dictionary-like object, so we use column names directly
-        product_dict = make_product_dic(product)
+            # asyncpg returns a dictionary-like object, so we use column names directly
+            product_dict = make_product_dic(product)
 
-        # Fetch the specific roll
-        if roll_code:
-            query_roll = """
-                SELECT product_code, roll_code, quantity, color FROM rolls
-                WHERE product_code = $1 AND roll_code = $2
-            """
-            roll = await conn.fetchrow(query_roll, product_code, roll_code)
+            # Fetch the specific roll
+            if roll_code:
+                query_roll = """
+                    SELECT product_code, roll_code, quantity, color FROM rolls
+                    WHERE product_code = $1 AND roll_code = $2
+                """
+                roll = await conn.fetchrow(query_roll, product_code, roll_code)
 
-            if roll:
-                roll_dict = make_product_dic(roll)
-                product_dict["rollsList"].append(roll_dict)
+                if roll:
+                    roll_dict = make_product_dic(roll)
+                    product_dict["rollsList"].append(roll_dict)
 
-        return product_dict
+            return product_dict
 
     except Exception as e:
         await flatbed('exception', f"In get_product_and_roll_ps: {e}")
         return None
-
-    finally:
-        await release_connection(conn)
 
 
 #  Helper
