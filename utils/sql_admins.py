@@ -439,7 +439,7 @@ async def get_product_and_roll_ps(code):
                 roll_code = f"R{roll_code}"
             else:
                 product_code, roll_code = upper_code, None
-
+            await flatbed('hmm', f"get_product_and_roll_ps {product_code} {roll_code}")
             # Fetch the product
             query_product = "SELECT * FROM search_products_list($1, 0, 1, true);"
             product = await conn.fetchrow(query_product, product_code)
