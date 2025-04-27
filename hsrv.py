@@ -86,7 +86,7 @@ async def login(
 async def get_dashboard_data(
         _: dict = Depends(verify_jwt_user(required_level=1))
 ):
-    data = get_dashboard_data_ps()
+    data = await get_dashboard_data_ps()
     # Fetch data for the dashboard
     return JSONResponse(content=data, status_code=200)
 
