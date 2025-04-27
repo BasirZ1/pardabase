@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 # Import HTTP routes from hsrv.py
 from hsrv import router as http_router
+from utils import flatbed
 from utils.conn import close_all_pools
 
 # CORS Configuration
@@ -34,6 +36,20 @@ app.add_middleware(
 
 # Mount HTTP routes
 app.include_router(http_router)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    endpoint = request.url.path
+    method = request.method
+    error_message = str(exc)
+
+    await flatbed('exception', f"Unhandled error at {method} {endpoint}: {error_message}")
+
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal server error"}
+    )
 
 # Run the application
 if __name__ == "__main__":
