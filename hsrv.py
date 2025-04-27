@@ -71,7 +71,7 @@ async def login(
         full_name = data["full_name"]
         level = data["level"]
 
-        token = create_jwt_token(user_id, request.username, full_name, level, request.tenant)
+        token = await create_jwt_token(user_id, request.username, full_name, level, request.tenant)
 
         return JSONResponse(content={
             "token": token,
