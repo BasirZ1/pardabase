@@ -67,12 +67,16 @@ async def login(
     if check_result:
         data = await get_users_data(request.username)
 
-        token = create_jwt_token(data, request.username, request.tenant)
+        user_id = data["user_id"]
+        full_name = data["full_name"]
+        level = data["level"]
+
+        token = create_jwt_token(user_id, request.username, full_name, level, request.tenant)
 
         return JSONResponse(content={
             "token": token,
-            "fullName": data['full_name'],
-            "level": data['level']
+            "fullName": full_name,
+            "level": level
         }, status_code=200)
     else:
         raise HTTPException(status_code=401, detail="Invalid username or password")

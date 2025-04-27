@@ -14,12 +14,12 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 security = HTTPBearer()
 
 
-async def create_jwt_token(data, username, tenant):
+async def create_jwt_token(sub, username, full_name, level, tenant):
     payload = {
-        "sub": data['user_id'],  # the user id
+        "sub": sub,  # the user id
         "username": username,
-        "full_name": data['full_name'],
-        "level": data['level'],
+        "full_name": full_name,
+        "level": level,
         "tenant": tenant,  # for setting DB
         "exp": datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRY_MINUTES)
     }
