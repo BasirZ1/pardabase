@@ -45,7 +45,7 @@ def verify_jwt_user(required_level: int):
             if level < required_level:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
 
-            await set_db_from_header(tenant)
+            await set_db_from_tenant(tenant)
 
             return {"user_id": sub, "username": username, "full_name": full_name, "level": level}
 
@@ -57,8 +57,8 @@ def verify_jwt_user(required_level: int):
     return inner
 
 
-async def set_db_from_header(tenant: str):
-    """Dependency to extract tenant and set the current database."""
+async def set_db_from_tenant(tenant: str):
+    """Dependency to set the current database."""
     if not tenant:
         raise HTTPException(status_code=400, detail="Missing tenant header")
 

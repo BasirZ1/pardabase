@@ -21,7 +21,7 @@ from utils import flatbed, check_username_password, get_users_data, verify_jwt_u
     get_image_for_user, remove_user_ps, update_user, search_bills_list_filtered, \
     search_expenses_list_filtered, make_expense_dic, search_products_list_filtered, insert_new_online_order, \
     subscribe_newsletter_ps, send_mail_html, unsubscribe_newsletter_ps, confirm_email_newsletter_ps, \
-    create_jwt_token, get_dashboard_data_ps
+    create_jwt_token, get_dashboard_data_ps, set_db_from_tenant
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -57,7 +57,11 @@ async def auth(request: AuthRequest):
 
 
 @router.post("/login")
-async def login(request: AuthRequest):
+async def login(
+        request: AuthRequest
+):
+    await set_db_from_tenant(request.tenant)
+
     check_result = await check_username_password(request.username, request.password)
 
     if check_result:
