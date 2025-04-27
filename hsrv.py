@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse, FileResponse, RedirectResponse, HTML
 
 from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     UpdateRollRequest, AddExpenseRequest, UpdateBillStatusRequest, \
-    UpdateBillTailorRequest, AddPaymentBillRequest, RemoveUserRequest, AddOnlineOrderRequest
+    UpdateBillTailorRequest, AddPaymentBillRequest, RemoveUserRequest, AddOnlineOrderRequest, RefreshTokenRequest
 from utils import flatbed, check_username_password, get_users_data, verify_jwt_user, \
     search_recent_activities_list, update_users_password, add_new_user_ps, insert_new_product, \
     get_image_for_product, search_products_list, update_product, get_product_and_roll_ps, remove_product_ps, \
@@ -21,7 +21,7 @@ from utils import flatbed, check_username_password, get_users_data, verify_jwt_u
     get_image_for_user, remove_user_ps, update_user, search_bills_list_filtered, \
     search_expenses_list_filtered, make_expense_dic, search_products_list_filtered, insert_new_online_order, \
     subscribe_newsletter_ps, send_mail_html, unsubscribe_newsletter_ps, confirm_email_newsletter_ps, \
-    create_jwt_token, get_dashboard_data_ps, set_db_from_tenant
+    create_jwt_token, get_dashboard_data_ps, set_db_from_tenant, create_refresh_token, verify_refresh_token
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -40,20 +40,33 @@ async def is_token_valid(
     return JSONResponse(content={"check_result": True})
 
 
-@router.post("/auth")
-async def auth(request: AuthRequest):
-    check_result = await check_username_password(request.username, request.password)
+@router.post("/refresh-token")
+async def refresh_token(request: RefreshTokenRequest):
+    user_data = await verify_refresh_token(request.refreshToken)
 
-    if check_result:
-        data = await get_users_data(request.username)
-        return JSONResponse(content={
-            'result': check_result,
-            'loginToken': data['login_token'],
-            'fullName': data['full_name'],
-            "level": data['level']
-        })
-    else:
-        return JSONResponse(content={"result": False})
+    # Create new access and refresh tokens
+    new_access_token = create_jwt_token(
+        sub=user_data['user_id'],
+        username=user_data['username'],
+        full_name=user_data['full_name'],
+        level=user_data['level'],
+        tenant=user_data['tenant']
+    )
+
+    new_refresh_token = create_refresh_token(
+        sub=user_data['user_id'],
+        username=user_data['username'],
+        full_name=user_data['full_name'],
+        level=user_data['level'],
+        tenant=user_data['tenant']
+    )
+
+    return JSONResponse(content={
+        "accessToken": new_access_token,
+        "refreshToken": new_refresh_token,
+        "fullName": user_data['full_name'],
+        "level": user_data['level']
+    }, status_code=200)
 
 
 @router.post("/login")
@@ -71,10 +84,12 @@ async def login(
         full_name = data["full_name"]
         level = data["level"]
 
-        token = await create_jwt_token(user_id, request.username, full_name, level, request.tenant)
+        access_token = create_jwt_token(user_id, request.username, full_name, level, request.tenant)
+        _refresh_token = create_refresh_token(user_id, request.username, full_name, level, request.tenant)
 
         return JSONResponse(content={
-            "token": token,
+            "accessToken": access_token,
+            "refreshToken": _refresh_token,
             "fullName": full_name,
             "level": level
         }, status_code=200)
@@ -379,13 +394,13 @@ async def get_search_results_list(
 
 @router.get("/rolls-for-product-get")
 async def get_rolls_for_product(
-        productCode: str,
+        code: str,
         _: dict = Depends(verify_jwt_user(required_level=1))
 ):
     """
     Retrieve a list of rolls based on product code.
     """
-    rolls_data = await search_rolls_for_product(productCode)
+    rolls_data = await search_rolls_for_product(code)
     rolls_list = get_formatted_rolls_list(rolls_data)
     if rolls_list:
         return JSONResponse(content=rolls_list, status_code=200)
@@ -564,9 +579,9 @@ async def update_roll_quantity(
     """
     Endpoint to update a roll's quantity.
     """
-    await update_roll_quantity_ps(request.rollCode, request.quantity, request.action)
+    await update_roll_quantity_ps(request.code, request.quantity, request.action)
     await remember_users_action(user_data['username'], f"Roll quantity updated: "
-                                                       f"{request.rollCode} {request.action} {request.quantity}")
+                                                       f"{request.code} {request.action} {request.quantity}")
     return JSONResponse("Success", status_code=200)
 
 
@@ -578,9 +593,9 @@ async def update_bill_status(
     """
     Endpoint to update a bill's status.
     """
-    await update_bill_status_ps(request.billCode, request.status)
+    await update_bill_status_ps(request.code, request.status)
     await remember_users_action(user_data['username'], f"Bill status updated: "
-                                                       f"{request.billCode} {request.status}")
+                                                       f"{request.code} {request.status}")
     return JSONResponse("Success", status_code=200)
 
 
@@ -592,9 +607,9 @@ async def update_bill_tailor(
     """
     Endpoint to update a bill's tailor.
     """
-    await update_bill_tailor_ps(request.billCode, request.tailor)
+    await update_bill_tailor_ps(request.code, request.tailor)
     await remember_users_action(user_data['username'], f"Bill's tailor updated: "
-                                                       f"{request.billCode} {request.tailor}")
+                                                       f"{request.code} {request.tailor}")
     return JSONResponse("Success", status_code=200)
 
 
@@ -606,13 +621,12 @@ async def add_payment_bill(
     """
     Endpoint to update a bill's payment.
     """
-    await add_payment_bill_ps(request.billCode, request.amount)
+    await add_payment_bill_ps(request.code, request.amount)
     await remember_users_action(user_data['username'], f"Added payment to bill: "
-                                                       f"{request.billCode} {request.amount}")
+                                                       f"{request.code} {request.amount}")
     return JSONResponse("Success", status_code=200)
 
 
-#   till here
 @router.post("/add-expense")
 async def add_expense(
         request: AddExpenseRequest,

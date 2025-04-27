@@ -4,6 +4,10 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class RefreshTokenRequest(BaseModel):
+    refreshToken: str
+
+
 class AuthRequest(BaseModel):
     tenant: str
     username: str
@@ -24,23 +28,23 @@ class RemoveUserRequest(BaseModel):
 
 
 class UpdateRollRequest(BaseModel):
-    rollCode: str
+    code: str
     quantity: int
     action: str
 
 
 class UpdateBillStatusRequest(BaseModel):
-    billCode: str
+    code: str
     status: str
 
 
 class UpdateBillTailorRequest(BaseModel):
-    billCode: str
+    code: str
     tailor: str
 
 
 class AddPaymentBillRequest(BaseModel):
-    billCode: str
+    code: str
     amount: int
 
 
