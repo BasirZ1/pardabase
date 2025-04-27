@@ -1,4 +1,4 @@
-from .sql_admins import check_users_token, check_username_password, \
+from .sql_admins import check_username_password, \
     get_users_data, update_users_password, remember_users_action, \
     search_recent_activities_list, get_image_for_product, \
     search_products_list, get_product_and_roll_ps, remove_product_ps, \

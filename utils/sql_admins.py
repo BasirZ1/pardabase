@@ -5,25 +5,6 @@ from utils.conn import connection_context
 from utils.hasher import check_password
 
 
-async def check_users_token(level, token):
-    """
-    Function to check the user's token and level against the database.
-    """
-    query = """
-        SELECT 1 FROM users
-        WHERE login_token = $1 AND level >= $2
-        LIMIT 1
-    """
-    try:
-        async with connection_context() as conn:
-            result = await conn.fetchval(query, token, level)
-            return result is not None
-
-    except Exception as e:
-        await flatbed('exception', f"In check_users_token: {e}")
-        raise RuntimeError(f"Failed to check_users_token: {e}")
-
-
 async def check_username_password(username, password):
     """
     Validates a user's username and password by checking against the database.
@@ -57,7 +38,7 @@ async def get_users_data(username):
     try:
         async with connection_context() as conn:
             data = await conn.fetchrow("""
-                               SELECT login_token, full_name, level FROM users
+                               SELECT user_id, full_name, level FROM users
                                WHERE username = lower($1)
                            """, username)
             return data if data else None
