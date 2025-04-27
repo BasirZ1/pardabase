@@ -38,7 +38,7 @@ async def get_users_data(username):
     try:
         async with connection_context() as conn:
             data = await conn.fetchrow("""
-                               SELECT user_id, full_name, level FROM users
+                               SELECT user_id::varchar, full_name, level FROM users
                                WHERE username = lower($1)
                            """, username)
             return data if data else None
