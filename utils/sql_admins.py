@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, date
 
 from .logger import flatbed
-from utils.conn import get_connection, release_connection, connection_context
+from utils.conn import connection_context
 from utils.hasher import check_password
 
 
@@ -54,27 +54,53 @@ async def check_username_password(username, password):
 
 #   Change with async with connection_context() as conn: from here on
 async def get_users_data(username):
-    conn = await get_connection()
     try:
-        data = await conn.fetchrow("""
-                           SELECT login_token, full_name, level FROM users
-                           WHERE username = lower($1)
-                       """, username)
-        return data if data else None
-    finally:
-        await release_connection(conn)
+        async with connection_context() as conn:
+            data = await conn.fetchrow("""
+                               SELECT login_token, full_name, level FROM users
+                               WHERE username = lower($1)
+                           """, username)
+            return data if data else None
+    except Exception as e:
+        await flatbed('exception', f"In get_users_data: {e}")
+        raise RuntimeError(f"Failed to get users data: {e}")
 
 
 async def update_users_password(username, new_password):
-    conn = await get_connection()
     try:
-        await conn.execute("""
+        async with connection_context() as conn:
+            await conn.execute("""
             UPDATE users
             SET password = $1
             WHERE username = lower($2)
         """, new_password, username)
-    finally:
-        await release_connection(conn)
+    except Exception as e:
+        await flatbed('exception', f"In update_users_password: {e}")
+        raise RuntimeError(f"Failed to update users password: {e}")
+
+
+async def get_dashboard_data_ps():
+    """
+    Retrieve dashboard data.
+
+    Returns:
+    - .
+    """
+    try:
+        async with connection_context() as conn:
+            # query = "SELECT * FROM get_dashboard_data();"
+            # data = await conn.fetchrow(query)
+            dashboard_data = {
+                "totalBills": 404,
+                "billsCompleted": 404,
+                "billsPending": 404,
+                "totalProducts": 404
+            }
+            return dashboard_data
+
+    except Exception as e:
+        await flatbed('exception', f"In get_dashboard_data_ps: {e}")
+        raise RuntimeError(f"Failed to get dashboard data: {e}")
 
 
 async def search_recent_activities_list(_date):
@@ -87,8 +113,6 @@ async def search_recent_activities_list(_date):
     Returns:
     - List of records from the admins_records table that match the criteria.
     """
-
-    conn = await get_connection()
 
     query = "SELECT id, date, username, action FROM admins_records WHERE 1=1"
     params = []
@@ -107,9 +131,11 @@ async def search_recent_activities_list(_date):
         query += " ORDER BY date DESC"
 
     try:
-        return await conn.fetch(query, *params)
-    finally:
-        await release_connection(conn)
+        async with connection_context() as conn:
+            return await conn.fetch(query, *params)
+    except Exception as e:
+        await flatbed('exception', f"In search_recent_activities_list: {e}")
+        raise RuntimeError(f"Failed to search_recent_activities_list: {e}")
 
 
 def get_date_range(_date: int):
@@ -145,19 +171,15 @@ async def get_users_list_ps():
     Returns:
     - All users from the users table.
     """
-    conn = await get_connection()
-
     try:
-        query = "SELECT full_name, username, level FROM users;"
-        users_list = await conn.fetch(query)
-        return users_list  # Returns a list of asyncpg Record objects
+        async with connection_context() as conn:
+            query = "SELECT full_name, username, level FROM users;"
+            users_list = await conn.fetch(query)
+            return users_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
         await flatbed('exception', f"In get_users_list_ps: {e}")
         raise RuntimeError(f"Failed to get users list: {e}")
-
-    finally:
-        await release_connection(conn)  # Ensure async release
 
 
 async def remember_users_action(username, action):
@@ -166,8 +188,6 @@ async def remember_users_action(username, action):
         :param username: username associated with the user.
         :param action: action performed by the user.
     """
-    conn = await get_connection()
-
     # SQL query to
     sql_insert = """
             INSERT INTO admins_records (
@@ -176,9 +196,11 @@ async def remember_users_action(username, action):
             ) VALUES ($1, $2)
         """
     try:
-        await conn.execute(sql_insert, username, action)
-    finally:
-        await release_connection(conn)
+        async with connection_context() as conn:
+            await conn.execute(sql_insert, username, action)
+    except Exception as e:
+        await flatbed('exception', f"In remember_users_action: {e}")
+        raise RuntimeError(f"Failed to remember users action: {e}")
 
 
 async def search_products_list(search_query, search_by):
@@ -192,19 +214,15 @@ async def search_products_list(search_query, search_by):
     Returns:
     - List of records from the products table that match the criteria.
     """
-    conn = await get_connection()
-
     try:
-        query = "SELECT * FROM search_products_list($1, $2);"
-        products_list = await conn.fetch(query, search_query, search_by)
-        return products_list  # Returns a list of asyncpg Record objects
+        async with connection_context() as conn:
+            query = "SELECT * FROM search_products_list($1, $2);"
+            products_list = await conn.fetch(query, search_query, search_by)
+            return products_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
         await flatbed('exception', f"In search_products_list: {e}")
         raise RuntimeError(f"Failed to search products: {e}")
-
-    finally:
-        await release_connection(conn)  # Ensure async release
 
 
 async def search_bills_list(search_query, search_by):
@@ -221,19 +239,15 @@ async def search_bills_list(search_query, search_by):
     Returns:
     - List of records from the bills table that match the criteria.
     """
-    conn = await get_connection()
-
     try:
-        query = "SELECT * FROM search_bills_list($1, $2);"
-        bills_list = await conn.fetch(query, search_query, search_by)
-        return bills_list  # Returns a list of asyncpg Record objects
+        async with connection_context() as conn:
+            query = "SELECT * FROM search_bills_list($1, $2);"
+            bills_list = await conn.fetch(query, search_query, search_by)
+            return bills_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
         await flatbed('exception', f"In search_bills_list: {e}")
         raise RuntimeError(f"Failed to search bills: {e}")
-
-    finally:
-        await release_connection(conn)  # Ensure the connection is released properly
 
 
 async def search_bills_list_filtered(_date, state):
@@ -247,19 +261,15 @@ async def search_bills_list_filtered(_date, state):
     Returns:
     - List of records from the bills table that match the criteria.
     """
-    conn = await get_connection()
-
     try:
-        query = "SELECT * FROM search_bills_list_filtered($1, $2);"
-        bills_list = await conn.fetch(query, _date, state)
-        return bills_list  # Returns a list of asyncpg Record objects
+        async with connection_context() as conn:
+            query = "SELECT * FROM search_bills_list_filtered($1, $2);"
+            bills_list = await conn.fetch(query, _date, state)
+            return bills_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
         await flatbed('exception', f"In search_bills_list_filtered: {e}")
         raise RuntimeError(f"Failed to search bills: {e}")
-
-    finally:
-        await release_connection(conn)  # Ensure the connection is released properly
 
 
 async def search_expenses_list_filtered(_date, category):
@@ -273,19 +283,15 @@ async def search_expenses_list_filtered(_date, category):
     Returns:
     - List of records from the expenses table that match the criteria.
     """
-    conn = await get_connection()
-
     try:
-        query = "SELECT * FROM search_expenses_list_filtered($1, $2);"
-        expenses_list = await conn.fetch(query, _date, category)
-        return expenses_list  # Returns a list of asyncpg Record objects
+        async with connection_context() as conn:
+            query = "SELECT * FROM search_expenses_list_filtered($1, $2);"
+            expenses_list = await conn.fetch(query, _date, category)
+            return expenses_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
         await flatbed('exception', f"In search_expenses_list_filtered: {e}")
         raise RuntimeError(f"Failed to search expenses: {e}")
-
-    finally:
-        await release_connection(conn)  # Ensure the connection is released properly
 
 
 async def search_products_list_filtered(_date, category):
@@ -299,19 +305,15 @@ async def search_products_list_filtered(_date, category):
     Returns:
     - List of records from the products table that match the criteria.
     """
-    conn = await get_connection()
-
     try:
-        query = "SELECT * FROM search_products_list_filtered($1, $2);"
-        expenses_list = await conn.fetch(query, _date, category)
-        return expenses_list  # Returns a list of asyncpg Record objects
+        async with connection_context() as conn:
+            query = "SELECT * FROM search_products_list_filtered($1, $2);"
+            expenses_list = await conn.fetch(query, _date, category)
+            return expenses_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
         await flatbed('exception', f"In search_products_list_filtered: {e}")
         raise RuntimeError(f"Failed to search products: {e}")
-
-    finally:
-        await release_connection(conn)  # Ensure the connection is released properly
 
 
 async def search_rolls_for_product(product_code):
@@ -324,23 +326,19 @@ async def search_rolls_for_product(product_code):
     Returns:
     - List of records from the rolls table that match the product code.
     """
-    conn = await get_connection()
-
     try:
-        query = """
-        SELECT product_code, roll_code, quantity, color 
-        FROM public.rolls
-        WHERE product_code = $1
-        """
-        rolls_list = await conn.fetch(query, product_code)
-        return rolls_list  # Returns a list of asyncpg Record objects
+        async with connection_context() as conn:
+            query = """
+            SELECT product_code, roll_code, quantity, color 
+            FROM public.rolls
+            WHERE product_code = $1
+            """
+            rolls_list = await conn.fetch(query, product_code)
+            return rolls_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
         await flatbed('exception', f"In search_rolls_for_product: {e}")
         raise RuntimeError(f"Failed to search rolls: {e}")
-
-    finally:
-        await release_connection(conn)  # Ensure proper connection release
 
 
 async def get_image_for_product(code):
@@ -353,23 +351,19 @@ async def get_image_for_product(code):
     Returns:
     - The image (bytes) if found, otherwise None.
     """
-    conn = await get_connection()
-
     try:
-        query = """
-        SELECT image FROM products
-        WHERE product_code = $1
-        """
-        product_image = await conn.fetchval(query, code)  # fetchval() returns a single column value
+        async with connection_context() as conn:
+            query = """
+            SELECT image FROM products
+            WHERE product_code = $1
+            """
+            product_image = await conn.fetchval(query, code)  # fetchval() returns a single column value
 
-        return product_image  # Returns the image bytes or None if not found
+            return product_image  # Returns the image bytes or None if not found
 
     except Exception as e:
         await flatbed('exception', f"In get_image_for_product: {e}")
         raise RuntimeError(f"Failed to retrieve image: {e}")
-
-    finally:
-        await release_connection(conn)  # Ensure proper connection release
 
 
 async def get_image_for_user(username):
@@ -382,23 +376,19 @@ async def get_image_for_user(username):
     Returns:
     - The image (bytes) if found, otherwise None.
     """
-    conn = await get_connection()
-
     try:
-        query = """
-        SELECT photo FROM users
-        WHERE username = $1
-        """
-        user_image = await conn.fetchval(query, username)  # fetchval() returns a single column value
+        async with connection_context() as conn:
+            query = """
+            SELECT photo FROM users
+            WHERE username = $1
+            """
+            user_image = await conn.fetchval(query, username)  # fetchval() returns a single column value
 
-        return user_image  # Returns the image bytes or None if not found
+            return user_image  # Returns the image bytes or None if not found
 
     except Exception as e:
         await flatbed('exception', f"In get_image_for_user: {e}")
         raise RuntimeError(f"Failed to retrieve image: {e}")
-
-    finally:
-        await release_connection(conn)  # Ensure proper connection release
 
 
 async def get_sample_image_for_roll(roll_code):
@@ -411,23 +401,19 @@ async def get_sample_image_for_roll(roll_code):
     Returns:
     - The image (bytes) if found, otherwise None.
     """
-    conn = await get_connection()
-
     try:
-        query = """
-        SELECT sample_image FROM rolls
-        WHERE roll_code = $1
-        """
-        sample_image = await conn.fetchval(query, roll_code)  # fetchval() returns a single column value
+        async with connection_context() as conn:
+            query = """
+            SELECT sample_image FROM rolls
+            WHERE roll_code = $1
+            """
+            sample_image = await conn.fetchval(query, roll_code)  # fetchval() returns a single column value
 
-        return sample_image  # Returns the image bytes or None if not found
+            return sample_image  # Returns the image bytes or None if not found
 
     except Exception as e:
         await flatbed('exception', f"In get_sample_image_for_roll: {e}")
         raise RuntimeError(f"Failed to retrieve sample image: {e}")
-
-    finally:
-        await release_connection(conn)  # Ensure proper connection release
 
 
 async def get_product_and_roll_ps(code):
@@ -439,7 +425,7 @@ async def get_product_and_roll_ps(code):
                 roll_code = f"R{roll_code}"
             else:
                 product_code, roll_code = upper_code, None
-            await flatbed('hmm', f"get_product_and_roll_ps {product_code} {roll_code}")
+
             # Fetch the product
             query_product = "SELECT * FROM search_products_list($1, 0, 1, true);"
             product = await conn.fetchrow(query_product, product_code)
@@ -539,60 +525,49 @@ async def get_bill_ps(code):
     Returns:
     - dict: A single bill.
     """
-    conn = await get_connection()
     try:
-        query = "SELECT * FROM search_bills_list($1, $2, 1, true);"
-        data = await conn.fetchrow(query, code, 0)
+        async with connection_context() as conn:
+            query = "SELECT * FROM search_bills_list($1, $2, 1, true);"
+            data = await conn.fetchrow(query, code, 0)
 
-        if data:
-            bill = make_bill_dic(data)
-            return bill
+            if data:
+                bill = make_bill_dic(data)
+                return bill
 
-        return None
+            return None
 
     except Exception as e:
         await flatbed('exception', f"In get_bill_ps: {e}")
         return None
 
-    finally:
-        await release_connection(conn)
-
 
 async def remove_product_ps(code):
-    conn = await get_connection()
     try:
-        await conn.execute("DELETE FROM products WHERE product_code = $1", code)
+        async with connection_context() as conn:
+            await conn.execute("DELETE FROM products WHERE product_code = $1", code)
     except Exception as e:
         await flatbed('exception', f"in remove_product_ps: {e}")
-    finally:
-        await release_connection(conn)
 
 
 async def remove_roll_ps(code):
-    conn = await get_connection()
     try:
-        await conn.execute("DELETE FROM rolls WHERE roll_code = $1", code)
+        async with connection_context() as conn:
+            await conn.execute("DELETE FROM rolls WHERE roll_code = $1", code)
     except Exception as e:
         await flatbed('exception', f"in remove_roll_ps: {e}")
-    finally:
-        await release_connection(conn)
 
 
 async def remove_bill_ps(code):
-    conn = await get_connection()
     try:
-        await conn.execute("DELETE FROM bills WHERE bill_code = $1", code)
+        async with connection_context() as conn:
+            await conn.execute("DELETE FROM bills WHERE bill_code = $1", code)
     except Exception as e:
         await flatbed('exception', f"in remove_bill_ps: {e}")
-    finally:
-        await release_connection(conn)
 
 
 async def remove_user_ps(username):
-    conn = await get_connection()
     try:
-        await conn.execute("DELETE FROM users WHERE username = $1", username)
+        async with connection_context() as conn:
+            await conn.execute("DELETE FROM users WHERE username = $1", username)
     except Exception as e:
         await flatbed('exception', f"in remove_user_ps: {e}")
-    finally:
-        await release_connection(conn)
