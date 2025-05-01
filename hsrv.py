@@ -37,7 +37,7 @@ async def index():
 async def is_token_valid(
         _: dict = Depends(verify_jwt_user(required_level=1))
 ):
-    return JSONResponse(content={"check_result": True})
+    return JSONResponse(content={"result": True}, status_code=200)
 
 
 @router.post("/refresh-token")
@@ -116,10 +116,8 @@ async def get_recent_activity(
     """
     recent_activity_data = await search_recent_activities_list(_date)
     recent_activities_list = get_formatted_recent_activities_list(recent_activity_data)
-    if recent_activities_list:
-        return JSONResponse(content=recent_activities_list, status_code=200)
-    else:
-        return "not found", 404
+
+    return JSONResponse(content=recent_activities_list, status_code=200)
 
 
 @router.get("/users-list-get")
@@ -129,13 +127,9 @@ async def get_users_list(
     """
     Retrieve a list of users.
     """
-
     users_data = await get_users_list_ps()
     users_list = get_formatted_users_list(users_data)
-    if users_list:
-        return JSONResponse(content=users_list, status_code=200)
-    else:
-        return "not found", 404
+    return JSONResponse(content=users_list, status_code=200)
 
 
 @router.post("/change-password")
@@ -151,10 +145,10 @@ async def change_password(
 
     check_old_password = await check_username_password(user_data['username'], old_password)
     if check_old_password is False:
-        return "Failure", 401
+        return JSONResponse(content={"result": False}, status_code=200)
 
     await update_users_password(user_data['username'], hash_password(new_password))
-    return "Success", 200
+    return JSONResponse(content={"result": True}, status_code=200)
 
 
 @router.post("/add-or-edit-product")
@@ -176,20 +170,20 @@ async def add_or_edit_product(
         result = await insert_new_product(image_data, name, categoryIndex, cost, price, description)
         if result:
             await remember_users_action(user_data['username'], f"Product Added: {result}")
-            return JSONResponse(content={
-                "code": result,
-                "name": name,
-            })
-        return "Failure", 500
+        return JSONResponse(content={
+            "result": result is not None,
+            "code": result,
+            "name": name
+        })
 
     result = await update_product(codeToEdit, image_data, name, categoryIndex, cost, price, description)
     if result:
         await remember_users_action(user_data['username'], f"Product updated: {codeToEdit}")
-        return JSONResponse(content={
-            "code": codeToEdit,
-            "name": name,
-        })
-    return "Failure", 500
+    return JSONResponse(content={
+        "result": result,
+        "code": codeToEdit,
+        "name": name
+    })
 
 
 @router.post("/add-or-edit-roll")
@@ -209,18 +203,18 @@ async def add_or_edit_roll(
         code = await insert_new_roll(productCode, quantity, color, image_data)
         if code:
             await remember_users_action(user_data['username'], f"Roll Added: {code}")
-            return JSONResponse(content={
-                "code": code
-            })
-        return "Failure", 500
+        return JSONResponse(content={
+            "result": code is not None,
+            "code": code
+        })
 
     code = update_roll(codeToEdit, productCode, quantity, color, image_data)
     if code:
         await remember_users_action(user_data['username'], f"Roll updated: {code}")
-        return JSONResponse(content={
-            "code": code
-        })
-    return "Failure", 500
+    return JSONResponse(content={
+        "result": code is not None,
+        "code": code
+    })
 
 
 @router.post("/add-or-edit-bill")
@@ -248,21 +242,21 @@ async def add_or_edit_bill(
                                      fabrics, parts, status, salesman, tailor, additionalData, installation)
         if code:
             await remember_users_action(user_data['username'], f"Bill Added: {code}")
-            return JSONResponse(content={
-                "code": code,
-                "name": customerName
+        return JSONResponse(content={
+            "result": code is not None,
+            "code": code,
+            "name": customerName
             })
-        return "Failure", 500
 
     code = await update_bill(codeToEdit, dueDate, customerName, customerNumber, price, paid, remaining,
                              fabrics, parts, additionalData, installation)
     if code:
         await remember_users_action(user_data['username'], f"Bill updated: {code}")
-        return JSONResponse(content={
-            "code": code,
-            "name": customerName
-        })
-    return "Failure", 500
+    return JSONResponse(content={
+        "result": code is not None,
+        "code": code,
+        "name": customerName
+    })
 
 
 @router.post("/add-or-edit-user")
@@ -285,14 +279,12 @@ async def add_or_edit_user(
         result = await add_new_user_ps(fullName, usernameChange, password, level, image_data)
         if result:
             await remember_users_action(user_data['username'], f"User added: {usernameChange}")
-            return "Success", 200
-        return "Failure", 500
+        return JSONResponse(content={"result": result}, status_code=200)
 
     result = await update_user(usernameToEdit, fullName, usernameChange, level, password, image_data)
     if result:
         await remember_users_action(user_data['username'], f"user updated: {usernameChange}")
-        return "Success", 200
-    return "Failure", 500
+    return JSONResponse(content={"result": result}, status_code=200)
 
 
 @router.get("/bills-list-get")
@@ -323,10 +315,7 @@ async def get_expenses_list(
     """
     expenses_data = await search_expenses_list_filtered(date, category)
     expenses_list = get_formatted_expenses_list(expenses_data)
-    if expenses_list:
-        return JSONResponse(content=expenses_list, status_code=200)
-    else:
-        return "not found", 404
+    return JSONResponse(content=expenses_list, status_code=200)
 
 
 @router.get("/products-list-get")
@@ -386,10 +375,7 @@ async def get_search_results_list(
         bills_data = await search_bills_list(searchQuery, 1)
         search_results_list = get_formatted_search_results_list(products_data, bills_data)
 
-    if search_results_list:
-        return JSONResponse(content=search_results_list, status_code=200)
-    else:
-        return "not found", 404
+    return JSONResponse(content=search_results_list, status_code=200)
 
 
 @router.get("/rolls-for-product-get")
@@ -402,10 +388,7 @@ async def get_rolls_for_product(
     """
     rolls_data = await search_rolls_for_product(code)
     rolls_list = get_formatted_rolls_list(rolls_data)
-    if rolls_list:
-        return JSONResponse(content=rolls_list, status_code=200)
-    else:
-        return "not found", 404
+    return JSONResponse(content=rolls_list, status_code=200)
 
 
 @router.get("/product-image-get")
@@ -432,7 +415,7 @@ async def get_product_image(
         return FileResponse(temp_file_path, media_type="image/jpeg")
     else:
         # Return a message indicating the image is not found with HTTP status code 404
-        return "Image not found", 404
+        return JSONResponse(content="Image not found", status_code=404)
 
 
 @router.get("/user-image-get")
@@ -458,7 +441,7 @@ async def get_user_image(
         return FileResponse(temp_file_path, media_type="image/jpeg")
     else:
         # Return a message indicating the image is not found with HTTP status code 404
-        return "Image not found", 404
+        return JSONResponse(content="Image not found", status_code=404)
 
 
 @router.get("/roll-sample-image-get")
@@ -485,7 +468,7 @@ async def get_roll_sample_image(
         return FileResponse(temp_file_path, media_type="image/jpeg")
     else:
         # Return a message indicating the image is not found with HTTP status code 404
-        return "Image not found", 404
+        return JSONResponse(content="Image not found", status_code=404)
 
 
 @router.get("/product-and-roll-get")
@@ -555,7 +538,7 @@ async def remove_user(
     """
     await remove_user_ps(request.usernameToRemove)
     await remember_users_action(user_data['username'], f"User removed: {request.usernameToRemove}")
-    return JSONResponse("Success", status_code=200)
+    return JSONResponse("success", status_code=200)
 
 
 @router.post("/remove-bill")
@@ -579,10 +562,10 @@ async def update_roll_quantity(
     """
     Endpoint to update a roll's quantity.
     """
-    await update_roll_quantity_ps(request.code, request.quantity, request.action)
+    result = await update_roll_quantity_ps(request.code, request.quantity, request.action)
     await remember_users_action(user_data['username'], f"Roll quantity updated: "
                                                        f"{request.code} {request.action} {request.quantity}")
-    return JSONResponse("Success", status_code=200)
+    return JSONResponse(content={"result": result}, status_code=200)
 
 
 @router.post("/update-bill-status")
@@ -593,10 +576,10 @@ async def update_bill_status(
     """
     Endpoint to update a bill's status.
     """
-    await update_bill_status_ps(request.code, request.status)
+    result = await update_bill_status_ps(request.code, request.status)
     await remember_users_action(user_data['username'], f"Bill status updated: "
                                                        f"{request.code} {request.status}")
-    return JSONResponse("Success", status_code=200)
+    return JSONResponse(content={"result": result}, status_code=200)
 
 
 @router.post("/update-bill-tailor")
@@ -607,10 +590,10 @@ async def update_bill_tailor(
     """
     Endpoint to update a bill's tailor.
     """
-    await update_bill_tailor_ps(request.code, request.tailor)
+    result = await update_bill_tailor_ps(request.code, request.tailor)
     await remember_users_action(user_data['username'], f"Bill's tailor updated: "
                                                        f"{request.code} {request.tailor}")
-    return JSONResponse("Success", status_code=200)
+    return JSONResponse(content={"result": result}, status_code=200)
 
 
 @router.post("/add-payment-bill")

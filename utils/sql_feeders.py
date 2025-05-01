@@ -49,7 +49,7 @@ async def update_product(codeToEdit, image, name, category_index, cost_per_metre
         return False
 
 
-async def update_roll_quantity_ps(roll_code, quantity, action):
+async def update_roll_quantity_ps(roll_code, quantity, action) -> bool:
     if action not in ["subtract", "add"]:
         await flatbed('error', f"Invalid action: {action}. Expected 'subtract' or 'add'.")
         return False
@@ -71,7 +71,7 @@ async def update_roll_quantity_ps(roll_code, quantity, action):
 
     except Exception as e:
         await flatbed('exception', f"In update_roll_quantity_ps: {e}")
-        return False
+        raise e
 
 
 async def add_expense_ps(category_index, description, amount):
@@ -355,7 +355,7 @@ async def update_bill_status_ps(bill_code: str, status: str) -> bool:
             return updated_status is not None
     except Exception as e:
         await flatbed('exception', f"In update_bill_status_ps: {e}")
-        return False
+        raise e
 
 
 async def update_bill_tailor_ps(bill_code: str, tailor: str) -> bool:
@@ -384,7 +384,7 @@ async def update_bill_tailor_ps(bill_code: str, tailor: str) -> bool:
             return updated_tailor is not None
     except Exception as e:
         await flatbed('exception', f"In update_bill_tailor_ps: {e}")
-        return False
+        raise e
 
 
 async def add_payment_bill_ps(bill_code: str, amount: int) -> bool:
