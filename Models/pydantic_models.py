@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 
 class RefreshTokenRequest(BaseModel):
-    refreshToken: str
+    refreshToken: Optional[str] = None
 
 
 class AuthRequest(BaseModel):

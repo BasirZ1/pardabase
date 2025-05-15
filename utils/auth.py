@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timezone, timedelta
 
 from dotenv import load_dotenv
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
 
@@ -15,13 +15,14 @@ security = HTTPBearer()
 ALGORITHM = "HS256"
 
 
-def create_jwt_token(sub, username, full_name, level, tenant):
+def create_jwt_token(sub, username, full_name, level, tenant, image_url):
     payload = {
         "sub": sub,  # the user id
         "username": username,
         "full_name": full_name,
         "level": level,
         "tenant": tenant,  # for setting DB
+        "image_url": image_url,
         "exp": datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRY_MINUTES),
         "type": "access"
     }
@@ -30,13 +31,14 @@ def create_jwt_token(sub, username, full_name, level, tenant):
     return token
 
 
-def create_refresh_token(sub, username, full_name, level, tenant):
+def create_refresh_token(sub, username, full_name, level, tenant, image_url):
     payload = {
         "sub": sub,  # the user id
         "username": username,
         "full_name": full_name,
         "level": level,
         "tenant": tenant,  # for setting DB
+        "image_url": image_url,
         "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_EXPIRY_DAYS),
         "type": "refresh"
     }
@@ -97,6 +99,7 @@ def validate_payload(payload: dict):
     full_name = payload.get("full_name")
     level = payload.get("level")
     tenant = payload.get("tenant")
+    image_url = payload.get("image_url")
 
     if not sub or level is None:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -106,5 +109,6 @@ def validate_payload(payload: dict):
         "username": username,
         "full_name": full_name,
         "level": level,
-        "tenant": tenant
+        "tenant": tenant,
+        "image_url": image_url
     }

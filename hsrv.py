@@ -1,7 +1,5 @@
-import os
 import re
 import tempfile
-from datetime import datetime
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -11,17 +9,21 @@ from fastapi.responses import JSONResponse, FileResponse, RedirectResponse, HTML
 from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     UpdateRollRequest, AddExpenseRequest, UpdateBillStatusRequest, \
     UpdateBillTailorRequest, AddPaymentBillRequest, RemoveUserRequest, AddOnlineOrderRequest, RefreshTokenRequest
-from utils import flatbed, check_username_password, get_users_data, verify_jwt_user, \
-    search_recent_activities_list, update_users_password, add_new_user_ps, insert_new_product, \
-    get_image_for_product, search_products_list, update_product, get_product_and_roll_ps, remove_product_ps, \
-    remember_users_action, update_roll_quantity_ps, add_expense_ps, insert_new_roll, update_roll, \
-    search_rolls_for_product, get_sample_image_for_roll, remove_roll_ps, insert_new_bill, \
-    update_bill, get_bill_ps, remove_bill_ps, search_bills_list, update_bill_status_ps, set_current_db, make_bill_dic, \
-    make_product_dic, make_roll_dic, update_bill_tailor_ps, add_payment_bill_ps, get_users_list_ps, \
-    get_image_for_user, remove_user_ps, update_user, search_bills_list_filtered, \
-    search_expenses_list_filtered, make_expense_dic, search_products_list_filtered, insert_new_online_order, \
-    subscribe_newsletter_ps, send_mail_html, unsubscribe_newsletter_ps, confirm_email_newsletter_ps, \
-    create_jwt_token, get_dashboard_data_ps, set_db_from_tenant, create_refresh_token, verify_refresh_token
+from helpers import classify_image_upload, get_formatted_search_results_list, \
+    get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
+    get_formatted_users_list
+from helpers.general import delete_temp_file
+from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
+    set_db_from_tenant, create_refresh_token, verify_refresh_token
+from db import insert_new_product, update_product, insert_new_roll, update_roll, insert_new_bill, \
+    update_bill, insert_new_user, update_user, check_username_password, get_users_data, \
+    search_recent_activities_list, update_users_password, search_products_list, get_product_and_roll_ps, \
+    remember_users_action, remove_user_ps, search_bills_list_filtered, search_expenses_list_filtered, \
+    search_products_list_filtered, insert_new_online_order, subscribe_newsletter_ps, remove_product_ps, \
+    remove_roll_ps, remove_bill_ps, update_bill_tailor_ps, update_roll_quantity_ps, update_bill_status_ps, \
+    add_payment_bill_ps, add_expense_ps, unsubscribe_newsletter_ps, get_bill_ps, get_users_list_ps, \
+    get_dashboard_data_ps, search_rolls_for_product, search_bills_list, confirm_email_newsletter_ps, \
+    handle_image_update, get_sample_image_for_roll, get_image_for_user, get_image_for_product
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -33,7 +35,7 @@ async def index():
     return "Legacy Route Error"
 
 
-@router.post("/is-token-valid")
+@router.post("/is-token-valid", summary="check if user authentication is valid")
 async def is_token_valid(
         _: dict = Depends(verify_jwt_user(required_level=1))
 ):
@@ -44,28 +46,38 @@ async def is_token_valid(
 async def refresh_token(request: RefreshTokenRequest):
     user_data = await verify_refresh_token(request.refreshToken)
 
+    data = await get_users_data(request.username)
+
+    user_id = data["user_id"]
+    full_name = data["full_name"]
+    level = data["level"]
+    image_url = data["image_url"]
+
     # Create new access and refresh tokens
     new_access_token = create_jwt_token(
-        sub=user_data['user_id'],
+        sub=user_id,
         username=user_data['username'],
-        full_name=user_data['full_name'],
-        level=user_data['level'],
-        tenant=user_data['tenant']
+        full_name=full_name,
+        level=level,
+        tenant=user_data['tenant'],
+        image_url=image_url
     )
 
     new_refresh_token = create_refresh_token(
-        sub=user_data['user_id'],
+        sub=user_id,
         username=user_data['username'],
-        full_name=user_data['full_name'],
-        level=user_data['level'],
-        tenant=user_data['tenant']
+        full_name=full_name,
+        level=level,
+        tenant=user_data['tenant'],
+        image_url=image_url
     )
 
     return JSONResponse(content={
         "accessToken": new_access_token,
         "refreshToken": new_refresh_token,
-        "fullName": user_data['full_name'],
-        "level": user_data['level']
+        "fullName": full_name,
+        "level": level,
+        "imageUrl": image_url
     }, status_code=200)
 
 
@@ -83,15 +95,19 @@ async def login(
         user_id = data["user_id"]
         full_name = data["full_name"]
         level = data["level"]
+        image_url = data["image_url"]
 
-        access_token = create_jwt_token(user_id, request.username, full_name, level, request.tenant)
-        _refresh_token = create_refresh_token(user_id, request.username, full_name, level, request.tenant)
+        access_token = create_jwt_token(user_id, request.username, full_name, level,
+                                        request.tenant, image_url)
+        _refresh_token = create_refresh_token(user_id, request.username, full_name, level,
+                                              request.tenant, image_url)
 
         return JSONResponse(content={
             "accessToken": access_token,
             "refreshToken": _refresh_token,
             "fullName": full_name,
-            "level": level
+            "level": level,
+            "imageUrl": image_url
         }, status_code=200)
     else:
         raise HTTPException(status_code=401, detail="Invalid username or password")
@@ -162,26 +178,28 @@ async def add_or_edit_product(
         image: Optional[UploadFile] = File(None),
         user_data: dict = Depends(verify_jwt_user(required_level=3))
 ):
-    # Read each image file's content (all files are required
-    image_data = await image.read() if image is not None else None
+    image_status, image_data = await classify_image_upload(image)
 
     if codeToEdit is None:
-        # Insert registration data and images into the database
-        result = await insert_new_product(image_data, name, categoryIndex, cost, price, description)
-        if result:
-            await remember_users_action(user_data['username'], f"Product Added: {result}")
-        return JSONResponse(content={
-            "result": result is not None,
-            "code": result,
-            "name": name
-        })
+        # CREATE NEW
+        product_code = await insert_new_product(name, categoryIndex, cost, price, description)
+        if not product_code:
+            return JSONResponse(content={"result": False, "code": product_code, "name": name})
 
-    result = await update_product(codeToEdit, image_data, name, categoryIndex, cost, price, description)
-    if result:
-        await remember_users_action(user_data['username'], f"Product updated: {codeToEdit}")
+        await handle_image_update("product", user_data['tenant'], product_code, image_status, image_data)
+        await remember_users_action(user_data['username'], f"Product Added: {product_code}")
+    else:
+        # UPDATE EXISTING
+        product_code = await update_product(codeToEdit, name, categoryIndex, cost, price, description)
+        if not product_code:
+            return JSONResponse(content={"result": False, "code": product_code, "name": name})
+
+        await handle_image_update("product", user_data['tenant'], product_code, image_status, image_data)
+        await remember_users_action(user_data['username'], f"Product updated: {product_code}")
+
     return JSONResponse(content={
-        "result": result,
-        "code": codeToEdit,
+        "result": True,
+        "code": product_code,
         "name": name
     })
 
@@ -195,25 +213,31 @@ async def add_or_edit_roll(
         image: Optional[UploadFile] = File(None),
         user_data: dict = Depends(verify_jwt_user(required_level=3))
 ):
-    # Read image data only if an image is uploaded
-    image_data = await image.read() if image else None
+    image_status, image_data = await classify_image_upload(image)
 
     if codeToEdit is None:
-        # Insert registration data and images into the database
-        code = await insert_new_roll(productCode, quantity, color, image_data)
-        if code:
-            await remember_users_action(user_data['username'], f"Roll Added: {code}")
-        return JSONResponse(content={
-            "result": code is not None,
-            "code": code
-        })
+        # CREATE NEW
+        code = await insert_new_roll(productCode, quantity, color)
+        if not code:
+            return JSONResponse(content={
+                "result": False,
+                "code": f"{productCode}{code}"
+            })
+        await handle_image_update("roll", user_data['tenant'], code, image_status, image_data)
+        await remember_users_action(user_data['username'], f"Roll Added: {productCode}{code}")
+    else:
+        code = await update_roll(codeToEdit, quantity, color)
+        if not code:
+            return JSONResponse(content={
+                "result": False,
+                "code": f"{productCode}{code}"
+            })
+        await handle_image_update("roll", user_data['tenant'], code, image_status, image_data)
+        await remember_users_action(user_data['username'], f"Roll updated: {productCode}{code}")
 
-    code = update_roll(codeToEdit, productCode, quantity, color, image_data)
-    if code:
-        await remember_users_action(user_data['username'], f"Roll updated: {code}")
     return JSONResponse(content={
-        "result": code is not None,
-        "code": code
+        "result": True,
+        "code": f"{productCode}{code}"
     })
 
 
@@ -237,23 +261,29 @@ async def add_or_edit_bill(
         user_data: dict = Depends(verify_jwt_user(required_level=2))
 ):
     if codeToEdit is None:
-        # Insert registration data and images into the database
+        # CREATE NEW
         code = await insert_new_bill(billDate, dueDate, customerName, customerNumber, price, paid, remaining,
                                      fabrics, parts, status, salesman, tailor, additionalData, installation)
-        if code:
-            await remember_users_action(user_data['username'], f"Bill Added: {code}")
-        return JSONResponse(content={
-            "result": code is not None,
-            "code": code,
-            "name": customerName
+        if not code:
+            return JSONResponse(content={
+                "result": False,
+                "code": code,
+                "name": customerName
             })
-
-    code = await update_bill(codeToEdit, dueDate, customerName, customerNumber, price, paid, remaining,
-                             fabrics, parts, additionalData, installation)
-    if code:
+        await remember_users_action(user_data['username'], f"Bill Added: {code}")
+    else:
+        # UPDATE OLD
+        code = await update_bill(codeToEdit, dueDate, customerName, customerNumber, price, paid, remaining,
+                                 fabrics, parts, additionalData, installation)
+        if not code:
+            return JSONResponse(content={
+                "result": False,
+                "code": code,
+                "name": customerName
+            })
         await remember_users_action(user_data['username'], f"Bill updated: {code}")
     return JSONResponse(content={
-        "result": code is not None,
+        "result": True,
         "code": code,
         "name": customerName
     })
@@ -269,22 +299,25 @@ async def add_or_edit_user(
         image: Optional[UploadFile] = File(None),
         user_data: dict = Depends(verify_jwt_user(required_level=3))
 ):
-    # Read image data only if an image is uploaded
-    image_data = await image.read() if image else None
+    image_status, image_data = await classify_image_upload(image)
 
     if usernameToEdit is None:
+        # CREATE NEW
         if password is None:
             return JSONResponse(content={"error": "Password is missing"}, status_code=403)
-        # Insert registration data and images into the database
-        result = await add_new_user_ps(fullName, usernameChange, password, level, image_data)
-        if result:
-            await remember_users_action(user_data['username'], f"User added: {usernameChange}")
-        return JSONResponse(content={"result": result}, status_code=200)
-
-    result = await update_user(usernameToEdit, fullName, usernameChange, level, password, image_data)
-    if result:
+        result = await insert_new_user(fullName, usernameChange, password, level)
+        if not result:
+            return JSONResponse(content={"result": False}, status_code=201)
+        image_url = await handle_image_update("user", user_data['tenant'], usernameChange, image_status, image_data)
+        await remember_users_action(user_data['username'], f"User added: {usernameChange}")
+    else:
+        result = await update_user(usernameToEdit, fullName, usernameChange, level, password)
+        if not result:
+            return JSONResponse(content={"result": False}, status_code=201)
+        image_url = await handle_image_update("user", user_data['tenant'], usernameChange, image_status, image_data)
         await remember_users_action(user_data['username'], f"user updated: {usernameChange}")
-    return JSONResponse(content={"result": result}, status_code=200)
+
+    return JSONResponse(content={"result": True, "imageUrl": image_url}, status_code=200)
 
 
 @router.get("/bills-list-get")
@@ -511,6 +544,7 @@ async def remove_product(
     Endpoint to remove a product.
     """
     await remove_product_ps(request.code)
+    await handle_image_update("product", user_data['tenant'], request.code, "remove", None)
     await remember_users_action(user_data['username'], f"Product removed: {request.code}")
     return JSONResponse("Success", status_code=200)
 
@@ -524,6 +558,7 @@ async def remove_roll(
     Endpoint to remove a roll.
     """
     await remove_roll_ps(request.code)
+    await handle_image_update("roll", user_data['tenant'], request.code, "remove", None)
     await remember_users_action(user_data['username'], f"Roll removed: {request.code}")
     return JSONResponse("Success", status_code=200)
 
@@ -537,6 +572,7 @@ async def remove_user(
     Endpoint to remove a user.
     """
     await remove_user_ps(request.usernameToRemove)
+    await handle_image_update("user", user_data['tenant'], request.usernameToRemove, "remove", None)
     await remember_users_action(user_data['username'], f"User removed: {request.usernameToRemove}")
     return JSONResponse("success", status_code=200)
 
@@ -917,127 +953,6 @@ async def send_html_mail(
     #     return JSONResponse(content={"error": "Access denied"}, status_code=401)
     result = await send_mail_html(subject, email, html_content, text_content)
     return JSONResponse(content={"result": result})
-
-
-#  Helper Functions
-def get_formatted_recent_activities_list(recent_activity_data):
-    """
-    Helper function to format recent activities data into JSON-compatible objects.
-
-    Parameters:
-    - logs_data: Raw data fetched from the database.
-
-    Returns:
-    - A list of formatted recent activities dictionaries.
-    """
-    recent_activity_list = []
-    if recent_activity_data:
-        for data in recent_activity_data:
-            activity = {
-                "id": data["id"],
-                "date": data["date"].strftime('%Y-%m-%d %H:%M:%S') if isinstance(data["date"], datetime)
-                else data["date"],
-                "username": data["username"],
-                "action": data["action"],
-            }
-            recent_activity_list.append(activity)
-    return recent_activity_list
-
-
-def get_formatted_expenses_list(expenses_data):
-    """
-    Helper function to format expenses data into JSON-compatible objects.
-
-    Parameters:
-    - expenses_data: Raw data fetched from the database.
-
-    Returns:
-    - A list of formatted expenses dictionaries.
-    """
-    expenses_list = []
-    if expenses_data:
-        for data in expenses_data:
-            search_result = make_expense_dic(data)
-            expenses_list.append(search_result)
-
-    return expenses_list
-
-
-def get_formatted_search_results_list(products_data, bills_data):
-    """
-    Helper function to format products data and bills_data into JSON-compatible objects.
-
-    Parameters:
-    - products_data: Raw data fetched from the database.
-    - bills_data: Raw data fetched from the database.
-
-    Returns:
-    - A list of formatted search_results dictionaries.
-    """
-    search_results_list = []
-    if products_data:
-        for data in products_data:
-            search_result = make_product_dic(data)
-            search_results_list.append(search_result)
-
-    if bills_data:
-        for data in bills_data:
-            search_result = make_bill_dic(data)
-            search_results_list.append(search_result)
-
-    return search_results_list
-
-
-def get_formatted_rolls_list(rolls_data):
-    """
-    Helper function to format rolls data into JSON-compatible objects.
-
-    Parameters:
-    - rolls_data: Raw data fetched from the database.
-
-    Returns:
-    - A list of formatted rolls dictionaries.
-    """
-    rolls_list = []
-    if rolls_data:
-        for data in rolls_data:
-            roll = make_roll_dic(data)
-            rolls_list.append(roll)
-    return rolls_list
-
-
-def get_formatted_users_list(users_data):
-    """
-    Helper function to format users data into JSON-compatible objects.
-
-    Parameters:
-    - users_data: Raw data fetched from the database.
-
-    Returns:
-    - A list of formatted users dictionaries.
-    """
-    users_list = []
-    if users_data:
-        for data in users_data:
-            user = {
-                "fullName": data["full_name"],
-                "username": data["username"],
-                "level": data["level"]
-            }
-            users_list.append(user)
-    return users_list
-
-
-def delete_temp_file(file_path: str):
-    """
-    Deletes the specified temporary file.
-    """
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-    except Exception as e:
-        # Log the error if file deletion fails
-        flatbed('exception', f"In delete temp file {file_path}: {e}")
 
 
 if __name__ == '__main__':

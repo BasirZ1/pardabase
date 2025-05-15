@@ -23,7 +23,15 @@ async def lifespan(app: FastAPI):
 
 
 # Create FastAPI app
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    title="pardaBase API",
+    description="Backend for pardaBase curtains admin system App",
+    version="1.0.0",
+    docs_url="/api/docs",  # Custom Swagger UI path
+    redoc_url="/api/redoc",  # Custom ReDoc path
+    openapi_url="/api/openapi.json"  # Custom OpenAPI spec URL
+)
 
 # Add CORS middleware
 app.add_middleware(
@@ -50,6 +58,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"error": "Internal server error"}
     )
+
 
 # Run the application
 if __name__ == "__main__":
