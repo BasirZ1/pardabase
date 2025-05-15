@@ -46,7 +46,7 @@ async def is_token_valid(
 async def refresh_token(request: RefreshTokenRequest):
     user_data = await verify_refresh_token(request.refreshToken)
 
-    data = await get_users_data(request.username)
+    data = await get_users_data(user_data['username'])
 
     user_id = data["user_id"]
     full_name = data["full_name"]
