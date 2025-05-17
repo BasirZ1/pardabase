@@ -105,7 +105,7 @@ def get_formatted_users_list(users_data):
                 "fullName": data["full_name"],
                 "username": data["username"],
                 "level": data["level"],
-                "imageUrl": data["imageUrl"]
+                "imageUrl": data["image_url"]
             }
             users_list.append(user)
     return users_list
