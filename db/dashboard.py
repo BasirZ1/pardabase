@@ -5,20 +5,24 @@ from utils.conn import connection_context
 
 async def get_dashboard_data_ps():
     """
-    Retrieve dashboard data.
+    Retrieve dashboard data from the stored procedure `get_dashboard_data`.
 
     Returns:
-    - .
+    - dict: A dictionary containing totalBills, billsCompleted, billsPending, and totalProducts.
     """
     try:
         async with connection_context() as conn:
-            # query = "SELECT * FROM get_dashboard_data();"
-            # data = await conn.fetchrow(query)
+            query = "SELECT * FROM get_dashboard_data();"
+            data = await conn.fetchrow(query)
+
+            if not data:
+                raise ValueError("No data returned from get_dashboard_data()")
+
             dashboard_data = {
-                "totalBills": 404,
-                "billsCompleted": 404,
-                "billsPending": 404,
-                "totalProducts": 404
+                "totalBills": data["total_bills"],
+                "billsCompleted": data["bills_completed"],
+                "billsPending": data["bills_pending"],
+                "totalProducts": data["total_products"]
             }
             return dashboard_data
 
