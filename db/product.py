@@ -133,5 +133,7 @@ async def remove_product_ps(code):
     try:
         async with connection_context() as conn:
             await conn.execute("DELETE FROM products WHERE product_code = $1", code)
+        return True
     except Exception as e:
         await flatbed('exception', f"in remove_product_ps: {e}")
+        return False

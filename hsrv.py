@@ -543,10 +543,11 @@ async def remove_product(
     """
     Endpoint to remove a product.
     """
-    await remove_product_ps(request.code)
-    await handle_image_update("product", user_data['tenant'], request.code, "remove", None)
-    await remember_users_action(user_data['username'], f"Product removed: {request.code}")
-    return JSONResponse("Success", status_code=200)
+    result = await remove_product_ps(request.code)
+    if result:
+        await handle_image_update("product", user_data['tenant'], request.code, "remove", None)
+        await remember_users_action(user_data['username'], f"Product removed: {request.code}")
+    return JSONResponse(content={"result": result}, status_code=200)
 
 
 @router.post("/remove-roll")
@@ -557,10 +558,11 @@ async def remove_roll(
     """
     Endpoint to remove a roll.
     """
-    await remove_roll_ps(request.code)
-    await handle_image_update("roll", user_data['tenant'], request.code, "remove", None)
-    await remember_users_action(user_data['username'], f"Roll removed: {request.code}")
-    return JSONResponse("Success", status_code=200)
+    result = await remove_roll_ps(request.code)
+    if result:
+        await handle_image_update("roll", user_data['tenant'], request.code, "remove", None)
+        await remember_users_action(user_data['username'], f"Roll removed: {request.code}")
+    return JSONResponse(content={"result": result}, status_code=200)
 
 
 @router.post("/remove-user")
@@ -571,10 +573,11 @@ async def remove_user(
     """
     Endpoint to remove a user.
     """
-    await remove_user_ps(request.usernameToRemove)
-    await handle_image_update("user", user_data['tenant'], request.usernameToRemove, "remove", None)
-    await remember_users_action(user_data['username'], f"User removed: {request.usernameToRemove}")
-    return JSONResponse("success", status_code=200)
+    result = await remove_user_ps(request.usernameToRemove)
+    if result:
+        await handle_image_update("user", user_data['tenant'], request.usernameToRemove, "remove", None)
+        await remember_users_action(user_data['username'], f"User removed: {request.usernameToRemove}")
+    return JSONResponse(content={"result": result}, status_code=200)
 
 
 @router.post("/remove-bill")
@@ -585,9 +588,10 @@ async def remove_bill(
     """
     Endpoint to remove a bill.
     """
-    await remove_bill_ps(request.code)
-    await remember_users_action(user_data['username'], f"Bill removed: {request.code}")
-    return JSONResponse("Success", status_code=200)
+    result = await remove_bill_ps(request.code)
+    if result:
+        await remember_users_action(user_data['username'], f"Bill removed: {request.code}")
+    return JSONResponse(content={"result": result}, status_code=200)
 
 
 @router.post("/update-roll-quantity")

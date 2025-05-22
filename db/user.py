@@ -158,8 +158,10 @@ async def remove_user_ps(username):
     try:
         async with connection_context() as conn:
             await conn.execute("DELETE FROM users WHERE username = $1", username)
+        return True
     except Exception as e:
         await flatbed('exception', f"in remove_user_ps: {e}")
+        return False
 
 
 async def remember_users_action(username, action):

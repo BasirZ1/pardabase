@@ -285,5 +285,7 @@ async def remove_bill_ps(code):
     try:
         async with connection_context() as conn:
             await conn.execute("DELETE FROM bills WHERE bill_code = $1", code)
+        return True
     except Exception as e:
         await flatbed('exception', f"in remove_bill_ps: {e}")
+        return False
