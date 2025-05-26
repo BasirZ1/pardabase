@@ -21,9 +21,10 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     remember_users_action, remove_user_ps, search_bills_list_filtered, search_expenses_list_filtered, \
     search_products_list_filtered, insert_new_online_order, subscribe_newsletter_ps, remove_product_ps, \
     remove_roll_ps, remove_bill_ps, update_bill_tailor_ps, update_roll_quantity_ps, update_bill_status_ps, \
-    add_payment_bill_ps, add_expense_ps, unsubscribe_newsletter_ps, get_bill_ps, get_users_list_ps, \
+    add_payment_bill_ps, unsubscribe_newsletter_ps, get_bill_ps, get_users_list_ps, \
     get_dashboard_data_ps, search_rolls_for_product, search_bills_list, confirm_email_newsletter_ps, \
-    handle_image_update, get_sample_image_for_roll, get_image_for_user, get_image_for_product
+    handle_image_update, get_sample_image_for_roll, get_image_for_user, get_image_for_product, insert_new_expense, \
+    update_expense
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -289,6 +290,60 @@ async def add_or_edit_bill(
     })
 
 
+@router.post("/add-expense")
+async def add_expense(
+        request: AddExpenseRequest,
+        user_data: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Endpoint to add an expense.
+    """
+    expense_id = await insert_new_expense(request.categoryIndex, request.description, request.amount)
+    if expense_id:
+        await remember_users_action(user_data['username'], f"Added Expense: Desc: {request.description}")
+        return JSONResponse(content={
+            "description": request.description,
+            "amount": request.amount
+        })
+    return "Failure", 500
+
+
+@router.post("/add-or-edit-expense")
+async def add_or_edit_expense(
+        categoryIndex: int,
+        amount: int,
+        description: Optional[str] = Form(None),
+        idToEdit: Optional[str] = Form(None),
+        user_data: dict = Depends(verify_jwt_user(required_level=2))
+):
+    if idToEdit is None:
+        # CREATE NEW
+        _id = await insert_new_expense(categoryIndex, description, amount)
+        if not id:
+            return JSONResponse(content={
+                "result": False,
+                "description": description,
+                "amount": amount
+            })
+        await remember_users_action(user_data['username'], f"Expense Added: {description} {amount}")
+    else:
+        # UPDATE OLD
+        _id = await update_expense(idToEdit, categoryIndex, description, amount)
+        if not _id:
+            return JSONResponse(content={
+                "result": False,
+                "description": description,
+                "amount": amount
+            })
+        await remember_users_action(user_data['username'], f"Expense updated: {_id},"
+                                                           f" description: {description} amount: {amount}")
+    return JSONResponse(content={
+        "result": True,
+        "description": description,
+        "amount": amount
+    })
+
+
 @router.post("/add-or-edit-user")
 async def add_or_edit_user(
         usernameToEdit: Optional[str] = Form(None),
@@ -308,16 +363,16 @@ async def add_or_edit_user(
         result = await insert_new_user(fullName, usernameChange, password, level)
         if not result:
             return JSONResponse(content={"result": False}, status_code=201)
-        image_url = await handle_image_update("user", user_data['tenant'], usernameChange, image_status, image_data)
+        await handle_image_update("user", user_data['tenant'], usernameChange, image_status, image_data)
         await remember_users_action(user_data['username'], f"User added: {usernameChange}")
     else:
         result = await update_user(usernameToEdit, fullName, usernameChange, level, password)
         if not result:
             return JSONResponse(content={"result": False}, status_code=201)
-        image_url = await handle_image_update("user", user_data['tenant'], usernameChange, image_status, image_data)
+        await handle_image_update("user", user_data['tenant'], usernameChange, image_status, image_data)
         await remember_users_action(user_data['username'], f"user updated: {usernameChange}")
 
-    return JSONResponse(content={"result": True, "imageUrl": image_url}, status_code=200)
+    return JSONResponse(content={"result": True}, status_code=200)
 
 
 @router.get("/bills-list-get")
@@ -648,24 +703,6 @@ async def add_payment_bill(
     await remember_users_action(user_data['username'], f"Added payment to bill: "
                                                        f"{request.code} {request.amount}")
     return JSONResponse("Success", status_code=200)
-
-
-@router.post("/add-expense")
-async def add_expense(
-        request: AddExpenseRequest,
-        user_data: dict = Depends(verify_jwt_user(required_level=3))
-):
-    """
-    Endpoint to add an expense.
-    """
-    expense_id = await add_expense_ps(request.categoryIndex, request.description, request.amount)
-    if expense_id:
-        await remember_users_action(user_data['username'], f"Added Expense: Desc: {request.description}")
-        return JSONResponse(content={
-            "description": request.description,
-            "amount": request.amount
-        })
-    return "Failure", 500
 
 
 @router.get("/submit-request")

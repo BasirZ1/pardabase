@@ -1,8 +1,10 @@
+from typing import Optional
+
 from utils import flatbed
 from utils.conn import connection_context
 
 
-async def add_expense_ps(category_index, description, amount):
+async def insert_new_expense(category_index, description, amount) -> Optional[str]:
     try:
         async with connection_context() as conn:
             sql_insert = """
@@ -15,6 +17,30 @@ async def add_expense_ps(category_index, description, amount):
             return expense_id
     except Exception as e:
         await flatbed('exception', f"In add_expense: {e}")
+        return None
+
+
+async def update_expense(_id, category_index, description, amount) -> Optional[str]:
+    try:
+        async with connection_context() as conn:
+            sql_update = """
+                UPDATE expenses
+                SET category_index = $1,
+                    description = $2,
+                    amount = $3,
+                    updated_at = NOW()
+                WHERE id = $4
+            """
+            await conn.execute(
+                sql_update,
+                category_index,
+                description,
+                amount,
+                _id
+            )
+            return _id
+    except Exception as e:
+        await flatbed('exception', f"In update_expense: {e}")
         return None
 
 
