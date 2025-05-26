@@ -310,8 +310,8 @@ async def add_expense(
 
 @router.post("/add-or-edit-expense")
 async def add_or_edit_expense(
-        categoryIndex: int,
-        amount: int,
+        categoryIndex: int = Form(...),
+        amount: int = Form(...),
         description: Optional[str] = Form(None),
         idToEdit: Optional[str] = Form(None),
         user_data: dict = Depends(verify_jwt_user(required_level=2))
