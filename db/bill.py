@@ -16,9 +16,7 @@ async def insert_new_bill(
         remaining: Optional[int] = None,
         fabrics: Optional[str] = None,
         parts: Optional[str] = None,
-        status: Optional[str] = 'pending',
         salesman: Optional[str] = None,
-        tailor: Optional[str] = None,
         additional_data: Optional[str] = None,
         installation: Optional[str] = None
 ) -> Optional[str]:
@@ -63,9 +61,9 @@ async def insert_new_bill(
                 remaining,
                 fabrics,
                 parts,
-                status,
+                "pending",
                 salesman,
-                tailor,
+                None,
                 additional_data,
                 installation
             )

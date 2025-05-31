@@ -254,9 +254,6 @@ async def add_or_edit_bill(
         remaining: Optional[int] = Form(None),
         fabrics: Optional[str] = Form(None),
         parts: Optional[str] = Form(None),
-        status: Optional[str] = Form(None),
-        salesman: Optional[str] = Form(None),
-        tailor: Optional[str] = Form(None),
         additionalData: Optional[str] = Form(None),
         installation: Optional[str] = Form(None),
         user_data: dict = Depends(verify_jwt_user(required_level=2))
@@ -264,7 +261,7 @@ async def add_or_edit_bill(
     if codeToEdit is None:
         # CREATE NEW
         code = await insert_new_bill(billDate, dueDate, customerName, customerNumber, price, paid, remaining,
-                                     fabrics, parts, status, salesman, tailor, additionalData, installation)
+                                     fabrics, parts, user_data['username'], additionalData, installation)
         if not code:
             return JSONResponse(content={
                 "result": False,
@@ -699,10 +696,10 @@ async def add_payment_bill(
     """
     Endpoint to update a bill's payment.
     """
-    await add_payment_bill_ps(request.code, request.amount)
+    result = await add_payment_bill_ps(request.code, request.amount)
     await remember_users_action(user_data['username'], f"Added payment to bill: "
                                                        f"{request.code} {request.amount}")
-    return JSONResponse("Success", status_code=200)
+    return JSONResponse(content={"result": result}, status_code=200)
 
 
 @router.get("/submit-request")
