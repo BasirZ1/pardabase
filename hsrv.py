@@ -405,14 +405,14 @@ async def get_expenses_list(
 
 @router.get("/products-list-get")
 async def get_products_list(
-        date: int,
+        stockCondition: int,
         category: int,
         _: dict = Depends(verify_jwt_user(required_level=1))
 ):
     """
     Retrieve a list of products based on date and category.
     """
-    products_data = await search_products_list_filtered(date, category)
+    products_data = await search_products_list_filtered(stockCondition, category)
     products_list = get_formatted_search_results_list(products_data, None)
     if products_list:
         return JSONResponse(content=products_list, status_code=200)
@@ -440,14 +440,14 @@ async def get_search_results_list(
         bills_data = await search_bills_list(searchQuery, 0)
         search_results_list = get_formatted_search_results_list(None, bills_data)
 
+    elif roll_code_pattern:
+        product_data = await get_product_and_roll_ps(searchQuery)
+        search_results_list.append(product_data)
+
     elif product_code_pattern:
         # Search product by code
         products_data = await search_products_list(searchQuery, 0)
         search_results_list = get_formatted_search_results_list(products_data, None)
-
-    elif roll_code_pattern:
-        product_data = await get_product_and_roll_ps(searchQuery)
-        search_results_list.append(product_data)
 
     elif phone_number_pattern:
         # Search bill by customer phone number
@@ -461,6 +461,33 @@ async def get_search_results_list(
         search_results_list = get_formatted_search_results_list(products_data, bills_data)
 
     return JSONResponse(content=search_results_list, status_code=200)
+
+
+@router.get("/search-products-list-get")
+async def get_search_products_list(
+        searchQuery: str,
+        _: dict = Depends(verify_jwt_user(required_level=1))
+):
+    """
+    Direct product search (code, name).
+    """
+
+    results = []
+    product_code_pattern = re.fullmatch(r"(?i)p\d+", searchQuery)
+    roll_code_pattern = re.fullmatch(r"(?i)p\d+r\d+", searchQuery)
+
+    if roll_code_pattern:
+        product_data = await get_product_and_roll_ps(searchQuery)
+        results.append(product_data)
+    elif product_code_pattern:
+        products = await search_products_list(searchQuery, 0)
+        results = get_formatted_search_results_list(products, None)
+    else:
+        # name or general string
+        products = await search_products_list(searchQuery, 1)
+        results = get_formatted_search_results_list(products, None)
+
+    return JSONResponse(content=results, status_code=200)
 
 
 @router.get("/rolls-for-product-get")

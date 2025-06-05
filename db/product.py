@@ -68,7 +68,7 @@ async def search_products_list(search_query, search_by):
         raise RuntimeError(f"Failed to search products: {e}")
 
 
-async def search_products_list_filtered(_date, category):
+async def search_products_list_filtered(stock_condition, category):
     """
     Retrieve products list based on a date or category filter.
 
@@ -82,7 +82,7 @@ async def search_products_list_filtered(_date, category):
     try:
         async with connection_context() as conn:
             query = "SELECT * FROM search_products_list_filtered($1, $2);"
-            expenses_list = await conn.fetch(query, _date, category)
+            expenses_list = await conn.fetch(query, stock_condition, category)
             return expenses_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
