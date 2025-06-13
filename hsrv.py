@@ -595,7 +595,7 @@ async def get_product_and_roll(
     if product:
         return JSONResponse(content=product, status_code=200)
     else:
-        return "not found", 404
+        return JSONResponse(content=product, status_code=204)
 
 
 @router.get("/bill-get")
@@ -611,7 +611,7 @@ async def get_bill(
     if bill:
         return JSONResponse(content=bill, status_code=200)
     else:
-        return "not found", 404
+        return JSONResponse(content=bill, status_code=204)
 
 
 @router.post("/remove-product")
