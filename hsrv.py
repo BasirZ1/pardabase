@@ -4,7 +4,7 @@ from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Form, File, UploadFile, Query, BackgroundTasks, HTTPException, Depends
-from fastapi.responses import JSONResponse, FileResponse, RedirectResponse, HTMLResponse, Response
+from fastapi.responses import JSONResponse, FileResponse, RedirectResponse, HTMLResponse
 
 from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     UpdateRollRequest, AddExpenseRequest, UpdateBillStatusRequest, \
@@ -592,10 +592,7 @@ async def get_product_and_roll(
     Retrieve a product and roll based on code.
     """
     product = await get_product_and_roll_ps(code)
-    if product:
-        return JSONResponse(content=product, status_code=200)
-    else:
-        return Response(status_code=204)
+    return JSONResponse(content=product, status_code=200)
 
 
 @router.get("/bill-get")
@@ -607,11 +604,7 @@ async def get_bill(
     Retrieve a bill based on code.
     """
     bill = await get_bill_ps(code)
-
-    if bill:
-        return JSONResponse(content=bill, status_code=200)
-    else:
-        return Response(status_code=204)
+    return JSONResponse(content=bill, status_code=200)
 
 
 @router.post("/remove-product")
