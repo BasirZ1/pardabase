@@ -311,7 +311,7 @@ async def add_or_edit_expense(
         categoryIndex: int = Form(...),
         amount: int = Form(...),
         description: Optional[str] = Form(None),
-        idToEdit: Optional[str] = Form(None),
+        idToEdit: Optional[int] = Form(None),
         user_data: dict = Depends(verify_jwt_user(required_level=2))
 ):
     if idToEdit is None:
