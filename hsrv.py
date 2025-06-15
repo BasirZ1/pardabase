@@ -383,10 +383,8 @@ async def get_bills_list(
     """
     bills_data = await search_bills_list_filtered(date, state)
     bills_list = get_formatted_search_results_list(None, bills_data)
-    if bills_list:
-        return JSONResponse(content=bills_list, status_code=200)
-    else:
-        return "not found", 404
+
+    return JSONResponse(content=bills_list, status_code=200)
 
 
 @router.get("/expenses-list-get")
@@ -414,10 +412,8 @@ async def get_products_list(
     """
     products_data = await search_products_list_filtered(stockCondition, category)
     products_list = get_formatted_search_results_list(products_data, None)
-    if products_list:
-        return JSONResponse(content=products_list, status_code=200)
-    else:
-        return "not found", 404
+
+    return JSONResponse(content=products_list, status_code=200)
 
 
 @router.get("/search-results-list-get")
@@ -605,6 +601,18 @@ async def get_bill(
     """
     bill = await get_bill_ps(code)
     return JSONResponse(content=bill, status_code=200)
+
+
+# @router.get("/payment-history-get")
+# async def get_payment_history(
+#         code: str,
+#         _: dict = Depends(verify_jwt_user(required_level=1))
+# ):
+#     """
+#     Retrieve a bill based on code.
+#     """
+#     payment_history = await get_payment_history_ps(code)
+#     return JSONResponse(content=payment_history, status_code=200)
 
 
 @router.post("/remove-product")
