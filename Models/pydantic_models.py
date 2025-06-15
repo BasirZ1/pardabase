@@ -28,7 +28,7 @@ class RemoveUserRequest(BaseModel):
 
 
 class RemoveExpenseRequest(BaseModel):
-    expenseId: str
+    expenseId: int
 
 
 class UpdateRollRequest(BaseModel):
