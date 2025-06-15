@@ -27,6 +27,10 @@ class RemoveUserRequest(BaseModel):
     usernameToRemove: str
 
 
+class RemoveExpenseRequest(BaseModel):
+    expenseId: str
+
+
 class UpdateRollRequest(BaseModel):
     code: str
     quantity: int

@@ -64,3 +64,13 @@ async def search_expenses_list_filtered(_date, category):
     except Exception as e:
         await flatbed('exception', f"In search_expenses_list_filtered: {e}")
         raise RuntimeError(f"Failed to search expenses: {e}")
+
+
+async def remove_expense_ps(expense_id):
+    try:
+        async with connection_context() as conn:
+            await conn.execute("DELETE FROM expenses WHERE id = $1", expense_id)
+        return True
+    except Exception as e:
+        await flatbed('exception', f"in remove_expense_ps: {e}")
+        return False

@@ -8,7 +8,8 @@ from fastapi.responses import JSONResponse, FileResponse, RedirectResponse, HTML
 
 from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     UpdateRollRequest, AddExpenseRequest, UpdateBillStatusRequest, \
-    UpdateBillTailorRequest, AddPaymentBillRequest, RemoveUserRequest, AddOnlineOrderRequest, RefreshTokenRequest
+    UpdateBillTailorRequest, AddPaymentBillRequest, RemoveUserRequest, AddOnlineOrderRequest, RefreshTokenRequest, \
+    RemoveExpenseRequest
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list
@@ -24,7 +25,7 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     add_payment_bill_ps, unsubscribe_newsletter_ps, get_bill_ps, get_users_list_ps, \
     get_dashboard_data_ps, search_rolls_for_product, search_bills_list, confirm_email_newsletter_ps, \
     handle_image_update, get_sample_image_for_roll, get_image_for_user, get_image_for_product, insert_new_expense, \
-    update_expense
+    update_expense, remove_expense_ps
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -657,6 +658,20 @@ async def remove_user(
     if result:
         await handle_image_update("user", user_data['tenant'], request.usernameToRemove, "remove", None)
         await remember_users_action(user_data['username'], f"User removed: {request.usernameToRemove}")
+    return JSONResponse(content={"result": result}, status_code=200)
+
+
+@router.post("/remove-expense")
+async def remove_expense(
+        request: RemoveExpenseRequest,
+        user_data: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Endpoint to remove an expense.
+    """
+    result = await remove_expense_ps(request.expenseId)
+    if result:
+        await remember_users_action(user_data['username'], f"Expense removed: {request.expenseId}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 
