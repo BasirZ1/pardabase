@@ -1,3 +1,5 @@
+import datetime
+
 from utils import flatbed
 from utils.conn import connection_context
 
@@ -13,6 +15,14 @@ async def report_recent_activities_list(from_date, to_date):
     Returns:
     - List of records from the admins_records table that match the criteria.
     """
+
+    if from_date:
+        from_date = datetime.datetime.strptime(from_date, "%Y-%m-%d").date()\
+            if isinstance(from_date, str) else from_date
+
+    if to_date:
+        to_date = datetime.datetime.strptime(to_date, "%Y-%m-%d").date()\
+            if isinstance(to_date, str) else to_date
 
     query = "SELECT id, date, username, action FROM admins_records WHERE date >= $1 AND date <= $2"
 
