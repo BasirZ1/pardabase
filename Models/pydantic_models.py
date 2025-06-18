@@ -52,6 +52,12 @@ class AddPaymentBillRequest(BaseModel):
     amount: int
 
 
+class GenerateReportRequest(BaseModel):
+    selectedReport: str
+    fromDate: str
+    toDate: str
+
+
 class AddExpenseRequest(BaseModel):
     categoryIndex: int
     description: str

@@ -15,3 +15,4 @@ from .expense import search_expenses_list_filtered, insert_new_expense, \
     update_expense, remove_expense_ps
 from .order import insert_new_online_order, subscribe_newsletter_ps, \
     unsubscribe_newsletter_ps, confirm_email_newsletter_ps
+from .report import report_recent_activities_list
