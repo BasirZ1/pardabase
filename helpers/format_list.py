@@ -26,6 +26,29 @@ def get_formatted_recent_activities_list(recent_activity_data):
     return recent_activity_list
 
 
+def get_formatted_tags_list(tags_data):
+    """
+    Helper function to format tags data into JSON-compatible objects.
+
+    Parameters:
+    - tags_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted tags dictionaries.
+    """
+    tags_list = []
+    if tags_data:
+        for data in tags_data:
+            activity = {
+                "fullCode": data["full_code"],
+                "productName": data["product_name"],
+                "createdOn": data["created_on"].strftime('%Y-%m-%d %H:%M:%S')
+                if isinstance(data["created_on"], datetime) else data["created_on"]
+            }
+            tags_list.append(activity)
+    return tags_list
+
+
 def get_formatted_expenses_list(expenses_data):
     """
     Helper function to format expenses data into JSON-compatible objects.

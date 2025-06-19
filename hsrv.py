@@ -12,7 +12,7 @@ from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     RemoveExpenseRequest, GenerateReportRequest
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
-    get_formatted_users_list
+    get_formatted_users_list, get_formatted_tags_list
 from helpers.general import delete_temp_file
 from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
     set_db_from_tenant, create_refresh_token, verify_refresh_token
@@ -25,7 +25,7 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     add_payment_bill_ps, unsubscribe_newsletter_ps, get_bill_ps, get_users_list_ps, \
     get_dashboard_data_ps, search_rolls_for_product, search_bills_list, confirm_email_newsletter_ps, \
     handle_image_update, get_sample_image_for_roll, get_image_for_user, get_image_for_product, insert_new_expense, \
-    update_expense, remove_expense_ps, report_recent_activities_list
+    update_expense, remove_expense_ps, report_recent_activities_list, report_tags_list
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -757,8 +757,9 @@ async def generate_report(
     if request.selectedReport == "activities":
         recent_activity_data = await report_recent_activities_list(request.fromDate, request.toDate)
         data = get_formatted_recent_activities_list(recent_activity_data)
-    elif request.selectedReport == "":
-        data = None
+    elif request.selectedReport == "tags":
+        tags_data = await report_tags_list(request.fromDate, request.toDate)
+        data = get_formatted_tags_list(tags_data)
     await remember_users_action(user_data['username'], f"generated Report: "
                                                        f"{request.selectedReport}"
                                                        f" from {request.fromDate} to {request.toDate}")
