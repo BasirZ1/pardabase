@@ -39,13 +39,13 @@ def get_formatted_tags_list(tags_data):
     tags_list = []
     if tags_data:
         for data in tags_data:
-            activity = {
+            tag = {
                 "fullCode": data["full_code"],
                 "productName": data["product_name"],
-                "createdOn": data["created_on"].strftime('%Y-%m-%d %H:%M:%S')
-                if isinstance(data["created_on"], datetime) else data["created_on"]
+                "createdOn": data["created_on"].strftime('%Y-%m-%d')
+                if isinstance(data["created_on"], (date, datetime)) else data["created_on"]
             }
-            tags_list.append(activity)
+            tags_list.append(tag)
     return tags_list
 
 
