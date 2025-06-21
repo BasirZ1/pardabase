@@ -8,3 +8,4 @@ contextvars
 aiosmtplib
 pyJWT
 boto3
+pillow

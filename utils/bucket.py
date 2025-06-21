@@ -1,6 +1,8 @@
 import asyncio
 import os
 import time
+from PIL import Image
+import io
 
 import boto3
 from botocore.client import Config
@@ -30,11 +32,18 @@ r2 = session.client(
 async def upload_image_to_r2(_type: str, tenant: str, code: str, image_data: bytes) -> str:
     """
     Uploads image to R2 using type, code and tenant name.
+    Converts image to WebP format.
     Returns a cache-busted public URL.
     """
 
+    # Convert to WebP
+    image = Image.open(io.BytesIO(image_data)).convert("RGB")
+    webp_buffer = io.BytesIO()
+    image.save(webp_buffer, format="WEBP", quality=85)
+    webp_buffer.seek(0)
+
     version = int(time.time())
-    object_key = f"curtaindb/{tenant}/{_type}/pardaaf-{code}.jpg"
+    object_key = f"curtaindb/{tenant}/{_type}/pardaaf-{code}.webp"
 
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(
@@ -42,8 +51,8 @@ async def upload_image_to_r2(_type: str, tenant: str, code: str, image_data: byt
         lambda: r2.put_object(
             Bucket=R2_BUCKET_NAME,
             Key=object_key,
-            Body=image_data,
-            ContentType='image/jpeg',
+            Body=webp_buffer.getvalue(),
+            ContentType='image/webp',
             ACL='public-read'
         )
     )
@@ -52,11 +61,6 @@ async def upload_image_to_r2(_type: str, tenant: str, code: str, image_data: byt
 
 
 async def delete_image_from_r2(_type: str, tenant: str, code: str) -> bool:
-    """
-    Deletes an image from R2 using type, code and tenant name.
-    Returns True if successful, False otherwise.
-    """
-    object_key = f"curtaindb/{tenant}/{_type}/pardaaf-{code}.jpg"
-
+    object_key = f"curtaindb/{tenant}/{_type}/pardaaf-{code}.webp"
     r2.delete_object(Bucket=R2_BUCKET_NAME, Key=object_key)
     return True
