@@ -120,7 +120,7 @@ async def get_dashboard_data(
         _: dict = Depends(verify_jwt_user(required_level=1))
 ):
     data = await get_dashboard_data_ps()
-    activities_data = get_recent_activities_preview()
+    activities_data = await get_recent_activities_preview()
     activities_list = get_formatted_recent_activities_list(activities_data)
     data["recentActivities"] = activities_list
     # Fetch data for the dashboard
