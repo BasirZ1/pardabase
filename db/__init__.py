@@ -10,7 +10,8 @@ from .bill import insert_new_bill, update_bill, get_bill_ps, search_bills_list, 
 from .user import insert_new_user, update_user, check_username_password, \
     get_users_data, update_users_password, remember_users_action, \
     get_users_list_ps, remove_user_ps
-from .dashboard import search_recent_activities_list, get_dashboard_data_ps
+from .dashboard import search_recent_activities_list, get_dashboard_data_ps, \
+    get_recent_activities_preview
 from .expense import search_expenses_list_filtered, insert_new_expense, \
     update_expense, remove_expense_ps
 from .order import insert_new_online_order, subscribe_newsletter_ps, \

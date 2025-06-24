@@ -25,7 +25,7 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     add_payment_bill_ps, unsubscribe_newsletter_ps, get_bill_ps, get_users_list_ps, \
     get_dashboard_data_ps, search_rolls_for_product, search_bills_list, confirm_email_newsletter_ps, \
     handle_image_update, get_sample_image_for_roll, get_image_for_user, get_image_for_product, insert_new_expense, \
-    update_expense, remove_expense_ps, report_recent_activities_list, report_tags_list
+    update_expense, remove_expense_ps, report_recent_activities_list, report_tags_list, get_recent_activities_preview
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -120,6 +120,9 @@ async def get_dashboard_data(
         _: dict = Depends(verify_jwt_user(required_level=1))
 ):
     data = await get_dashboard_data_ps()
+    activities_data = get_recent_activities_preview()
+    activities_list = get_formatted_recent_activities_list(activities_data)
+    data["recentActivities"] = activities_list
     # Fetch data for the dashboard
     return JSONResponse(content=data, status_code=200)
 
