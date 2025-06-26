@@ -51,6 +51,7 @@ async def report_tags_list(from_date, to_date):
     SELECT
         (products.product_code || rolls.roll_code) AS full_code,
         products.name AS product_name,
+        products.category AS category,
         rolls.color AS color,
         rolls.created_on AS created_on
     FROM

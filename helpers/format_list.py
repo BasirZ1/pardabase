@@ -42,6 +42,7 @@ def get_formatted_tags_list(tags_data):
             tag = {
                 "fullCode": data["full_code"],
                 "productName": data["product_name"],
+                "categoryIndex": data["category"],
                 "colorLetter": data["color"],
                 "createdOn": data["created_on"].strftime('%Y-%m-%d')
                 if isinstance(data["created_on"], (date, datetime)) else data["created_on"]
