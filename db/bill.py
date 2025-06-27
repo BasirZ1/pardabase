@@ -348,7 +348,7 @@ async def get_payment_history_ps(code):
             payment_history = await conn.fetchrow(query, code)
 
             if payment_history:
-                return payment_history
+                return payment_history["payment_history"]
 
             return None
 
