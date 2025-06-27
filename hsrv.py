@@ -277,7 +277,7 @@ async def add_or_edit_bill(
     else:
         # UPDATE OLD
         code = await update_bill(codeToEdit, dueDate, customerName, customerNumber, price, paid, remaining,
-                                 fabrics, parts, additionalData, installation)
+                                 fabrics, parts, additionalData, installation, user_data['username'])
         if not code:
             return JSONResponse(content={
                 "result": False,
