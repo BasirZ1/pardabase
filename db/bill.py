@@ -111,7 +111,8 @@ async def update_bill(
 
             old_price = row['price']
             old_paid = row['paid']
-            history = row['payment_history'] or []
+            history_raw = row['payment_history']
+            history = json.loads(history_raw) if history_raw else []
 
             # Build history updates
             now = datetime.datetime.now().isoformat()
@@ -120,8 +121,8 @@ async def update_bill(
             if price is not None and price != old_price:
                 updates.append({
                     "type": "price_changed",
-                    "to": price,
                     "from": old_price,
+                    "to": price,
                     "edited_by": username,
                     "timestamp": now
                 })
@@ -129,8 +130,8 @@ async def update_bill(
             if paid is not None and paid != old_paid:
                 updates.append({
                     "type": "payment_edited",
-                    "to": paid,
                     "from": old_paid,
+                    "to": paid,
                     "edited_by": username,
                     "timestamp": now
                 })
@@ -170,7 +171,7 @@ async def update_bill(
                 parts,
                 additional_data,
                 installation,
-                new_history,
+                json.dumps(new_history),
                 bill_code,
             )
             return bill_code
