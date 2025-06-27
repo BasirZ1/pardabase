@@ -1,4 +1,5 @@
 import datetime
+import json
 from typing import Optional
 
 from helpers import make_bill_dic
@@ -30,6 +31,15 @@ async def insert_new_bill(
                 due_date = datetime.datetime.strptime(due_date, "%Y-%m-%d").date() if isinstance(due_date,
                                                                                                  str) else due_date
 
+            payment_history = json.dumps([
+                {
+                    "type": "initial",
+                    "price": price,
+                    "paid": paid,
+                    "timestamp": datetime.datetime.now().isoformat()
+                }
+            ])
+
             sql_insert = """
                 INSERT INTO bills (
                     bill_date,
@@ -45,8 +55,9 @@ async def insert_new_bill(
                     salesman,
                     tailor,
                     additional_data,
-                    installation
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10, $11, $12, $13::jsonb, $14)
+                    installation,
+                    payment_history
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10, $11, $12, $13::jsonb, $14, $15::jsonb)
                 RETURNING bill_code
             """
 
@@ -65,7 +76,8 @@ async def insert_new_bill(
                 salesman,
                 None,
                 additional_data,
-                installation
+                installation,
+                payment_history
             )
             return bill_code
     except Exception as e:
@@ -84,10 +96,48 @@ async def update_bill(
         fabrics: Optional[str] = None,
         parts: Optional[str] = None,
         additional_data: Optional[str] = None,
-        installation: Optional[str] = None
+        installation: Optional[str] = None,
+        username: Optional[str] = None,
 ) -> Optional[str]:
     try:
         async with connection_context() as conn:
+            # Fetch existing data
+            row = await conn.fetchrow(
+                "SELECT price, paid, payment_history FROM bills WHERE bill_code = $1", bill_code
+            )
+
+            if not row:
+                return None
+
+            old_price = row['price']
+            old_paid = row['paid']
+            history = row['payment_history'] or []
+
+            # Build history updates
+            now = datetime.datetime.now().isoformat()
+            updates = []
+
+            if price is not None and price != old_price:
+                updates.append({
+                    "type": "price_changed",
+                    "price": price,
+                    "old_price": old_price,
+                    "edited_by": username,
+                    "timestamp": now
+                })
+
+            if paid is not None and paid != old_paid:
+                updates.append({
+                    "type": "payment_edited",
+                    "paid": paid,
+                    "old_paid": old_paid,
+                    "edited_by": username,
+                    "timestamp": now
+                })
+
+            # Append to existing history
+            new_history = history + updates if updates else history
+
             if due_date:
                 due_date = datetime.datetime.strptime(due_date, "%Y-%m-%d").date() if isinstance(due_date,
                                                                                                  str) else due_date
@@ -104,8 +154,9 @@ async def update_bill(
                     parts = $8::jsonb,
                     additional_data = $9::jsonb,
                     installation = $10,
+                    payment_history = $11::jsonb,
                     updated_at = NOW()
-                WHERE bill_code = $11
+                WHERE bill_code = $12
             """
             await conn.execute(
                 sql_update,
@@ -119,7 +170,8 @@ async def update_bill(
                 parts,
                 additional_data,
                 installation,
-                bill_code
+                new_history,
+                bill_code,
             )
             return bill_code
     except Exception as e:
@@ -184,22 +236,23 @@ async def update_bill_tailor_ps(bill_code: str, tailor: str) -> bool:
         raise e
 
 
-async def add_payment_bill_ps(bill_code: str, amount: int) -> bool:
+async def add_payment_bill_ps(bill_code: str, amount: int, username: str) -> bool:
     """
     Update a bill's payment in the bills table.
 
     Args:
         bill_code (str): The unique code for the bill.
         amount (int): The amount added as payment for the bill.
+        username (str): Collector of the payment for the bill.
 
     Returns:
         bool: True if the item was updated successfully, False otherwise.
     """
     try:
         async with connection_context() as conn:
-            sql_query = "CALL update_bill_payment($1, $2);"
+            sql_query = "CALL update_bill_payment($1, $2, $3);"
 
-            await conn.execute(sql_query, bill_code, amount)
+            await conn.execute(sql_query, bill_code, amount, username)
             return True  # If execution reaches here, the update was successful
     except Exception as e:
         await flatbed('exception', f"In add_payment_bill_ps: {e}")
@@ -276,6 +329,31 @@ async def get_bill_ps(code):
 
     except Exception as e:
         await flatbed('exception', f"In get_bill_ps: {e}")
+        return None
+
+
+async def get_payment_history_ps(code):
+    """
+    Retrieve payment history based on code (Async Version for asyncpg).
+
+    Parameters:
+    - code (str): The code for the specified bill.
+
+    Returns:
+    - str: payment history.
+    """
+    try:
+        async with connection_context() as conn:
+            query = "SELECT payment_history::TEXT from bills where bill_code = $1;"
+            payment_history = await conn.fetchrow(query, code)
+
+            if payment_history:
+                return payment_history
+
+            return None
+
+    except Exception as e:
+        await flatbed('exception', f"In get_payment_history_ps: {e}")
         return None
 
 

@@ -25,7 +25,8 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     add_payment_bill_ps, unsubscribe_newsletter_ps, get_bill_ps, get_users_list_ps, \
     get_dashboard_data_ps, search_rolls_for_product, search_bills_list, confirm_email_newsletter_ps, \
     handle_image_update, get_sample_image_for_roll, get_image_for_user, get_image_for_product, insert_new_expense, \
-    update_expense, remove_expense_ps, report_recent_activities_list, report_tags_list, get_recent_activities_preview
+    update_expense, remove_expense_ps, report_recent_activities_list, report_tags_list, get_recent_activities_preview, \
+    get_payment_history_ps
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -607,16 +608,16 @@ async def get_bill(
     return JSONResponse(content=bill, status_code=200)
 
 
-# @router.get("/payment-history-get")
-# async def get_payment_history(
-#         code: str,
-#         _: dict = Depends(verify_jwt_user(required_level=1))
-# ):
-#     """
-#     Retrieve a bill based on code.
-#     """
-#     payment_history = await get_payment_history_ps(code)
-#     return JSONResponse(content=payment_history, status_code=200)
+@router.get("/payment-history-get")
+async def get_payment_history(
+        code: str,
+        _: dict = Depends(verify_jwt_user(required_level=1))
+):
+    """
+    Retrieve payment_history based on code.
+    """
+    payment_history = await get_payment_history_ps(code)
+    return JSONResponse(content=payment_history, status_code=200)
 
 
 @router.post("/remove-product")
@@ -742,7 +743,7 @@ async def add_payment_bill(
     """
     Endpoint to update a bill's payment.
     """
-    result = await add_payment_bill_ps(request.code, request.amount)
+    result = await add_payment_bill_ps(request.code, request.amount, user_data['username'])
     await remember_users_action(user_data['username'], f"Added payment to bill: "
                                                        f"{request.code} {request.amount}")
     return JSONResponse(content={"result": result}, status_code=200)
