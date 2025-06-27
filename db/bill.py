@@ -120,8 +120,8 @@ async def update_bill(
             if price is not None and price != old_price:
                 updates.append({
                     "type": "price_changed",
-                    "price": price,
-                    "old_price": old_price,
+                    "to": price,
+                    "from": old_price,
                     "edited_by": username,
                     "timestamp": now
                 })
@@ -129,8 +129,8 @@ async def update_bill(
             if paid is not None and paid != old_paid:
                 updates.append({
                     "type": "payment_edited",
-                    "paid": paid,
-                    "old_paid": old_paid,
+                    "to": paid,
+                    "from": old_paid,
                     "edited_by": username,
                     "timestamp": now
                 })
