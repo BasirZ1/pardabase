@@ -8,7 +8,7 @@ async def get_dashboard_data_ps():
     Retrieve dashboard data from the stored procedure `get_dashboard_data`.
 
     Returns:
-    - dict: A dictionary containing totalBills, billsCompleted, billsPending, and totalProducts.
+    - dict: A dictionary containing dashboard data from the stored procedure `get_dashboard_data`.
     """
     try:
         async with connection_context() as conn:
@@ -19,10 +19,13 @@ async def get_dashboard_data_ps():
                 raise ValueError("No data returned from get_dashboard_data()")
 
             dashboard_data = {
-                "totalBills": data["total_bills"],
-                "billsCompleted": data["bills_completed"],
-                "billsPending": data["bills_pending"],
-                "totalProducts": data["total_products"]
+                "totalProducts": data["total_products"],
+                "totalRolls": data["total_rolls"],
+                "inventoryValue": data["inventory_value"],
+                "billsPending": data["billsPending"],
+                "totalRevenue": data["total_revenue"],
+                "outstandingDues": data["outstanding_dues"],
+                "todayExpenses": data["today_expenses"],
             }
             return dashboard_data
 
