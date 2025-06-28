@@ -22,7 +22,7 @@ async def get_dashboard_data_ps():
                 "totalProducts": data["total_products"],
                 "totalRolls": data["total_rolls"],
                 "inventoryValue": data["inventory_value"],
-                "billsPending": data["billsPending"],
+                "billsPending": data["bills_pending"],
                 "totalRevenue": data["total_revenue"],
                 "outstandingDues": data["outstanding_dues"],
                 "todayExpenses": data["today_expenses"],
