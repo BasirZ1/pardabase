@@ -7,6 +7,7 @@ import io
 import boto3
 from botocore.client import Config
 from dotenv import load_dotenv
+from fastapi import HTTPException
 
 load_dotenv(override=True)
 
@@ -36,11 +37,22 @@ async def upload_image_to_r2(_type: str, tenant: str, code: str, image_data: byt
     Returns a cache-busted public URL.
     """
 
-    # Convert to WebP
-    image = Image.open(io.BytesIO(image_data)).convert("RGB")
-    webp_buffer = io.BytesIO()
-    image.save(webp_buffer, format="WEBP", quality=85)
-    webp_buffer.seek(0)
+    img = Image.open(io.BytesIO(image_data))
+
+    if not img.format:
+        raise HTTPException(400, detail="Uploaded file is not a valid image.")
+
+    if img.width > 5000 or img.height > 5000:
+        raise HTTPException(400, detail="Image is too large.")
+
+    # Optional conversion — only convert if it's not already WebP
+    if img.format != "WEBP":
+        img = img.convert("RGB")
+        webp_buffer = io.BytesIO()
+        img.save(webp_buffer, format="WEBP", quality=85)
+        final_data = webp_buffer.getvalue()
+    else:
+        final_data = image_data  # already webp, just store it
 
     version = int(time.time())
     object_key = f"curtaindb/{tenant}/{_type}/pardaaf-{code}.webp"
@@ -51,7 +63,7 @@ async def upload_image_to_r2(_type: str, tenant: str, code: str, image_data: byt
         lambda: r2.put_object(
             Bucket=R2_BUCKET_NAME,
             Key=object_key,
-            Body=webp_buffer.getvalue(),
+            Body=final_data,
             ContentType='image/webp',
             ACL='public-read'
         )
