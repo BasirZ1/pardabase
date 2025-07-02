@@ -26,7 +26,7 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     get_dashboard_data_ps, search_rolls_for_product, search_bills_list, confirm_email_newsletter_ps, \
     handle_image_update, get_sample_image_for_roll, get_image_for_user, get_image_for_product, insert_new_expense, \
     update_expense, remove_expense_ps, report_recent_activities_list, report_tags_list, get_recent_activities_preview, \
-    get_payment_history_ps
+    get_payment_history_ps, get_roll_and_product_ps
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -259,6 +259,7 @@ async def add_or_edit_bill(
         remaining: Optional[int] = Form(None),
         fabrics: Optional[str] = Form(None),
         parts: Optional[str] = Form(None),
+        salesman: Optional[str] = Form(None),
         additionalData: Optional[str] = Form(None),
         installation: Optional[str] = Form(None),
         user_data: dict = Depends(verify_jwt_user(required_level=2))
@@ -266,7 +267,7 @@ async def add_or_edit_bill(
     if codeToEdit is None:
         # CREATE NEW
         code = await insert_new_bill(billDate, dueDate, customerName, customerNumber, price, paid, remaining,
-                                     fabrics, parts, user_data['username'], additionalData, installation)
+                                     fabrics, parts, salesman, additionalData, installation)
         if not code:
             return JSONResponse(content={
                 "result": False,
@@ -277,7 +278,7 @@ async def add_or_edit_bill(
     else:
         # UPDATE OLD
         code = await update_bill(codeToEdit, dueDate, customerName, customerNumber, price, paid, remaining,
-                                 fabrics, parts, additionalData, installation, user_data['username'])
+                                 fabrics, parts, salesman, additionalData, installation, user_data['username'])
         if not code:
             return JSONResponse(content={
                 "result": False,
@@ -434,6 +435,7 @@ async def get_search_results_list(
     bill_code_pattern = re.fullmatch(r"(?i)b\d+", searchQuery)  # `(?i)` makes it case insensitive
     product_code_pattern = re.fullmatch(r"(?i)p\d+", searchQuery)
     roll_code_pattern = re.fullmatch(r"(?i)p\d+r\d+", searchQuery)
+    short_roll_code_pattern = re.fullmatch(r"(?i)r\d+", searchQuery)
     phone_number_pattern = re.fullmatch(r"\+?\d{4,14}", searchQuery)  # Intl. and local formats
 
     if bill_code_pattern:
@@ -443,6 +445,11 @@ async def get_search_results_list(
 
     elif roll_code_pattern:
         product_data = await get_product_and_roll_ps(searchQuery)
+        search_results_list.append(product_data)
+
+    elif short_roll_code_pattern:
+        # Roll code like R2; get roll and product.
+        product_data = await get_roll_and_product_ps(searchQuery)
         search_results_list.append(product_data)
 
     elif product_code_pattern:

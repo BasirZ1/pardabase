@@ -129,6 +129,40 @@ async def get_product_and_roll_ps(code):
         return None
 
 
+async def get_roll_and_product_ps(code):
+    try:
+        async with connection_context() as conn:
+            roll_code = code.upper()
+            # Fetch the specific roll
+            query_roll = """
+                                SELECT product_code, roll_code, quantity, color, image_url FROM rolls
+                                WHERE roll_code = $1
+                            """
+            roll = await conn.fetchrow(query_roll, roll_code)
+
+            if not roll:
+                return None
+
+            roll_dict = make_roll_dic(roll)
+
+            # Fetch the product
+            query_product = "SELECT * FROM search_products_list($1, 0, 1, true);"
+            product = await conn.fetchrow(query_product, roll_dict["productCode"])
+
+            if not product:
+                return None
+
+            product_dict = make_product_dic(product)
+
+            product_dict["rollsList"].append(roll_dict)
+
+            return product_dict
+
+    except Exception as e:
+        await flatbed('exception', f"In get_roll_and_product_ps: {e}")
+        return None
+
+
 async def remove_product_ps(code):
     try:
         async with connection_context() as conn:

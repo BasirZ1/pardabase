@@ -95,6 +95,7 @@ async def update_bill(
         remaining: Optional[int] = None,
         fabrics: Optional[str] = None,
         parts: Optional[str] = None,
+        salesman: Optional[str] = None,
         additional_data: Optional[str] = None,
         installation: Optional[str] = None,
         username: Optional[str] = None,
@@ -153,11 +154,12 @@ async def update_bill(
                     remaining = $6,
                     fabrics = $7::jsonb,
                     parts = $8::jsonb,
-                    additional_data = $9::jsonb,
-                    installation = $10,
-                    payment_history = $11::jsonb,
+                    salesman = $9,
+                    additional_data = $10::jsonb,
+                    installation = $11,
+                    payment_history = $12::jsonb,
                     updated_at = NOW()
-                WHERE bill_code = $12
+                WHERE bill_code = $13
             """
             await conn.execute(
                 sql_update,
@@ -169,6 +171,7 @@ async def update_bill(
                 remaining,
                 fabrics,
                 parts,
+                salesman,
                 additional_data,
                 installation,
                 json.dumps(new_history),
