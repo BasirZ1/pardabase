@@ -1,10 +1,9 @@
 import re
-import tempfile
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Form, File, UploadFile, Query, BackgroundTasks, HTTPException, Depends
-from fastapi.responses import JSONResponse, FileResponse, RedirectResponse, HTMLResponse
+from fastapi import APIRouter, Form, File, UploadFile, Query, HTTPException, Depends
+from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 
 from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     UpdateRollRequest, AddExpenseRequest, UpdateBillStatusRequest, \
@@ -13,9 +12,8 @@ from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list
-from helpers.general import delete_temp_file
 from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
-    set_db_from_tenant, create_refresh_token, verify_refresh_token, flatbed
+    set_db_from_tenant, create_refresh_token, verify_refresh_token
 from db import insert_new_product, update_product, insert_new_roll, update_roll, insert_new_bill, \
     update_bill, insert_new_user, update_user, check_username_password, get_users_data, \
     search_recent_activities_list, update_users_password, search_products_list, get_product_and_roll_ps, \
@@ -24,8 +22,8 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     remove_roll_ps, remove_bill_ps, update_bill_tailor_ps, update_roll_quantity_ps, update_bill_status_ps, \
     add_payment_bill_ps, unsubscribe_newsletter_ps, get_bill_ps, get_users_list_ps, \
     get_dashboard_data_ps, search_rolls_for_product, search_bills_list, confirm_email_newsletter_ps, \
-    handle_image_update, get_sample_image_for_roll, get_image_for_user, get_image_for_product, insert_new_expense, \
-    update_expense, remove_expense_ps, report_recent_activities_list, report_tags_list, get_recent_activities_preview, \
+    handle_image_update, insert_new_expense, update_expense, remove_expense_ps, \
+    report_recent_activities_list, report_tags_list, get_recent_activities_preview, \
     get_payment_history_ps, get_roll_and_product_ps
 from utils.hasher import hash_password
 
@@ -445,12 +443,14 @@ async def get_search_results_list(
 
     elif roll_code_pattern:
         product_data = await get_product_and_roll_ps(searchQuery)
-        search_results_list.append(product_data)
+        if product_data:
+            search_results_list.append(product_data)
 
     elif short_roll_code_pattern:
         # Roll code like R2; get roll and product.
         product_data = await get_roll_and_product_ps(searchQuery)
-        search_results_list.append(product_data)
+        if product_data:
+            search_results_list.append(product_data)
 
     elif product_code_pattern:
         # Search product by code

@@ -1,8 +1,7 @@
 from .product import insert_new_product, update_product, get_product_and_roll_ps, \
     remove_product_ps, search_products_list, search_products_list_filtered, \
     get_roll_and_product_ps
-from .image import update_image_bucket_db, remove_image_bucket_db, handle_image_update, \
-    get_image_for_product, get_sample_image_for_roll, get_image_for_user
+from .image import update_image_bucket_db, remove_image_bucket_db, handle_image_update
 from .roll import insert_new_roll, update_roll, search_rolls_for_product, \
     remove_roll_ps, update_roll_quantity_ps
 from .bill import insert_new_bill, update_bill, get_bill_ps, search_bills_list, \
