@@ -43,6 +43,11 @@ class CommentRequest(BaseModel):
     comment: str
 
 
+class UpdateCutFabricTXStatusRequest(BaseModel):
+    id: int
+    newStatus: str
+
+
 class UpdateBillStatusRequest(BaseModel):
     code: str
     status: str

@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     UpdateRollRequest, AddExpenseRequest, UpdateBillStatusRequest, \
     UpdateBillTailorRequest, AddPaymentBillRequest, RemoveUserRequest, AddOnlineOrderRequest, RefreshTokenRequest, \
-    RemoveExpenseRequest, GenerateReportRequest, CommentRequest
+    RemoveExpenseRequest, GenerateReportRequest, CommentRequest, UpdateCutFabricTXStatusRequest
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list
@@ -24,7 +24,7 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     get_dashboard_data_ps, search_rolls_for_product, search_bills_list, confirm_email_newsletter_ps, \
     handle_image_update, insert_new_expense, update_expense, remove_expense_ps, \
     report_recent_activities_list, report_tags_list, get_recent_activities_preview, \
-    get_payment_history_ps, get_roll_and_product_ps, add_cut_fabric_tx
+    get_payment_history_ps, get_roll_and_product_ps, add_cut_fabric_tx, update_cut_fabric_tx_status_ps
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -665,6 +665,20 @@ async def update_bill_status(
     result = await update_bill_status_ps(request.code, request.status)
     await remember_users_action(user_data['username'], f"Bill status updated: "
                                                        f"{request.code} {request.status}")
+    return JSONResponse(content={"result": result}, status_code=200)
+
+
+@router.post("/update-cut-fabric-tx-status")
+async def update_cut_fabric_tx_status(
+        request: UpdateCutFabricTXStatusRequest,
+        user_data: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Endpoint to update a cut_fabric transaction's status.
+    """
+    result = await update_cut_fabric_tx_status_ps(request.id, request.status, user_data['username'])
+    await remember_users_action(user_data['username'], f"Cut draft status updated: "
+                                                       f"{request.id} {request.status}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 

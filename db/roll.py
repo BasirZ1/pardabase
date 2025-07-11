@@ -95,6 +95,28 @@ async def add_cut_fabric_tx(
         raise e
 
 
+async def update_cut_fabric_tx_status_ps(
+        _id: int,
+        status: str,
+        username: str
+) -> bool:
+    try:
+        async with connection_context() as conn:
+            sql_update = """
+                        UPDATE cut_fabric_tx
+                        SET status = $1 and reviewed_by = $2
+                        WHERE id = $3
+                        RETURNING id
+                    """
+            return_id = await conn.fetchval(sql_update, status, username, _id)
+
+            return return_id is not None
+
+    except Exception as e:
+        await flatbed('exception', f"In update_cut_fabric_tx_status: {e}")
+        raise e
+
+
 async def search_rolls_for_product(product_code):
     """
     Retrieve rolls list based on product_code.

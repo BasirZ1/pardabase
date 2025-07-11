@@ -29,6 +29,7 @@ async def get_dashboard_data_ps():
                 "totalRevenue": data["total_revenue"],
                 "outstandingDues": data["outstanding_dues"],
                 "todayExpenses": data["today_expenses"],
+                "draftsCount": data["drafts_count"],
             }
             return dashboard_data
 
