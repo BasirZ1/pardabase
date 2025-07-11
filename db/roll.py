@@ -1,3 +1,5 @@
+from typing import Optional
+
 from utils import flatbed
 from utils.conn import connection_context
 
@@ -38,16 +40,9 @@ async def update_roll(codeToEdit, quantity, color_letter):
         return None
 
 
-async def update_roll_quantity_ps(roll_code, quantity, action) -> bool:
-    if action not in ["subtract", "add"]:
-        await flatbed('error', f"Invalid action: {action}. Expected 'subtract' or 'add'.")
-        return False
-
+async def add_roll_quantity_ps(roll_code, quantity) -> bool:
     try:
         async with connection_context() as conn:
-            # Using Python logic instead of relying on PostgreSQL CASE
-            quantity = -quantity if action == "subtract" else quantity
-
             sql_update = """
                         UPDATE rolls
                         SET quantity = quantity + $1
@@ -59,7 +54,44 @@ async def update_roll_quantity_ps(roll_code, quantity, action) -> bool:
             return updated_quantity is not None
 
     except Exception as e:
-        await flatbed('exception', f"In update_roll_quantity_ps: {e}")
+        await flatbed('exception', f"In add_roll_quantity_ps: {e}")
+        raise e
+
+
+async def add_cut_fabric_tx(
+    roll_code: str,
+    quantity: int,
+    created_by: str,
+    status: str = 'manual',  # or 'draft'
+    bill_code: Optional[str] = None,
+    comment: Optional[str] = None,
+) -> bool:
+    try:
+        async with connection_context() as conn:
+            sql_insert = """
+                INSERT INTO cut_fabric_tx (
+                    roll_code,
+                    bill_code,
+                    quantity,
+                    comment,
+                    created_by,
+                    status
+                ) VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING roll_code
+            """
+            returned_roll_code = await conn.fetchval(
+                sql_insert,
+                roll_code,
+                bill_code,
+                quantity,
+                comment,
+                created_by,
+                status
+            )
+
+            return returned_roll_code is not None
+    except Exception as e:
+        await flatbed('exception', f"In add_cut_fabric_tx: {e}")
         raise e
 
 

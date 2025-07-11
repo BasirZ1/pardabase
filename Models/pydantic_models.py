@@ -37,6 +37,12 @@ class UpdateRollRequest(BaseModel):
     action: str
 
 
+class CommentRequest(BaseModel):
+    code: str
+    quantity: int
+    comment: str
+
+
 class UpdateBillStatusRequest(BaseModel):
     code: str
     status: str
