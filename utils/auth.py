@@ -26,7 +26,6 @@ def create_jwt_token(sub, username, full_name, level, tenant, image_url):
         "exp": datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRY_MINUTES),
         "type": "access"
     }
-
     token = jwt.encode(payload, SECRET_KEY, ALGORITHM)
     return token
 
@@ -42,7 +41,6 @@ def create_refresh_token(sub, username, full_name, level, tenant, image_url):
         "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_EXPIRY_DAYS),
         "type": "refresh"
     }
-
     token = jwt.encode(payload, SECRET_KEY, ALGORITHM)
     return token
 

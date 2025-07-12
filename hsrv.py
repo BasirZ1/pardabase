@@ -95,12 +95,13 @@ async def login(
 
         user_id = data["user_id"]
         full_name = data["full_name"]
+        username = request.username.lower()
         level = data["level"]
         image_url = data["image_url"]
 
-        access_token = create_jwt_token(user_id, request.username, full_name, level,
+        access_token = create_jwt_token(user_id, username, full_name, level,
                                         request.tenant, image_url)
-        _refresh_token = create_refresh_token(user_id, request.username, full_name, level,
+        _refresh_token = create_refresh_token(user_id, username, full_name, level,
                                               request.tenant, image_url)
 
         return JSONResponse(content={

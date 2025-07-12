@@ -105,7 +105,7 @@ async def update_cut_fabric_tx_status_ps(
             sql_update = """
                         UPDATE cut_fabric_tx
                         SET status = $1,
-                        reviewed_by = $2,
+                        reviewed_by = lower($2),
                         reviewed_at = now()
                         WHERE id = $3
                         RETURNING id
