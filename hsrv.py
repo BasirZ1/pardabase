@@ -679,6 +679,7 @@ async def get_drafts_list(
     """
     drafts_data = await get_drafts_list_ps()
     drafts_list = get_formatted_drafts_list(drafts_data)
+
     return JSONResponse(content=drafts_list, status_code=200)
 
 

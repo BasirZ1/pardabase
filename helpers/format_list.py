@@ -148,7 +148,7 @@ def get_formatted_drafts_list(drafts_data):
     """
     drafts_list = []
     if drafts_data:
-        for data in drafts_list:
+        for data in drafts_data:
             draft = {
                 "id": data["id"],
                 "rollCode": data["roll_code"],
