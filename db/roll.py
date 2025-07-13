@@ -95,6 +95,25 @@ async def add_cut_fabric_tx(
         raise e
 
 
+async def get_drafts_list_ps():
+    """
+    Retrieve all drafts from cut_fabric_tx table.
+
+    Returns:
+    - All drafts from the drafts table.
+    """
+    try:
+        async with connection_context() as conn:
+            query = ("SELECT id, roll_code, bill_code, created_by,"
+                     " quantity, status, comment, created_at FROM cut_fabric_tx where status='draft';")
+            drafts_list = await conn.fetch(query)
+            return drafts_list  # Returns a list of asyncpg Record objects
+
+    except Exception as e:
+        await flatbed('exception', f"In get_drafts_list_ps: {e}")
+        raise RuntimeError(f"Failed to get drafts list: {e}")
+
+
 async def update_cut_fabric_tx_status_ps(
         _id: int,
         status: str,

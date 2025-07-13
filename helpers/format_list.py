@@ -136,6 +136,33 @@ def get_formatted_users_list(users_data):
     return users_list
 
 
+def get_formatted_drafts_list(drafts_data):
+    """
+    Helper function to format drafts data into JSON-compatible objects.
+
+    Parameters:
+    - drafts_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted drafts dictionaries.
+    """
+    drafts_list = []
+    if drafts_data:
+        for data in drafts_list:
+            draft = {
+                "id": data["id"],
+                "rollCode": data["roll_code"],
+                "billCode": data["bill_code"],
+                "createdBy": data["created_by"],
+                "quantity": data["quantity"],
+                "status": data["status"],
+                "comment": data["comment"],
+                "createdAt": data["created_at"]
+            }
+            drafts_list.append(draft)
+    return drafts_list
+
+
 def make_bill_dic(data):
     bill = {
         "billCode": data["bill_code"],
