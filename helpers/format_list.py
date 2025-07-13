@@ -157,7 +157,8 @@ def get_formatted_drafts_list(drafts_data):
                 "quantity": data["quantity"],
                 "status": data["status"],
                 "comment": data["comment"],
-                "createdAt": data["created_at"]
+                "createdAt": data["created_at"].strftime('%Y-%m-%d %H:%M:%S')
+                if isinstance(data["created_at"], datetime) else data["created_at"]
             }
             drafts_list.append(draft)
     return drafts_list
