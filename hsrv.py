@@ -515,15 +515,19 @@ async def get_rolls_for_product(
 
 @router.get("/product-and-roll-get")
 async def get_product_and_roll(
-        code: str,
-        _: dict = Depends(verify_jwt_user(required_level=1))
+    code: str,
+    _: dict = Depends(verify_jwt_user(required_level=1))
 ):
     """
-    Retrieve a product and roll based on code.
+    If *code* starts with “R” (roll code), call get_roll_and_product_ps;
+    otherwise call get_product_and_roll_ps.
     """
-    product = await get_product_and_roll_ps(code)
-    return JSONResponse(content=product, status_code=200)
+    if code and code[0].lower() == "r":
+        product = await get_roll_and_product_ps(code)
+    else:
+        product = await get_product_and_roll_ps(code)
 
+    return JSONResponse(content=product, status_code=200)
 
 @router.get("/bill-get")
 async def get_bill(
