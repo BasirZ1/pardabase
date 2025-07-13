@@ -100,13 +100,18 @@ async def get_drafts_list_ps():
     Retrieve all drafts from cut_fabric_tx table.
 
     Returns:
-    - All drafts from the drafts table.
+    - All drafts from the cut_fabric_tx table.
     """
     try:
         async with connection_context() as conn:
-            query = ("SELECT id, roll_code, bill_code, created_by,"
-                     " quantity, status, comment, created_at FROM cut_fabric_tx where status='draft';")
-            drafts_list = await conn.fetch(query)
+            query = """
+                SELECT id, roll_code, bill_code, created_by,
+                       quantity, status, comment, created_at
+                FROM   cut_fabric_tx
+                WHERE  status = $1
+                ORDER BY created_at
+            """
+            drafts_list = await conn.fetch(query, 'draft')
             return drafts_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
