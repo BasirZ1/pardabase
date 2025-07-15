@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import Optional, List, Any
 
+from helpers import get_date_range
 from utils import flatbed
 from utils.conn import connection_context
 
@@ -120,30 +121,43 @@ async def get_drafts_list_ps():
 
 
 async def get_cutting_history_list_ps(
-        status: str,
-        date: int
+    status: Optional[str] = None,   # None / 'all' → every status except 'draft'
+    date_idx: Optional[int] = None
 ):
-    """
-    Retrieve all drafts from cut_fabric_tx table.
+    clauses: List[str] = []
+    params:  List[Any] = []
 
-    Returns:
-    - All drafts from the cut_fabric_tx table.
+    # status filter
+    if status and status.lower() not in {"all", ""}:
+        params.append(status)
+        clauses.append(f"status = ${len(params)}")
+    else:
+        clauses.append("status <> 'draft'")
+
+    # date filter
+    dr = get_date_range(date_idx)
+    if dr:
+        start, end = dr
+        params += [start, end]
+        # placeholders are the two most‑recent params we just appended
+        clauses.append(f"created_at BETWEEN ${len(params)-1} AND ${len(params)}")
+
+    where_sql = "WHERE " + " AND ".join(clauses)
+    sql = f"""
+        SELECT id, roll_code, bill_code, created_by,
+               quantity, status, comment,
+               reviewed_by, reviewed_at, created_at
+        FROM   cut_fabric_tx
+        {where_sql}
+        ORDER BY created_at;
     """
+
     try:
         async with connection_context() as conn:
-            query = """
-                SELECT id, roll_code, bill_code, created_by,
-                       quantity, status, comment, created_at
-                FROM   cut_fabric_tx
-                WHERE  status = $1
-                ORDER BY created_at
-            """
-            drafts_list = await conn.fetch(query, 'draft')
-            return drafts_list  # Returns a list of asyncpg Record objects
-
-    except Exception as e:
-        await flatbed('exception', f"In get_drafts_list_ps: {e}")
-        raise RuntimeError(f"Failed to get drafts list: {e}")
+            return await conn.fetch(sql, *params)
+    except Exception as exc:
+        await flatbed("exception", f"get_cutting_history_list_ps: {exc}")
+        raise RuntimeError(f"Failed to get cutting history list: {exc}") from exc
 
 
 async def update_cut_fabric_tx_status_ps(
