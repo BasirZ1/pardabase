@@ -1,5 +1,6 @@
 #  Helper Functions
 from datetime import datetime, date
+from typing import Any, Iterable, Mapping, Callable, Optional, Dict, List
 
 
 def get_formatted_recent_activities_list(recent_activity_data):
@@ -136,32 +137,111 @@ def get_formatted_users_list(users_data):
     return users_list
 
 
-def get_formatted_drafts_list(drafts_data):
-    """
-    Helper function to format drafts data into JSON-compatible objects.
+# def get_formatted_drafts_list(drafts_data):
+#     """
+#     Helper function to format drafts data into JSON-compatible objects.
+#
+#     Parameters:
+#     - drafts_data: Raw data fetched from the database.
+#
+#     Returns:
+#     - A list of formatted drafts dictionaries.
+#     """
+#     drafts_list = []
+#     if drafts_data:
+#         for data in drafts_data:
+#             draft = {
+#                 "id": data["id"],
+#                 "rollCode": data["roll_code"],
+#                 "billCode": data["bill_code"],
+#                 "createdBy": data["created_by"],
+#                 "quantity": data["quantity"],
+#                 "status": data["status"],
+#                 "comment": data["comment"],
+#                 "createdAt": data["created_at"].strftime('%Y-%m-%d %H:%M:%S')
+#                 if isinstance(data["created_at"], datetime) else data["created_at"]
+#             }
+#             drafts_list.append(draft)
+#     return drafts_list
+#
+#
+# def get_formatted_cutting_history_list(history_data):
+#     """
+#     Helper function to format tx data into JSON-compatible objects.
+#
+#     Parameters:
+#     - history_data: Raw data fetched from the database.
+#
+#     Returns:
+#     - A list of formatted tx dictionaries.
+#     """
+#     history_list = []
+#     if history_data:
+#         for data in history_data:
+#             tx = {
+#                 "id": data["id"],
+#                 "rollCode": data["roll_code"],
+#                 "billCode": data["bill_code"],
+#                 "createdBy": data["created_by"],
+#                 "quantity": data["quantity"],
+#                 "status": data["status"],
+#                 "comment": data["comment"],
+#                 "reviewedBy": data["reviewed_by"],
+#                 "reviewedAt": data["reviewed_at"].strftime('%Y-%m-%d %H:%M:%S')
+#                 if isinstance(data["reviewed_at"], datetime) else data["reviewed_at"],
+#                 "createdAt": data["created_at"].strftime('%Y-%m-%d %H:%M:%S')
+#                 if isinstance(data["created_at"], datetime) else data["created_at"]
+#             }
+#             history_list.append(tx)
+#     return history_list
 
-    Parameters:
-    - drafts_data: Raw data fetched from the database.
 
-    Returns:
-    - A list of formatted drafts dictionaries.
+def _ts(val: Any) -> Any:
+    """Convert datetime → 'YYYY‑MM‑DD HH:MM:SS'; leave everything else unchanged."""
+    return val.strftime('%Y-%m-%d %H:%M:%S') if isinstance(val, datetime) else val
+
+
+def format_cut_fabric_records(
+    rows: Iterable[Mapping[str, Any]],
+    *,
+    extra: Optional[Mapping[str, str]] = None,
+    transformer: Optional[Callable[[Any], Any]] = None
+) -> List[Dict[str, Any]]:
     """
-    drafts_list = []
-    if drafts_data:
-        for data in drafts_data:
-            draft = {
-                "id": data["id"],
-                "rollCode": data["roll_code"],
-                "billCode": data["bill_code"],
-                "createdBy": data["created_by"],
-                "quantity": data["quantity"],
-                "status": data["status"],
-                "comment": data["comment"],
-                "createdAt": data["created_at"].strftime('%Y-%m-%d %H:%M:%S')
-                if isinstance(data["created_at"], datetime) else data["created_at"]
-            }
-            drafts_list.append(draft)
-    return drafts_list
+    Convert asyncpg Records (or dict‑like objects) to JSON‑ready dicts.
+
+    Parameters
+    ----------
+    rows        : iterable of Records
+    extra       : mapping {dest_key: src_field} for additional columns
+    transformer : function applied to every value (defaults to _ts)
+
+    Returns
+    -------
+    List of dicts
+    """
+    extra = extra or {}
+    xf = transformer or _ts                # choose the transformer only once
+
+    formatted: List[Dict[str, Any]] = []
+    append = formatted.append              # local ref for speed in large loops
+
+    for r in rows or []:
+        d = {
+            "id":           xf(r["id"]),
+            "rollCode":     xf(r["roll_code"]),
+            "billCode":     xf(r["bill_code"]),
+            "createdBy":    xf(r["created_by"]),
+            "quantity":     xf(r["quantity"]),
+            "status":       xf(r["status"]),
+            "comment":      xf(r["comment"]),
+            "createdAt":    xf(r["created_at"]),
+        }
+        for dest_key, src_field in extra.items():
+            d[dest_key] = xf(r[src_field])
+        append(d)
+
+    return formatted
 
 
 def make_bill_dic(data):
