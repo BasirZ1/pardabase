@@ -71,14 +71,23 @@ def build_admin_records_query(date_range=None, limit=None):
     """
     Build SQL query for fetching admin records.
     """
-    query = "SELECT id, date, username, action FROM admins_records WHERE 1=1"
+    query = """
+        SELECT 
+            ar.id,
+            ar.date,
+            u.username,
+            ar.action
+        FROM admins_records ar
+        LEFT JOIN users u ON ar.user_id = u.user_id
+        WHERE 1=1
+    """
     params = []
 
     if date_range:
-        query += " AND date >= $1 AND date <= $2"
+        query += " AND ar.date >= $1 AND ar.date <= $2"
         params.extend(date_range)
 
-    query += " ORDER BY date DESC"
+    query += " ORDER BY ar.date DESC"
 
     if limit:
         query += f" LIMIT {limit}"

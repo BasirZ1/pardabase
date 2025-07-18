@@ -164,22 +164,22 @@ async def remove_user_ps(username):
         return False
 
 
-async def remember_users_action(username, action):
+async def remember_users_action(user_id, action):
     """
         Remember admins action
-        :param username: username associated with the user.
+        :param user_id: user_id associated with the user.
         :param action: action performed by the user.
     """
     # SQL query to
     sql_insert = """
             INSERT INTO admins_records (
-                username,
+                user_id,
                 action
             ) VALUES ($1, $2)
         """
     try:
         async with connection_context() as conn:
-            await conn.execute(sql_insert, username, action)
+            await conn.execute(sql_insert, user_id, action)
     except Exception as e:
         await flatbed('exception', f"In remember_users_action: {e}")
         raise RuntimeError(f"Failed to remember users action: {e}")

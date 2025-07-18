@@ -9,7 +9,7 @@ async def insert_new_purchase(
         total_amount: Optional[int] = None,
         currency: Optional[str] = None,
         description: Optional[str] = None,
-        username: Optional[str] = None,
+        user_id: Optional[str] = None,
 ) -> Optional[int]:
     try:
         async with connection_context() as conn:
@@ -31,7 +31,7 @@ async def insert_new_purchase(
                 total_amount,
                 currency,
                 description,
-                username
+                user_id
             )
             return purchase_id
     except Exception as e:

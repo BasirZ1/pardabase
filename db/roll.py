@@ -98,22 +98,30 @@ async def add_cut_fabric_tx(
 
 async def get_drafts_list_ps():
     """
-    Retrieve all drafts from cut_fabric_tx table.
+    Retrieve all drafts from cut_fabric_tx table, including username.
 
     Returns:
-    - All drafts from the cut_fabric_tx table.
+    - All drafts from the cut_fabric_tx table, with username instead of created_by UUID.
     """
     try:
         async with connection_context() as conn:
             query = """
-                SELECT id, roll_code, bill_code, created_by,
-                       quantity, status, comment, created_at
-                FROM   cut_fabric_tx
-                WHERE  status = $1
-                ORDER BY created_at
+                SELECT 
+                    tx.id,
+                    tx.roll_code,
+                    tx.bill_code,
+                    u.username AS created_by,
+                    tx.quantity,
+                    tx.status,
+                    tx.comment,
+                    tx.created_at
+                FROM cut_fabric_tx tx
+                JOIN users u ON tx.created_by = u.user_id
+                WHERE tx.status = $1
+                ORDER BY tx.created_at
             """
             drafts_list = await conn.fetch(query, 'draft')
-            return drafts_list  # Returns a list of asyncpg Record objects
+            return drafts_list
 
     except Exception as e:
         await flatbed('exception', f"In get_drafts_list_ps: {e}")
@@ -143,13 +151,23 @@ async def get_cutting_history_list_ps(
         clauses.append(f"created_at BETWEEN ${len(params)-1} AND ${len(params)}")
 
     where_sql = "WHERE " + " AND ".join(clauses)
+
     sql = f"""
-        SELECT id, roll_code, bill_code, created_by,
-               quantity, status, comment,
-               reviewed_by, reviewed_at, created_at
-        FROM   cut_fabric_tx
+        SELECT tx.id,
+            tx.roll_code,
+            tx.bill_code,
+            u.username AS created_by,
+            tx.quantity,
+            tx.status,
+            tx.comment,
+            ru.username AS reviewed_by,
+            tx.reviewed_at,
+            tx.created_at
+        FROM   cut_fabric_tx tx
+        LEFT JOIN   users u ON tx.created_by = u.user_id
+        LEFT JOIN users ru ON tx.reviewed_by = ru.user_id
         {where_sql}
-        ORDER BY created_at DESC;
+        ORDER BY tx.created_at DESC;
     """
 
     try:
@@ -163,7 +181,7 @@ async def get_cutting_history_list_ps(
 async def update_cut_fabric_tx_status_ps(
         _id: int,
         status: str,
-        username: str
+        user_id: str
 ) -> bool:
     try:
         async with connection_context() as conn:
@@ -175,7 +193,7 @@ async def update_cut_fabric_tx_status_ps(
                         WHERE id = $3
                         RETURNING id
                     """
-            return_id = await conn.fetchval(sql_update, status, username, _id)
+            return_id = await conn.fetchval(sql_update, status, user_id, _id)
 
             return return_id is not None
 

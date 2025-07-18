@@ -1,6 +1,7 @@
 import datetime
 import json
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from helpers import make_bill_dic
 from utils import flatbed
@@ -31,12 +32,13 @@ async def insert_new_bill(
                 due_date = datetime.datetime.strptime(due_date, "%Y-%m-%d").date() if isinstance(due_date,
                                                                                                  str) else due_date
 
+            kabul_tz = ZoneInfo("Asia/Kabul")
             payment_history = json.dumps([
                 {
                     "type": "initial",
                     "price": price,
                     "paid": paid,
-                    "timestamp": datetime.datetime.now().isoformat()
+                    "timestamp": datetime.datetime.now(kabul_tz).isoformat()
                 }
             ])
 
@@ -116,7 +118,8 @@ async def update_bill(
             history = json.loads(history_raw) if history_raw else []
 
             # Build history updates
-            now = datetime.datetime.now().isoformat()
+            kabul_tz = ZoneInfo("Asia/Kabul")
+            now = datetime.datetime.now(kabul_tz).isoformat()
             updates = []
 
             if price is not None and price != old_price:

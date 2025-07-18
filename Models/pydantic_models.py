@@ -23,6 +23,10 @@ class CodeRequest(BaseModel):
     code: str
 
 
+class CheckSyncRequest(BaseModel):
+    key: str
+
+
 class RemovePurchaseRequest(BaseModel):
     purchaseId: int
 

@@ -1,6 +1,7 @@
 import os
 from datetime import timedelta, datetime
 from typing import Optional, Tuple
+from zoneinfo import ZoneInfo
 
 from fastapi import UploadFile
 
@@ -21,7 +22,8 @@ def get_date_range(idx: Optional[int]) -> Optional[Tuple[datetime, datetime]]:
     days = ranges.get(idx)
     if days is None:
         return None
-    end = datetime.now()
+    kabul_tz = ZoneInfo("Asia/Kabul")
+    end = datetime.now(kabul_tz)
     return end - timedelta(days=days), end
 
 
