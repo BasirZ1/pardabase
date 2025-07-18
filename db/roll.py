@@ -30,7 +30,7 @@ async def update_roll(codeToEdit, quantity, color_letter):
             sql_update = """
                 UPDATE rolls
                 SET quantity = $1,
-                    color = $2
+                    color = $2, updated_at = now()
                 WHERE roll_code = $3
             """
             await conn.execute(sql_update, quantity, color_letter, codeToEdit)
@@ -46,7 +46,7 @@ async def add_roll_quantity_ps(roll_code, quantity) -> bool:
         async with connection_context() as conn:
             sql_update = """
                         UPDATE rolls
-                        SET quantity = quantity + $1
+                        SET quantity = quantity + $1, updated_at = now()
                         WHERE roll_code = $2
                         RETURNING quantity
                     """
@@ -149,7 +149,7 @@ async def get_cutting_history_list_ps(
                reviewed_by, reviewed_at, created_at
         FROM   cut_fabric_tx
         {where_sql}
-        ORDER BY created_at;
+        ORDER BY created_at DESC;
     """
 
     try:
@@ -199,7 +199,7 @@ async def search_rolls_for_product(product_code):
             query = """
             SELECT product_code, roll_code, quantity, color, image_url 
             FROM rolls
-            WHERE product_code = $1
+            WHERE product_code = $1 and archived = false
             """
             rolls_list = await conn.fetch(query, product_code)
             return rolls_list  # Returns a list of asyncpg Record objects
@@ -216,4 +216,18 @@ async def remove_roll_ps(code):
         return True
     except Exception as e:
         await flatbed('exception', f"in remove_roll_ps: {e}")
+        return False
+
+
+async def archive_roll_ps(code):
+    try:
+        async with connection_context() as conn:
+            await conn.execute("""
+            UPDATE rolls
+            SET archived = TRUE, updated_at = now()
+            WHERE roll_code = $1
+            """, code)
+        return True
+    except Exception as e:
+        await flatbed('exception', f"in archive_roll_ps: {e}")
         return False

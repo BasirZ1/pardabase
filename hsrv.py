@@ -1,17 +1,19 @@
 import re
-from typing import Optional
+from typing import Optional, Literal
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Form, File, UploadFile, Query, HTTPException, Depends
+from fastapi import APIRouter, Form, File, UploadFile, Query, HTTPException, Depends, Body
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 
 from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     UpdateRollRequest, AddExpenseRequest, UpdateBillStatusRequest, \
     UpdateBillTailorRequest, AddPaymentBillRequest, RemoveUserRequest, AddOnlineOrderRequest, RefreshTokenRequest, \
-    RemoveExpenseRequest, GenerateReportRequest, CommentRequest, UpdateCutFabricTXStatusRequest
+    RemoveExpenseRequest, GenerateReportRequest, CommentRequest, UpdateCutFabricTXStatusRequest, \
+    RemoveSupplierRequest, RemovePurchaseRequest
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
-    get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records
+    get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
+    get_formatted_purchases_list
 from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
     set_db_from_tenant, create_refresh_token, verify_refresh_token
 from db import insert_new_product, update_product, insert_new_roll, update_roll, insert_new_bill, \
@@ -25,7 +27,9 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     handle_image_update, insert_new_expense, update_expense, remove_expense_ps, \
     report_recent_activities_list, report_tags_list, get_recent_activities_preview, \
     get_payment_history_ps, get_roll_and_product_ps, add_cut_fabric_tx, update_cut_fabric_tx_status_ps, \
-    get_drafts_list_ps, get_cutting_history_list_ps
+    get_drafts_list_ps, get_cutting_history_list_ps, archive_roll_ps, archive_product_ps, remove_supplier_ps, \
+    insert_new_supplier, update_supplier, get_suppliers_list_ps, get_supplier_ps, insert_new_purchase, \
+    update_purchase, archive_purchase_ps, remove_purchase_ps, search_purchases_list_filtered
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -152,6 +156,18 @@ async def get_users_list(
     users_data = await get_users_list_ps()
     users_list = get_formatted_users_list(users_data)
     return JSONResponse(content=users_list, status_code=200)
+
+
+@router.get("/suppliers-list-get")
+async def get_suppliers_list(
+        _: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Retrieve a list of suppliers.
+    """
+    suppliers_data = await get_suppliers_list_ps()
+    suppliers_list = get_formatted_suppliers_list(suppliers_data)
+    return JSONResponse(content=suppliers_list, status_code=200)
 
 
 @router.post("/change-password")
@@ -378,6 +394,87 @@ async def add_or_edit_user(
     return JSONResponse(content={"result": True}, status_code=200)
 
 
+@router.post("/add-or-edit-supplier")
+async def add_or_edit_supplier(
+        idToEdit: Optional[int] = Form(None),
+        name: str = Form(...),
+        phone: Optional[str] = Form(None),
+        address: Optional[str] = Form(None),
+        notes: Optional[str] = Form(None),
+        user_data: dict = Depends(verify_jwt_user(required_level=3))
+):
+    if idToEdit is None:
+        # CREATE NEW
+        supplier_id = await insert_new_supplier(name, phone, address, notes)
+        if not supplier_id:
+            return JSONResponse(content={
+                "result": False,
+                "name": name,
+                "phone": phone
+            })
+        await remember_users_action(user_data['username'], f"Supplier Added: {name} {phone}")
+    else:
+        # UPDATE OLD
+        supplier_id = await update_supplier(idToEdit, name, phone, address, notes)
+        if not supplier_id:
+            return JSONResponse(content={
+                "result": False,
+                "name": name,
+                "phone": phone
+            })
+        await remember_users_action(user_data['username'], f"Supplier updated: {supplier_id},"
+                                                           f" name: {name} phone: {phone}")
+    return JSONResponse(content={
+        "result": True,
+        "name": name,
+        "phone": phone
+    })
+
+
+@router.post("/add-or-edit-purchase")
+async def add_or_edit_purchase(
+        idToEdit: Optional[int] = Form(None),
+        supplierId: int = Form(...),
+        totalAmount: Optional[int] = Form(None),
+        currency: Optional[str] = Form(None),
+        description: Optional[str] = Form(None),
+        user_data: dict = Depends(verify_jwt_user(required_level=3))
+):
+    if idToEdit is None:
+        # CREATE NEW
+        purchase_id = await insert_new_purchase(supplierId, totalAmount, currency, description, user_data["username"])
+        if not purchase_id:
+            return JSONResponse(content={
+                "result": False,
+                "supplierId": supplierId,
+                "totalAmount": totalAmount,
+                "currency": currency,
+                "description": description,
+            })
+        await remember_users_action(user_data['username'], f"Purchase Added: "
+                                                           f"{supplierId} {totalAmount} {currency} {description}")
+    else:
+        # UPDATE OLD
+        purchase_id = await update_purchase(idToEdit, supplierId, totalAmount, currency, description)
+        if not purchase_id:
+            return JSONResponse(content={
+                "result": False,
+                "supplierId": supplierId,
+                "totalAmount": totalAmount,
+                "currency": currency,
+                "description": description
+            })
+        await remember_users_action(user_data['username'], f"Purchase updated: {purchase_id},"
+                                                           f"{supplierId} {totalAmount} {currency} {description}")
+    return JSONResponse(content={
+        "result": True,
+        "supplierId": supplierId,
+        "totalAmount": totalAmount,
+        "currency": currency,
+        "description": description
+    })
+
+
 @router.get("/bills-list-get")
 async def get_bills_list(
         date: int,
@@ -391,6 +488,20 @@ async def get_bills_list(
     bills_list = get_formatted_search_results_list(None, bills_data)
 
     return JSONResponse(content=bills_list, status_code=200)
+
+
+@router.get("/purchases-list-get")
+async def get_purchases_list(
+        date: int,
+        _: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Retrieve a list of purchases based on date.
+    """
+    purchases_data = await search_purchases_list_filtered(date)
+    purchases_list = get_formatted_purchases_list(purchases_data)
+
+    return JSONResponse(content=purchases_list, status_code=200)
 
 
 @router.get("/expenses-list-get")
@@ -542,6 +653,18 @@ async def get_bill(
     return JSONResponse(content=bill, status_code=200)
 
 
+@router.get("/supplier-get")
+async def get_supplier(
+        supplierId: int,
+        _: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Retrieve a supplier based on supplier id.
+    """
+    supplier = await get_supplier_ps(supplierId)
+    return JSONResponse(content=supplier, status_code=200)
+
+
 @router.get("/payment-history-get")
 async def get_payment_history(
         code: str,
@@ -556,31 +679,65 @@ async def get_payment_history(
 
 @router.post("/remove-product")
 async def remove_product(
-        request: CodeRequest,
-        user_data: dict = Depends(verify_jwt_user(required_level=3))
+    request: CodeRequest,
+    mode: Literal["remove", "archive"] = Body("archive", embed=True),
+    user_data: dict = Depends(verify_jwt_user(required_level=3))
 ):
     """
-    Endpoint to remove a product.
+    Endpoint to either remove or archive a product.
     """
-    result = await remove_product_ps(request.code)
-    if result:
+    if mode == "remove":
+        result = await remove_product_ps(request.code)
+        action_desc = f"Product removed with history: {request.code}"
         await handle_image_update("product", user_data['tenant'], request.code, "remove", None)
-        await remember_users_action(user_data['username'], f"Product removed: {request.code}")
+    elif mode == "archive":
+        result = await archive_product_ps(request.code)
+        action_desc = f"Product removed: {request.code}"
+    else:
+        return JSONResponse(content={"error": "Invalid mode"}, status_code=400)
+
+    if result:
+        await remember_users_action(user_data['username'], action_desc)
+
     return JSONResponse(content={"result": result}, status_code=200)
 
 
 @router.post("/remove-roll")
 async def remove_roll(
-        request: CodeRequest,
+    request: CodeRequest,
+    mode: Literal["remove", "archive"] = Body("archive", embed=True),
+    user_data: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Endpoint to either remove or archive a roll.
+    """
+    if mode == "remove":
+        result = await remove_roll_ps(request.code)
+        action_desc = f"Roll removed with history: {request.code}"
+        await handle_image_update("roll", user_data['tenant'], request.code, "remove", None)
+    elif mode == "archive":
+        result = await archive_roll_ps(request.code)
+        action_desc = f"Roll removed: {request.code}"
+    else:
+        return JSONResponse(content={"error": "Invalid mode"}, status_code=400)
+
+    if result:
+        await remember_users_action(user_data['username'], action_desc)
+
+    return JSONResponse(content={"result": result}, status_code=200)
+
+
+@router.post("/remove-supplier")
+async def remove_supplier(
+        request: RemoveSupplierRequest,
         user_data: dict = Depends(verify_jwt_user(required_level=3))
 ):
     """
-    Endpoint to remove a roll.
+    Endpoint to remove a supplier.
     """
-    result = await remove_roll_ps(request.code)
+    result = await remove_supplier_ps(request.supplierId)
     if result:
-        await handle_image_update("roll", user_data['tenant'], request.code, "remove", None)
-        await remember_users_action(user_data['username'], f"Roll removed: {request.code}")
+        await remember_users_action(user_data['username'], f"Supplier removed: {request.supplierId}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 
@@ -624,6 +781,30 @@ async def remove_bill(
     result = await remove_bill_ps(request.code)
     if result:
         await remember_users_action(user_data['username'], f"Bill removed: {request.code}")
+    return JSONResponse(content={"result": result}, status_code=200)
+
+
+@router.post("/remove-purchase")
+async def remove_purchase(
+    request: RemovePurchaseRequest,
+    mode: Literal["remove", "archive"] = Body("archive", embed=True),
+    user_data: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Endpoint to either remove or archive a purchase.
+    """
+    if mode == "remove":
+        result = await remove_purchase_ps(request.code)
+        action_desc = f"Purchase removed with history: {request.code}"
+    elif mode == "archive":
+        result = await archive_purchase_ps(request.code)
+        action_desc = f"Purchase removed: {request.code}"
+    else:
+        return JSONResponse(content={"error": "Invalid mode"}, status_code=400)
+
+    if result:
+        await remember_users_action(user_data['username'], action_desc)
+
     return JSONResponse(content={"result": result}, status_code=200)
 
 

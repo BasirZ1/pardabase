@@ -137,63 +137,40 @@ def get_formatted_users_list(users_data):
     return users_list
 
 
-# def get_formatted_drafts_list(drafts_data):
-#     """
-#     Helper function to format drafts data into JSON-compatible objects.
-#
-#     Parameters:
-#     - drafts_data: Raw data fetched from the database.
-#
-#     Returns:
-#     - A list of formatted drafts dictionaries.
-#     """
-#     drafts_list = []
-#     if drafts_data:
-#         for data in drafts_data:
-#             draft = {
-#                 "id": data["id"],
-#                 "rollCode": data["roll_code"],
-#                 "billCode": data["bill_code"],
-#                 "createdBy": data["created_by"],
-#                 "quantity": data["quantity"],
-#                 "status": data["status"],
-#                 "comment": data["comment"],
-#                 "createdAt": data["created_at"].strftime('%Y-%m-%d %H:%M:%S')
-#                 if isinstance(data["created_at"], datetime) else data["created_at"]
-#             }
-#             drafts_list.append(draft)
-#     return drafts_list
-#
-#
-# def get_formatted_cutting_history_list(history_data):
-#     """
-#     Helper function to format tx data into JSON-compatible objects.
-#
-#     Parameters:
-#     - history_data: Raw data fetched from the database.
-#
-#     Returns:
-#     - A list of formatted tx dictionaries.
-#     """
-#     history_list = []
-#     if history_data:
-#         for data in history_data:
-#             tx = {
-#                 "id": data["id"],
-#                 "rollCode": data["roll_code"],
-#                 "billCode": data["bill_code"],
-#                 "createdBy": data["created_by"],
-#                 "quantity": data["quantity"],
-#                 "status": data["status"],
-#                 "comment": data["comment"],
-#                 "reviewedBy": data["reviewed_by"],
-#                 "reviewedAt": data["reviewed_at"].strftime('%Y-%m-%d %H:%M:%S')
-#                 if isinstance(data["reviewed_at"], datetime) else data["reviewed_at"],
-#                 "createdAt": data["created_at"].strftime('%Y-%m-%d %H:%M:%S')
-#                 if isinstance(data["created_at"], datetime) else data["created_at"]
-#             }
-#             history_list.append(tx)
-#     return history_list
+def get_formatted_suppliers_list(suppliers_data):
+    """
+    Helper function to format suppliers data into JSON-compatible objects.
+
+    Parameters:
+    - suppliers_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted suppliers dictionaries.
+    """
+    suppliers_list = []
+    if suppliers_data:
+        for data in suppliers_data:
+            supplier = make_supplier_dic(data)
+            suppliers_list.append(supplier)
+    return suppliers_list
+
+
+def get_formatted_purchases_list(purchases_data):
+    """
+    Helper function to format purchases data into JSON-compatible objects.
+
+    Parameters:
+    - purchases_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted purchases dictionaries.
+    """
+    purchases_list = []
+    if purchases_data:
+        for data in purchases_data:
+            purchase = make_purchase_dic(data)
+            purchases_list.append(purchase)
+    return purchases_list
 
 
 def _ts(val: Any) -> Any:
@@ -202,10 +179,10 @@ def _ts(val: Any) -> Any:
 
 
 def format_cut_fabric_records(
-    rows: Iterable[Mapping[str, Any]],
-    *,
-    extra: Optional[Mapping[str, str]] = None,
-    transformer: Optional[Callable[[Any], Any]] = None
+        rows: Iterable[Mapping[str, Any]],
+        *,
+        extra: Optional[Mapping[str, str]] = None,
+        transformer: Optional[Callable[[Any], Any]] = None
 ) -> List[Dict[str, Any]]:
     """
     Convert asyncpg Records (or dict‑like objects) to JSON‑ready dicts.
@@ -221,21 +198,21 @@ def format_cut_fabric_records(
     List of dicts
     """
     extra = extra or {}
-    xf = transformer or _ts                # choose the transformer only once
+    xf = transformer or _ts  # choose the transformer only once
 
     formatted: List[Dict[str, Any]] = []
-    append = formatted.append              # local ref for speed in large loops
+    append = formatted.append  # local ref for speed in large loops
 
     for r in rows or []:
         d = {
-            "id":           xf(r["id"]),
-            "rollCode":     xf(r["roll_code"]),
-            "billCode":     xf(r["bill_code"]),
-            "createdBy":    xf(r["created_by"]),
-            "quantity":     xf(r["quantity"]),
-            "status":       xf(r["status"]),
-            "comment":      xf(r["comment"]),
-            "createdAt":    xf(r["created_at"]),
+            "id": xf(r["id"]),
+            "rollCode": xf(r["roll_code"]),
+            "billCode": xf(r["bill_code"]),
+            "createdBy": xf(r["created_by"]),
+            "quantity": xf(r["quantity"]),
+            "status": xf(r["status"]),
+            "comment": xf(r["comment"]),
+            "createdAt": xf(r["created_at"]),
         }
         for dest_key, src_field in extra.items():
             d[dest_key] = xf(r[src_field])
@@ -303,3 +280,28 @@ def make_roll_dic(data):
         "imageUrl": data["image_url"]
     }
     return roll
+
+
+def make_supplier_dic(data):
+    supplier = {
+        "id": data["id"],
+        "name": data["name"],
+        "phone": data["phone"],
+        "address": data["address"],
+        "notes": data["notes"]
+    }
+    return supplier
+
+
+def make_purchase_dic(data):
+    purchase = {
+        "id": data["id"],
+        "supplierId": data["supplier_id"],
+        "totalAmount": data["total_amount"],
+        "currency": data["currency"],
+        "description": data["description"],
+        "createdAt": data["created_at"],
+        "updatedAt": data["updated_at"],
+        "createdBy": data["created_by"]
+    }
+    return purchase

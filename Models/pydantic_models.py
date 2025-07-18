@@ -23,8 +23,16 @@ class CodeRequest(BaseModel):
     code: str
 
 
+class RemovePurchaseRequest(BaseModel):
+    purchaseId: int
+
+
 class RemoveUserRequest(BaseModel):
     usernameToRemove: str
+
+
+class RemoveSupplierRequest(BaseModel):
+    supplierId: int
 
 
 class RemoveExpenseRequest(BaseModel):

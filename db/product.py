@@ -114,7 +114,7 @@ async def get_product_and_roll_ps(code):
             if roll_code:
                 query_roll = """
                     SELECT product_code, roll_code, quantity, color, image_url FROM rolls
-                    WHERE product_code = $1 AND roll_code = $2
+                    WHERE product_code = $1 AND roll_code = $2 and archived = false
                 """
                 roll = await conn.fetchrow(query_roll, product_code, roll_code)
 
@@ -136,7 +136,7 @@ async def get_roll_and_product_ps(code):
             # Fetch the specific roll
             query_roll = """
                                 SELECT product_code, roll_code, quantity, color, image_url FROM rolls
-                                WHERE roll_code = $1
+                                WHERE roll_code = $1 and archived = false
                             """
             roll = await conn.fetchrow(query_roll, roll_code)
 
@@ -170,4 +170,18 @@ async def remove_product_ps(code):
         return True
     except Exception as e:
         await flatbed('exception', f"in remove_product_ps: {e}")
+        return False
+
+
+async def archive_product_ps(code):
+    try:
+        async with connection_context() as conn:
+            await conn.execute("""
+            UPDATE products
+            SET archived = TRUE, updated_at = now()
+            WHERE product_code = $1
+            """, code)
+        return True
+    except Exception as e:
+        await flatbed('exception', f"in archive_product_ps: {e}")
         return False
