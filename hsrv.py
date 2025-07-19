@@ -15,7 +15,7 @@ from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
     get_formatted_purchases_list
 from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
-    set_db_from_tenant, create_refresh_token, verify_refresh_token
+    set_db_from_tenant, create_refresh_token, verify_refresh_token, flatbed
 from db import insert_new_product, update_product, insert_new_roll, update_roll, insert_new_bill, \
     update_bill, insert_new_user, update_user, check_username_password, get_users_data, \
     search_recent_activities_list, update_users_password, search_products_list, get_product_and_roll_ps, \
@@ -694,6 +694,7 @@ async def remove_product(
         result = await archive_product_ps(request.code)
         action_desc = f"Product removed: {request.code}"
     else:
+        await flatbed("debug", f"invalid mode {mode}")
         return JSONResponse(content={"error": "Invalid mode"}, status_code=400)
 
     if result:
