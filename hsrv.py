@@ -15,7 +15,7 @@ from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
     get_formatted_purchases_list
 from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
-    set_db_from_tenant, create_refresh_token, verify_refresh_token, flatbed
+    set_db_from_tenant, create_refresh_token, verify_refresh_token
 from db import insert_new_product, update_product, insert_new_roll, update_roll, insert_new_bill, \
     update_bill, insert_new_user, update_user, check_username_password, get_users_data, \
     search_recent_activities_list, update_users_password, search_products_list, get_product_and_roll_ps, \
@@ -209,7 +209,7 @@ async def add_or_edit_product(
             return JSONResponse(content={"result": False, "code": product_code, "name": name})
 
         await handle_image_update("product", user_data['tenant'], product_code, image_status, image_data)
-        await remember_users_action(user_data['sub'], f"Product Added: {product_code}")
+        await remember_users_action(user_data['user_id'], f"Product Added: {product_code}")
     else:
         # UPDATE EXISTING
         product_code = await update_product(codeToEdit, name, categoryIndex, cost, price, description)
@@ -217,7 +217,7 @@ async def add_or_edit_product(
             return JSONResponse(content={"result": False, "code": product_code, "name": name})
 
         await handle_image_update("product", user_data['tenant'], product_code, image_status, image_data)
-        await remember_users_action(user_data['sub'], f"Product updated: {product_code}")
+        await remember_users_action(user_data['user_id'], f"Product updated: {product_code}")
 
     return JSONResponse(content={
         "result": True,
@@ -246,7 +246,7 @@ async def add_or_edit_roll(
                 "code": f"{productCode}{code}"
             })
         await handle_image_update("roll", user_data['tenant'], code, image_status, image_data)
-        await remember_users_action(user_data['sub'], f"Roll Added: {productCode}{code}")
+        await remember_users_action(user_data['user_id'], f"Roll Added: {productCode}{code}")
     else:
         code = await update_roll(codeToEdit, quantity, color)
         if not code:
@@ -255,7 +255,7 @@ async def add_or_edit_roll(
                 "code": f"{productCode}{code}"
             })
         await handle_image_update("roll", user_data['tenant'], code, image_status, image_data)
-        await remember_users_action(user_data['sub'], f"Roll updated: {productCode}{code}")
+        await remember_users_action(user_data['user_id'], f"Roll updated: {productCode}{code}")
 
     return JSONResponse(content={
         "result": True,
@@ -290,7 +290,7 @@ async def add_or_edit_bill(
                 "code": code,
                 "name": customerName
             })
-        await remember_users_action(user_data['sub'], f"Bill Added: {code}")
+        await remember_users_action(user_data['user_id'], f"Bill Added: {code}")
     else:
         # UPDATE OLD
         code = await update_bill(codeToEdit, dueDate, customerName, customerNumber, price, paid, remaining,
@@ -301,7 +301,7 @@ async def add_or_edit_bill(
                 "code": code,
                 "name": customerName
             })
-        await remember_users_action(user_data['sub'], f"Bill updated: {code}")
+        await remember_users_action(user_data['user_id'], f"Bill updated: {code}")
     return JSONResponse(content={
         "result": True,
         "code": code,
@@ -319,7 +319,7 @@ async def add_expense(
     """
     expense_id = await insert_new_expense(request.categoryIndex, request.description, request.amount)
     if expense_id:
-        await remember_users_action(user_data['sub'], f"Added Expense: Desc: {request.description}")
+        await remember_users_action(user_data['user_id'], f"Added Expense: Desc: {request.description}")
         return JSONResponse(content={
             "description": request.description,
             "amount": request.amount
@@ -344,7 +344,7 @@ async def add_or_edit_expense(
                 "description": description,
                 "amount": amount
             })
-        await remember_users_action(user_data['sub'], f"Expense Added: {description} {amount}")
+        await remember_users_action(user_data['user_id'], f"Expense Added: {description} {amount}")
     else:
         # UPDATE OLD
         _id = await update_expense(idToEdit, categoryIndex, description, amount)
@@ -354,8 +354,8 @@ async def add_or_edit_expense(
                 "description": description,
                 "amount": amount
             })
-        await remember_users_action(user_data['sub'], f"Expense updated: {_id},"
-                                                      f" description: {description} amount: {amount}")
+        await remember_users_action(user_data['user_id'], f"Expense updated: {_id},"
+                                                          f" description: {description} amount: {amount}")
     return JSONResponse(content={
         "result": True,
         "description": description,
@@ -383,13 +383,13 @@ async def add_or_edit_user(
         if not result:
             return JSONResponse(content={"result": False}, status_code=201)
         await handle_image_update("user", user_data['tenant'], usernameChange, image_status, image_data)
-        await remember_users_action(user_data['sub'], f"User added: {usernameChange}")
+        await remember_users_action(user_data['user_id'], f"User added: {usernameChange}")
     else:
         result = await update_user(usernameToEdit, fullName, usernameChange, level, password)
         if not result:
             return JSONResponse(content={"result": False}, status_code=201)
         await handle_image_update("user", user_data['tenant'], usernameChange, image_status, image_data)
-        await remember_users_action(user_data['sub'], f"user updated: {usernameChange}")
+        await remember_users_action(user_data['user_id'], f"user updated: {usernameChange}")
 
     return JSONResponse(content={"result": True}, status_code=200)
 
@@ -412,7 +412,7 @@ async def add_or_edit_supplier(
                 "name": name,
                 "phone": phone
             })
-        await remember_users_action(user_data['sub'], f"Supplier Added: {name} {phone}")
+        await remember_users_action(user_data['user_id'], f"Supplier Added: {name} {phone}")
     else:
         # UPDATE OLD
         supplier_id = await update_supplier(idToEdit, name, phone, address, notes)
@@ -422,8 +422,8 @@ async def add_or_edit_supplier(
                 "name": name,
                 "phone": phone
             })
-        await remember_users_action(user_data['sub'], f"Supplier updated: {supplier_id},"
-                                                      f" name: {name} phone: {phone}")
+        await remember_users_action(user_data['user_id'], f"Supplier updated: {supplier_id},"
+                                                          f" name: {name} phone: {phone}")
     return JSONResponse(content={
         "result": True,
         "name": name,
@@ -442,7 +442,7 @@ async def add_or_edit_purchase(
 ):
     if idToEdit is None:
         # CREATE NEW
-        purchase_id = await insert_new_purchase(supplierId, totalAmount, currency, description, user_data['sub'])
+        purchase_id = await insert_new_purchase(supplierId, totalAmount, currency, description, user_data['user_id'])
         if not purchase_id:
             return JSONResponse(content={
                 "result": False,
@@ -451,8 +451,8 @@ async def add_or_edit_purchase(
                 "currency": currency,
                 "description": description,
             })
-        await remember_users_action(user_data['sub'], f"Purchase Added: "
-                                                      f"{supplierId} {totalAmount} {currency} {description}")
+        await remember_users_action(user_data['user_id'], f"Purchase Added: "
+                                                          f"{supplierId} {totalAmount} {currency} {description}")
     else:
         # UPDATE OLD
         purchase_id = await update_purchase(idToEdit, supplierId, totalAmount, currency, description)
@@ -464,8 +464,8 @@ async def add_or_edit_purchase(
                 "currency": currency,
                 "description": description
             })
-        await remember_users_action(user_data['sub'], f"Purchase updated: {purchase_id},"
-                                                      f"{supplierId} {totalAmount} {currency} {description}")
+        await remember_users_action(user_data['user_id'], f"Purchase updated: {purchase_id},"
+                                                          f"{supplierId} {totalAmount} {currency} {description}")
     return JSONResponse(content={
         "result": True,
         "supplierId": supplierId,
@@ -697,7 +697,7 @@ async def remove_product(
         return JSONResponse(content={"error": "Invalid mode"}, status_code=400)
 
     if result:
-        await remember_users_action(user_data['sub'], action_desc)
+        await remember_users_action(user_data['user_id'], action_desc)
 
     return JSONResponse(content={"result": result}, status_code=200)
 
@@ -722,7 +722,7 @@ async def remove_roll(
         return JSONResponse(content={"error": "Invalid mode"}, status_code=400)
 
     if result:
-        await remember_users_action(user_data['sub'], action_desc)
+        await remember_users_action(user_data['user_id'], action_desc)
 
     return JSONResponse(content={"result": result}, status_code=200)
 
@@ -737,7 +737,7 @@ async def remove_supplier(
     """
     result = await remove_supplier_ps(request.supplierId)
     if result:
-        await remember_users_action(user_data['sub'], f"Supplier removed: {request.supplierId}")
+        await remember_users_action(user_data['user_id'], f"Supplier removed: {request.supplierId}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 
@@ -752,7 +752,7 @@ async def remove_user(
     result = await remove_user_ps(request.usernameToRemove)
     if result:
         await handle_image_update("user", user_data['tenant'], request.usernameToRemove, "remove", None)
-        await remember_users_action(user_data['sub'], f"User removed: {request.usernameToRemove}")
+        await remember_users_action(user_data['user_id'], f"User removed: {request.usernameToRemove}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 
@@ -766,7 +766,7 @@ async def remove_expense(
     """
     result = await remove_expense_ps(request.expenseId)
     if result:
-        await remember_users_action(user_data['sub'], f"Expense removed: {request.expenseId}")
+        await remember_users_action(user_data['user_id'], f"Expense removed: {request.expenseId}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 
@@ -780,7 +780,7 @@ async def remove_bill(
     """
     result = await remove_bill_ps(request.code)
     if result:
-        await remember_users_action(user_data['sub'], f"Bill removed: {request.code}")
+        await remember_users_action(user_data['user_id'], f"Bill removed: {request.code}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 
@@ -803,7 +803,7 @@ async def remove_purchase(
         return JSONResponse(content={"error": "Invalid mode"}, status_code=400)
 
     if result:
-        await remember_users_action(user_data['sub'], action_desc)
+        await remember_users_action(user_data['user_id'], action_desc)
 
     return JSONResponse(content={"result": result}, status_code=200)
 
@@ -819,12 +819,11 @@ async def update_roll_quantity(
     if request.action == "add":
         result = await add_roll_quantity_ps(request.code, request.quantity)
     elif request.action == "subtract":
-        await flatbed("debug", f"user_data type: {type(user_data)} value: {user_data}")
-        result = await add_cut_fabric_tx(request.code, request.quantity, user_data['sub'])
+        result = await add_cut_fabric_tx(request.code, request.quantity, user_data['user_id'])
     else:
         result = False
-    await remember_users_action(user_data['sub'], f"Roll quantity updated: "
-                                                  f"{request.code} {request.action} {request.quantity}")
+    await remember_users_action(user_data['user_id'], f"Roll quantity updated: "
+                                                      f"{request.code} {request.action} {request.quantity}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 
@@ -836,10 +835,10 @@ async def add_comment_for_subtract(
     """
     Endpoint to add comment for subtracting a roll's quantity.
     """
-    result = await add_cut_fabric_tx(request.code, request.quantity, user_data['sub'],
+    result = await add_cut_fabric_tx(request.code, request.quantity, user_data['user_id'],
                                      "draft", None, request.comment)
-    await remember_users_action(user_data['sub'], f"wants to cut fabric: "
-                                                  f"{request.code} {request.quantity}")
+    await remember_users_action(user_data['user_id'], f"wants to cut fabric: "
+                                                      f"{request.code} {request.quantity}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 
@@ -852,8 +851,8 @@ async def update_bill_status(
     Endpoint to update a bill's status.
     """
     result = await update_bill_status_ps(request.code, request.status)
-    await remember_users_action(user_data['sub'], f"Bill status updated: "
-                                                  f"{request.code} {request.status}")
+    await remember_users_action(user_data['user_id'], f"Bill status updated: "
+                                                      f"{request.code} {request.status}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 
@@ -899,9 +898,9 @@ async def update_cut_fabric_tx_status(
     """
     Endpoint to update a cut_fabric transaction's status.
     """
-    result = await update_cut_fabric_tx_status_ps(request.id, request.newStatus, user_data['sub'])
-    await remember_users_action(user_data['sub'], f"Cut draft status updated: "
-                                                  f"{request.id} {request.newStatus}")
+    result = await update_cut_fabric_tx_status_ps(request.id, request.newStatus, user_data['user_id'])
+    await remember_users_action(user_data['user_id'], f"Cut draft status updated: "
+                                                      f"{request.id} {request.newStatus}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 
@@ -914,8 +913,8 @@ async def update_bill_tailor(
     Endpoint to update a bill's tailor.
     """
     result = await update_bill_tailor_ps(request.code, request.tailor)
-    await remember_users_action(user_data['sub'], f"Bill's tailor updated: "
-                                                  f"{request.code} {request.tailor}")
+    await remember_users_action(user_data['user_id'], f"Bill's tailor updated: "
+                                                      f"{request.code} {request.tailor}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 
@@ -928,8 +927,8 @@ async def add_payment_bill(
     Endpoint to update a bill's payment.
     """
     result = await add_payment_bill_ps(request.code, request.amount, user_data['username'])
-    await remember_users_action(user_data['sub'], f"Added payment to bill: "
-                                                  f"{request.code} {request.amount}")
+    await remember_users_action(user_data['user_id'], f"Added payment to bill: "
+                                                      f"{request.code} {request.amount}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 
@@ -948,9 +947,9 @@ async def generate_report(
     elif request.selectedReport == "tags":
         tags_data = await report_tags_list(request.fromDate, request.toDate)
         data = get_formatted_tags_list(tags_data)
-    await remember_users_action(user_data['sub'], f"generated Report: "
-                                                  f"{request.selectedReport}"
-                                                  f" from {request.fromDate} to {request.toDate}")
+    await remember_users_action(user_data['user_id'], f"generated Report: "
+                                                      f"{request.selectedReport}"
+                                                      f" from {request.fromDate} to {request.toDate}")
     return JSONResponse(content=data, status_code=200)
 
 
