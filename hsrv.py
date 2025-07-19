@@ -819,8 +819,8 @@ async def update_roll_quantity(
     if request.action == "add":
         result = await add_roll_quantity_ps(request.code, request.quantity)
     elif request.action == "subtract":
+        await flatbed("debug", f"user_data type: {type(user_data)} value: {user_data}")
         result = await add_cut_fabric_tx(request.code, request.quantity, user_data['sub'])
-        await flatbed("debug", f"user_data: {user_data}")
     else:
         result = False
     await remember_users_action(user_data['sub'], f"Roll quantity updated: "
