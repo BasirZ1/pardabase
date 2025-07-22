@@ -273,17 +273,19 @@ async def add_or_edit_bill(
         price: Optional[int] = Form(None),
         paid: Optional[int] = Form(None),
         remaining: Optional[int] = Form(None),
+        status: Optional[str] = Form(None),
         fabrics: Optional[str] = Form(None),
         parts: Optional[str] = Form(None),
         salesman: Optional[str] = Form(None),
+        tailor: Optional[str] = Form(None),
         additionalData: Optional[str] = Form(None),
         installation: Optional[str] = Form(None),
         user_data: dict = Depends(verify_jwt_user(required_level=2))
 ):
     if codeToEdit is None:
         # CREATE NEW
-        code = await insert_new_bill(billDate, dueDate, customerName, customerNumber, price, paid, remaining,
-                                     fabrics, parts, salesman, additionalData, installation)
+        code = await insert_new_bill(billDate, dueDate, customerName, customerNumber, price, paid, remaining, status,
+                                     fabrics, parts, salesman, tailor, additionalData, installation)
         if not code:
             return JSONResponse(content={
                 "result": False,
@@ -293,8 +295,8 @@ async def add_or_edit_bill(
         await remember_users_action(user_data['user_id'], f"Bill Added: {code}")
     else:
         # UPDATE OLD
-        code = await update_bill(codeToEdit, dueDate, customerName, customerNumber, price, paid, remaining,
-                                 fabrics, parts, salesman, additionalData, installation, user_data['username'])
+        code = await update_bill(codeToEdit, dueDate, customerName, customerNumber, price, paid, remaining, status,
+                                 fabrics, parts, salesman, tailor, additionalData, installation, user_data['username'])
         if not code:
             return JSONResponse(content={
                 "result": False,
@@ -720,6 +722,7 @@ async def remove_roll(
         result = await archive_roll_ps(request.code)
         action_desc = f"Roll removed: {request.code}"
     else:
+        await flatbed("debug", f"invalid mode {mode}")
         return JSONResponse(content={"error": "Invalid mode"}, status_code=400)
 
     if result:
@@ -801,6 +804,7 @@ async def remove_purchase(
         result = await archive_purchase_ps(request.code)
         action_desc = f"Purchase removed: {request.code}"
     else:
+        await flatbed("debug", f"invalid mode {mode}")
         return JSONResponse(content={"error": "Invalid mode"}, status_code=400)
 
     if result:

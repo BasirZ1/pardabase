@@ -16,9 +16,11 @@ async def insert_new_bill(
         price: Optional[int] = None,
         paid: Optional[int] = None,
         remaining: Optional[int] = None,
+        status: Optional[str] = None,
         fabrics: Optional[str] = None,
         parts: Optional[str] = None,
         salesman: Optional[str] = None,
+        tailor: Optional[str] = None,
         additional_data: Optional[str] = None,
         installation: Optional[str] = None
 ) -> Optional[str]:
@@ -51,15 +53,15 @@ async def insert_new_bill(
                     price,
                     paid,
                     remaining,
+                    status,
                     fabrics,
                     parts,
-                    status,
                     salesman,
                     tailor,
                     additional_data,
                     installation,
                     payment_history
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10, $11, $12, $13::jsonb, $14, $15::jsonb)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11, $12, $13::jsonb, $14, $15::jsonb)
                 RETURNING bill_code
             """
 
@@ -72,11 +74,11 @@ async def insert_new_bill(
                 price,
                 paid,
                 remaining,
+                status,
                 fabrics,
                 parts,
-                "pending",
                 salesman,
-                None,
+                tailor,
                 additional_data,
                 installation,
                 payment_history
@@ -95,9 +97,11 @@ async def update_bill(
         price: Optional[int] = None,
         paid: Optional[int] = None,
         remaining: Optional[int] = None,
+        status: Optional[str] = None,
         fabrics: Optional[str] = None,
         parts: Optional[str] = None,
         salesman: Optional[str] = None,
+        tailor: Optional[str] = None,
         additional_data: Optional[str] = None,
         installation: Optional[str] = None,
         username: Optional[str] = None,
@@ -155,14 +159,16 @@ async def update_bill(
                     price = $4,
                     paid = $5,
                     remaining = $6,
-                    fabrics = $7::jsonb,
-                    parts = $8::jsonb,
-                    salesman = $9,
-                    additional_data = $10::jsonb,
-                    installation = $11,
-                    payment_history = $12::jsonb,
+                    status = $7,
+                    fabrics = $8::jsonb,
+                    parts = $9::jsonb,
+                    salesman = $10,
+                    tailor = $11,
+                    additional_data = $12::jsonb,
+                    installation = $13,
+                    payment_history = $14::jsonb,
                     updated_at = NOW()
-                WHERE bill_code = $13
+                WHERE bill_code = $15
             """
             await conn.execute(
                 sql_update,
@@ -172,9 +178,11 @@ async def update_bill(
                 price,
                 paid,
                 remaining,
+                status,
                 fabrics,
                 parts,
                 salesman,
+                tailor,
                 additional_data,
                 installation,
                 json.dumps(new_history),
