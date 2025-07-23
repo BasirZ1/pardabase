@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 
 from helpers import make_employment_info_dic
@@ -85,31 +86,34 @@ async def update_user(usernameToEdit: str, full_name: str, user_name: str,
 
 
 async def edit_employment_info_ps(
-        userId: str,
-        salaryAmount: Optional[int] = None,
-        salaryStartDate: Optional[str] = None,
-        tailorType: Optional[str] = None,
-        salesmanStatus: Optional[str] = None,
-        billBonusPercent: Optional[float] = None,
+        user_id: str,
+        salary_amount: Optional[int] = None,
+        salary_start_date: Optional[str] = None,
+        tailor_type: Optional[str] = None,
+        salesman_status: Optional[str] = None,
+        bill_bonus_percent: Optional[float] = None,
         note: Optional[str] = None
 ):
     """
     Updates employment info in the database.
 
     Args:
-        userId (str): The user_id for editing the employment info.
-        salaryAmount (Optional[int]): The salary amount of the employee.
-        salaryStartDate (Optional[str]): The salary start date of the employee.
-        tailorType (Optional[str]): The tailor type of the employee.
-        salesmanStatus (Optional[str]): The salesman status of the employee.
-        billBonusPercent (Optional[float]): Bill bonus percentage if any.
+        user_id (str): The user_id for editing the employment info.
+        salary_amount (Optional[int]): The salary amount of the employee.
+        salary_start_date (Optional[str]): The salary start date of the employee.
+        tailor_type (Optional[str]): The tailor type of the employee.
+        salesman_status (Optional[str]): The salesman status of the employee.
+        bill_bonus_percent (Optional[float]): Bill bonus percentage if any.
         note (Optional[str]): Detail note.
 
     Returns:
         str: username if the update was successful, None otherwise.
     """
     try:
-        async with connection_context() as conn:
+        async with (connection_context() as conn):
+            if salary_start_date:
+                salary_start_date = datetime.datetime.strptime(salary_start_date, "%Y-%m-%d").date(
+                )if isinstance(salary_start_date, str) else salary_start_date
 
             sql_update = """
                 WITH updated AS (
@@ -128,8 +132,8 @@ async def edit_employment_info_ps(
                 JOIN users u ON u.user_id = updated.user_id;
             """
 
-            username = await conn.fetchval(sql_update, salaryAmount, salaryStartDate, tailorType,
-                                           salesmanStatus, billBonusPercent, note, userId)
+            username = await conn.fetchval(sql_update, salary_amount, salary_start_date, tailor_type,
+                                           salesman_status, bill_bonus_percent, note, user_id)
             return username
 
     except Exception as e:
