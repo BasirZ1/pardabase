@@ -128,6 +128,7 @@ def get_formatted_users_list(users_data):
     if users_data:
         for data in users_data:
             user = {
+                "user_id": data["user_id"],
                 "fullName": data["full_name"],
                 "username": data["username"],
                 "level": data["level"],
@@ -305,3 +306,17 @@ def make_purchase_dic(data):
         "createdBy": data["created_by"]
     }
     return purchase
+
+
+def make_employment_info_dic(data):
+    employment_info = {
+        "id": data["id"],
+        "user_id": data["user_id"],
+        "salaryAmount": data["salary_amount"],
+        "salaryStartDate": data["salary_start_date"],
+        "tailorType": data["tailor_type"],
+        "salesmanStatus": data["salesman_status"],
+        "billBonusPercent": data["bill_bonus_percent"],
+        "note": data["note"]
+    }
+    return employment_info

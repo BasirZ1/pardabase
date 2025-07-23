@@ -29,7 +29,8 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     get_payment_history_ps, get_roll_and_product_ps, add_cut_fabric_tx, update_cut_fabric_tx_status_ps, \
     get_drafts_list_ps, get_cutting_history_list_ps, archive_roll_ps, archive_product_ps, remove_supplier_ps, \
     insert_new_supplier, update_supplier, get_suppliers_list_ps, get_supplier_ps, insert_new_purchase, \
-    update_purchase, archive_purchase_ps, remove_purchase_ps, search_purchases_list_filtered, get_sync
+    update_purchase, archive_purchase_ps, remove_purchase_ps, search_purchases_list_filtered, get_sync, \
+    edit_employment_info_ps, get_employment_info_ps
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -308,6 +309,31 @@ async def add_or_edit_bill(
         "result": True,
         "code": code,
         "name": customerName
+    })
+
+
+@router.post("/edit-employment-info")
+async def edit_employment_info(
+        userId: Optional[str] = Form(None),
+        salaryAmount: Optional[int] = Form(None),
+        salaryStartDate: Optional[str] = Form(None),
+        tailorType: Optional[str] = Form(None),
+        salesmanStatus: Optional[str] = Form(None),
+        billBonusPercent: Optional[float] = Form(None),
+        note: Optional[str] = Form(None),
+        user_data: dict = Depends(verify_jwt_user(required_level=3))
+):
+    # UPDATE OLD
+    username = await edit_employment_info_ps(userId, salaryAmount, salaryStartDate, tailorType, salesmanStatus,
+                                             billBonusPercent, note)
+    if not username:
+        return JSONResponse(content={
+                "result": False,
+            })
+    await remember_users_action(user_data['user_id'], f"Employment info updated: {username}")
+    return JSONResponse(content={
+        "result": True,
+        "username": username
     })
 
 
@@ -653,6 +679,18 @@ async def get_bill(
     """
     bill = await get_bill_ps(code)
     return JSONResponse(content=bill, status_code=200)
+
+
+@router.get("/employment-info-get")
+async def get_employment_info(
+        userId: str,
+        _: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Retrieve employment info based on userId.
+    """
+    employment_info = await get_employment_info_ps(userId)
+    return JSONResponse(content=employment_info, status_code=200)
 
 
 @router.get("/supplier-get")

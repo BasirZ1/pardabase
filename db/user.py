@@ -1,5 +1,6 @@
 from typing import Optional
 
+from helpers import make_employment_info_dic
 from utils import flatbed
 from utils.conn import connection_context
 from utils.hasher import hash_password, check_password
@@ -24,17 +25,18 @@ async def insert_new_user(full_name, username, password, level):
             # Hash the password before storing it (ensure it's not async)
             hashed_password = hash_password(password)
 
-            # Insert user into the table with explicit column names
-            sql_insert = """
-                INSERT INTO users (full_name, username, password, level) 
-                VALUES ($1, LOWER($2), $3, $4)
-            """
+            user_id = await conn.fetchval(
+                "SELECT add_new_user_procedure($1, $2, $3, $4)",
+                full_name,
+                username,
+                hashed_password,
+                level
+            )
 
-            await conn.execute(sql_insert, full_name, username, hashed_password, level)
-            return True
+            return user_id is not None
 
     except Exception as e:
-        await flatbed('exception', f"in add_new_user_ps: {e}")
+        await flatbed('exception', f"in insert_new_user: {e}")
         return False
 
 
@@ -82,6 +84,59 @@ async def update_user(usernameToEdit: str, full_name: str, user_name: str,
         return False
 
 
+async def edit_employment_info_ps(
+        userId: str,
+        salaryAmount: Optional[int] = None,
+        salaryStartDate: Optional[str] = None,
+        tailorType: Optional[str] = None,
+        salesmanStatus: Optional[str] = None,
+        billBonusPercent: Optional[float] = None,
+        note: Optional[str] = None
+):
+    """
+    Updates employment info in the database.
+
+    Args:
+        userId (str): The user_id for editing the employment info.
+        salaryAmount (Optional[int]): The salary amount of the employee.
+        salaryStartDate (Optional[str]): The salary start date of the employee.
+        tailorType (Optional[str]): The tailor type of the employee.
+        salesmanStatus (Optional[str]): The salesman status of the employee.
+        billBonusPercent (Optional[float]): Bill bonus percentage if any.
+        note (Optional[str]): Detail note.
+
+    Returns:
+        str: username if the update was successful, None otherwise.
+    """
+    try:
+        async with connection_context() as conn:
+
+            sql_update = """
+                WITH updated AS (
+                    UPDATE user_employment_info
+                    SET salary_amount = $1,
+                        salary_start_date = $2,
+                        tailor_type = $3,
+                        salesman_status = $4,
+                        bill_bonus_percent = $5,
+                        note = $6
+                    WHERE user_id = $7
+                    RETURNING user_id
+                )
+                SELECT u.username
+                FROM updated
+                JOIN users u ON u.user_id = updated.user_id;
+            """
+
+            username = await conn.fetchval(sql_update, salaryAmount, salaryStartDate, tailorType,
+                                           salesmanStatus, billBonusPercent, note, userId)
+            return username
+
+    except Exception as e:
+        await flatbed('exception', f"In edit_employment_info_ps: {e}")
+        return None
+
+
 async def check_username_password(username, password):
     """
     Validates a user's username and password by checking against the database.
@@ -123,6 +178,20 @@ async def get_users_data(username):
         raise RuntimeError(f"Failed to get users data: {e}")
 
 
+async def get_employment_info_ps(user_id):
+    try:
+        async with connection_context() as conn:
+            data = await conn.fetchrow("""
+                               SELECT * FROM user_employment_info
+                               WHERE user_id = $1
+                           """, user_id)
+            employment_info = make_employment_info_dic(data)
+            return employment_info
+    except Exception as e:
+        await flatbed('exception', f"In get_employment_info_ps: {e}")
+        raise RuntimeError(f"Failed to get employment info: {e}")
+
+
 async def update_users_password(username, new_password):
     try:
         async with connection_context() as conn:
@@ -145,7 +214,7 @@ async def get_users_list_ps():
     """
     try:
         async with connection_context() as conn:
-            query = "SELECT full_name, username, level, image_url FROM users;"
+            query = "SELECT user_id, full_name, username, level, image_url FROM users;"
             users_list = await conn.fetch(query)
             return users_list  # Returns a list of asyncpg Record objects
 
