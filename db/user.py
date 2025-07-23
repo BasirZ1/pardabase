@@ -182,7 +182,8 @@ async def get_employment_info_ps(user_id):
     try:
         async with connection_context() as conn:
             data = await conn.fetchrow("""
-                               SELECT * FROM user_employment_info
+                               SELECT id, user_id::TEXT, salary_amount, salary_start_date, tailor_type, salesman_status,
+                                bill_bonus_percent, note FROM user_employment_info
                                WHERE user_id = $1
                            """, user_id)
             employment_info = make_employment_info_dic(data)
