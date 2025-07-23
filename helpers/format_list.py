@@ -313,7 +313,8 @@ def make_employment_info_dic(data):
         "id": data["id"],
         "userId": data["user_id"],
         "salaryAmount": data["salary_amount"],
-        "salaryStartDate": data["salary_start_date"],
+        "salaryStartDate": data["salary_start_date"].isoformat()
+        if isinstance(data["salary_start_date"], (date, datetime)) else data["salary_start_date"],
         "tailorType": data["tailor_type"],
         "salesmanStatus": data["salesman_status"],
         "billBonusPercent": data["bill_bonus_percent"],
