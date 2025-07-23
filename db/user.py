@@ -214,7 +214,7 @@ async def get_users_list_ps():
     """
     try:
         async with connection_context() as conn:
-            query = "SELECT user_id, full_name, username, level, image_url FROM users;"
+            query = "SELECT user_id::TEXT, full_name, username, level, image_url FROM users;"
             users_list = await conn.fetch(query)
             return users_list  # Returns a list of asyncpg Record objects
 
