@@ -179,6 +179,10 @@ def _ts(val: Any) -> Any:
     return val.strftime('%Y-%m-%d %H:%M:%S') if isinstance(val, datetime) else val
 
 
+def format_date(val):
+    return val.isoformat() if isinstance(val, (date, datetime)) else val
+
+
 def format_cut_fabric_records(
         rows: Iterable[Mapping[str, Any]],
         *,
@@ -225,10 +229,8 @@ def format_cut_fabric_records(
 def make_bill_dic(data):
     bill = {
         "billCode": data["bill_code"],
-        "billDate": data["bill_date"].isoformat() if isinstance(data["bill_date"],
-                                                                (date, datetime)) else data["bill_date"],
-        "dueDate": data["due_date"].isoformat() if isinstance(data["due_date"],
-                                                              (date, datetime)) else data["due_date"],
+        "billDate": format_date(data["bill_date"]),
+        "dueDate": format_date(data["due_date"]),
         "customerName": data["customer_name"],
         "customerNumber": data["customer_number"],
         "price": data["price"],
@@ -313,11 +315,10 @@ def make_employment_info_dic(data):
         "id": data["id"],
         "userId": data["user_id"],
         "salaryAmount": data["salary_amount"],
-        "salaryStartDate": data["salary_start_date"].isoformat()
-        if isinstance(data["salary_start_date"], (date, datetime)) else data["salary_start_date"],
+        "salaryStartDate": format_date(data["salary_start_date"]),
         "tailorType": data["tailor_type"],
         "salesmanStatus": data["salesman_status"],
-        "billBonusPercent": data["bill_bonus_percent"],
+        "billBonusPercent": str(data["bill_bonus_percent"]),
         "note": data["note"]
     }
     return employment_info
