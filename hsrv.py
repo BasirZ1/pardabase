@@ -82,6 +82,7 @@ async def refresh_token(request: RefreshTokenRequest):
     return JSONResponse(content={
         "accessToken": new_access_token,
         "refreshToken": new_refresh_token,
+        "userId": user_id,
         "fullName": full_name,
         "level": level,
         "imageUrl": image_url
@@ -113,6 +114,7 @@ async def login(
         return JSONResponse(content={
             "accessToken": access_token,
             "refreshToken": _refresh_token,
+            "userId": user_id,
             "fullName": full_name,
             "level": level,
             "imageUrl": image_url
@@ -1012,9 +1014,9 @@ async def get_lists(
 ):
     # Supported keys and their fetch functions
     list_fetchers = {
-        "suppliers_list": fetch_suppliers_list,
-        "salesmen_list": fetch_salesmen_list,
-        "tailors_list": fetch_tailors_list,
+        "suppliers": fetch_suppliers_list,
+        "salesmen": fetch_salesmen_list,
+        "tailors": fetch_tailors_list,
     }
     keys = request.keys
     # If "all" is requested, replace keys with all supported keys
