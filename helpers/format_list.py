@@ -173,14 +173,35 @@ def get_formatted_purchases_list(purchases_data):
             purchases_list.append(purchase)
     return purchases_list
 
+# def _ts(val: Any) -> Any:
+#     """Convert datetime → 'YYYY‑MM‑DD HH:MM:SS'; leave everything else unchanged."""
+#     return val.strftime('%Y-%m-%d %H:%M:%S') if isinstance(val, datetime) else val
+#
+#
+# def format_date(val):
+#     return val.isoformat() if isinstance(val, (date, datetime)) else val
+
 
 def _ts(val: Any) -> Any:
-    """Convert datetime → 'YYYY‑MM‑DD HH:MM:SS'; leave everything else unchanged."""
-    return val.strftime('%Y-%m-%d %H:%M:%S') if isinstance(val, datetime) else val
+    """Convert datetime → 'YYYY-MM-DD HH:MM:SS'; leave everything else unchanged.
+    Handles both naive and timezone-aware datetimes (timestamptz)."""
+    if isinstance(val, datetime):
+        if val.tzinfo is not None:  # Timezone-aware datetime
+            return val.astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
+        return val.strftime('%Y-%m-%d %H:%M:%S')
+    return val
 
 
-def format_date(val):
-    return val.isoformat() if isinstance(val, (date, datetime)) else val
+def format_date(val: Any) -> Any:
+    """Convert date/datetime → ISO format string; leave everything else unchanged.
+    Handles both naive and timezone-aware datetimes (timestamptz)."""
+    if isinstance(val, datetime):
+        if val.tzinfo is not None:  # Timezone-aware datetime
+            return val.isoformat(timespec='seconds')  # Includes timezone info
+        return val.isoformat(timespec='seconds')
+    if isinstance(val, date):
+        return val.isoformat()
+    return val
 
 
 def format_cut_fabric_records(

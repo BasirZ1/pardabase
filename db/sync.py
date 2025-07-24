@@ -38,9 +38,9 @@ async def fetch_suppliers_list():
 
 async def fetch_salesmen_list():
     # Replace with actual DB call
-    return [{"user_id": "uuid1", "full_name": "Salesman One"}, {"user_id": "uuid2", "full_name": "Salesman Two"}]
+    return [{"userId": "uuid1", "fullName": "Salesman One"}, {"userId": "uuid2", "fullName": "Salesman Two"}]
 
 
 async def fetch_tailors_list():
     # Replace with actual DB call
-    return [{"user_id": "uuid3", "full_name": "Tailor One"}]
+    return [{"userId": "uuid3", "fullName": "Tailor One"}]

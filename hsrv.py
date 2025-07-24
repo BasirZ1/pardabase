@@ -13,7 +13,7 @@ from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
-    get_formatted_purchases_list
+    get_formatted_purchases_list, format_date
 from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
     set_db_from_tenant, create_refresh_token, verify_refresh_token, flatbed
 from db import insert_new_product, update_product, insert_new_roll, update_roll, insert_new_bill, \
@@ -1004,6 +1004,7 @@ async def check_sync(
     Endpoint to check sync based on key.
     """
     last_sync = await get_sync(request.key)
+    last_sync = format_date(last_sync)
     return JSONResponse(content={"last_sync": last_sync}, status_code=200)
 
 
