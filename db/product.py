@@ -177,9 +177,14 @@ async def archive_product_ps(code):
     try:
         async with connection_context() as conn:
             await conn.execute("""
-            UPDATE products
-            SET archived = TRUE, updated_at = now()
-            WHERE product_code = $1
+                UPDATE rolls
+                SET archived = TRUE, updated_at = now()
+                WHERE product_code = $1
+            """, code)
+            await conn.execute("""
+                UPDATE products
+                SET archived = TRUE, updated_at = now()
+                WHERE product_code = $1
             """, code)
         return True
     except Exception as e:

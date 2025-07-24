@@ -1,5 +1,5 @@
 # Define the data structure for incoming requests
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from pydantic import BaseModel
 
 
@@ -29,6 +29,10 @@ class RemoveRequest(BaseModel):
 
 class CheckSyncRequest(BaseModel):
     key: str
+
+
+class GetListsRequest(BaseModel):
+    keys: List[str]
 
 
 class RemovePurchaseRequest(BaseModel):

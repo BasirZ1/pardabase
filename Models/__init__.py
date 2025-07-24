@@ -3,4 +3,4 @@ from .pydantic_models import (AuthRequest, UpdateRollRequest, ChangePasswordRequ
                               AddPaymentBillRequest, RemoveUserRequest, AddOnlineOrderRequest,
                               RefreshTokenRequest, RemoveExpenseRequest, GenerateReportRequest,
                               CommentRequest, UpdateCutFabricTXStatusRequest, RemoveSupplierRequest,
-                              RemovePurchaseRequest, CheckSyncRequest, RemoveRequest)
+                              RemovePurchaseRequest, CheckSyncRequest, RemoveRequest, GetListsRequest)

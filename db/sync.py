@@ -29,3 +29,18 @@ async def get_sync(key):
     except Exception as e:
         await flatbed('exception', f"In get_sync: {e}")
         return None
+
+
+async def fetch_suppliers_list():
+    # Replace with actual DB call
+    return [{"id": 1, "name": "Supplier A"}, {"id": 2, "name": "Supplier B"}]
+
+
+async def fetch_salesmen_list():
+    # Replace with actual DB call
+    return [{"user_id": "uuid1", "full_name": "Salesman One"}, {"user_id": "uuid2", "full_name": "Salesman Two"}]
+
+
+async def fetch_tailors_list():
+    # Replace with actual DB call
+    return [{"user_id": "uuid3", "full_name": "Tailor One"}]

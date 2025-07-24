@@ -9,7 +9,7 @@ from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     UpdateRollRequest, AddExpenseRequest, UpdateBillStatusRequest, \
     UpdateBillTailorRequest, AddPaymentBillRequest, RemoveUserRequest, AddOnlineOrderRequest, RefreshTokenRequest, \
     RemoveExpenseRequest, GenerateReportRequest, CommentRequest, UpdateCutFabricTXStatusRequest, \
-    RemoveSupplierRequest, RemovePurchaseRequest, CheckSyncRequest, RemoveRequest
+    RemoveSupplierRequest, RemovePurchaseRequest, CheckSyncRequest, RemoveRequest, GetListsRequest
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
@@ -30,7 +30,7 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     get_drafts_list_ps, get_cutting_history_list_ps, archive_roll_ps, archive_product_ps, remove_supplier_ps, \
     insert_new_supplier, update_supplier, get_suppliers_list_ps, get_supplier_ps, insert_new_purchase, \
     update_purchase, archive_purchase_ps, remove_purchase_ps, search_purchases_list_filtered, get_sync, \
-    edit_employment_info_ps, get_employment_info_ps
+    edit_employment_info_ps, get_employment_info_ps, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -1003,6 +1003,34 @@ async def check_sync(
     """
     last_sync = await get_sync(request.key)
     return JSONResponse(content={"last_sync": last_sync}, status_code=200)
+
+
+@router.post("/get-lists")
+async def get_lists(
+    request: GetListsRequest,
+    _: dict = Depends(verify_jwt_user(required_level=2)),
+):
+    # Supported keys and their fetch functions
+    list_fetchers = {
+        "suppliers_list": fetch_suppliers_list,
+        "salesmen_list": fetch_salesmen_list,
+        "tailors_list": fetch_tailors_list,
+    }
+    keys = request.keys
+    # If "all" is requested, replace keys with all supported keys
+    if "all" in keys:
+        keys = list(list_fetchers.keys())
+
+    invalid_keys = [k for k in keys if k not in list_fetchers]
+    if invalid_keys:
+        raise HTTPException(status_code=400, detail=f"Invalid list keys requested: {invalid_keys}")
+
+    results = {}
+    for key in keys:
+        fetcher = list_fetchers[key]
+        results[key] = await fetcher()
+
+    return JSONResponse(content=results, status_code=200)
 
 
 @router.get("/submit-request")

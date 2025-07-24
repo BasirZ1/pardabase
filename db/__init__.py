@@ -23,4 +23,5 @@ from .expense import search_expenses_list_filtered, insert_new_expense, \
 from .order import insert_new_online_order, subscribe_newsletter_ps, \
     unsubscribe_newsletter_ps, confirm_email_newsletter_ps
 from .report import report_recent_activities_list, report_tags_list
-from .sync import insert_update_sync, get_sync
+from .sync import insert_update_sync, get_sync, fetch_tailors_list, \
+    fetch_salesmen_list, fetch_suppliers_list
