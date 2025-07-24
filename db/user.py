@@ -91,7 +91,7 @@ async def edit_employment_info_ps(
         salary_start_date: Optional[str] = None,
         tailor_type: Optional[str] = None,
         salesman_status: Optional[str] = None,
-        bill_bonus_percent: Optional[float] = None,
+        bill_bonus_percent: Optional[int] = None,
         note: Optional[str] = None
 ):
     """
@@ -103,7 +103,7 @@ async def edit_employment_info_ps(
         salary_start_date (Optional[str]): The salary start date of the employee.
         tailor_type (Optional[str]): The tailor type of the employee.
         salesman_status (Optional[str]): The salesman status of the employee.
-        bill_bonus_percent (Optional[float]): Bill bonus percentage if any.
+        bill_bonus_percent (Optional[int]): Bill bonus percentage if any.
         note (Optional[str]): Detail note.
 
     Returns:

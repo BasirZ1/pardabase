@@ -319,7 +319,7 @@ async def edit_employment_info(
         salaryStartDate: Optional[str] = Form(None),
         tailorType: Optional[str] = Form(None),
         salesmanStatus: Optional[str] = Form(None),
-        billBonusPercent: Optional[float] = Form(None),
+        billBonusPercent: Optional[int] = Form(None),
         note: Optional[str] = Form(None),
         user_data: dict = Depends(verify_jwt_user(required_level=3))
 ):

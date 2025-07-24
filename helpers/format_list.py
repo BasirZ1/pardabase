@@ -318,7 +318,7 @@ def make_employment_info_dic(data):
         "salaryStartDate": format_date(data["salary_start_date"]),
         "tailorType": data["tailor_type"],
         "salesmanStatus": data["salesman_status"],
-        "billBonusPercent": str(data["bill_bonus_percent"]),
+        "billBonusPercent": data["bill_bonus_percent"],
         "note": data["note"]
     }
     return employment_info
