@@ -1,15 +1,15 @@
 import re
-from typing import Optional, Literal
+from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Form, File, UploadFile, Query, HTTPException, Depends, Body
+from fastapi import APIRouter, Form, File, UploadFile, Query, HTTPException, Depends
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 
 from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     UpdateRollRequest, AddExpenseRequest, UpdateBillStatusRequest, \
     UpdateBillTailorRequest, AddPaymentBillRequest, RemoveUserRequest, AddOnlineOrderRequest, RefreshTokenRequest, \
     RemoveExpenseRequest, GenerateReportRequest, CommentRequest, UpdateCutFabricTXStatusRequest, \
-    RemoveSupplierRequest, RemovePurchaseRequest, CheckSyncRequest
+    RemoveSupplierRequest, RemovePurchaseRequest, CheckSyncRequest, RemoveRequest
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
@@ -719,22 +719,21 @@ async def get_payment_history(
 
 @router.post("/remove-product")
 async def remove_product(
-        request: CodeRequest,
-        mode: Literal["remove", "archive"] = Body("archive", embed=True),
+        request: RemoveRequest,
         user_data: dict = Depends(verify_jwt_user(required_level=3))
 ):
     """
     Endpoint to either remove or archive a product.
     """
-    if mode == "remove":
+    if request.mode == "remove":
         result = await remove_product_ps(request.code)
         action_desc = f"Product removed with history: {request.code}"
         await handle_image_update("product", user_data['tenant'], request.code, "remove", None)
-    elif mode == "archive":
+    elif request.mode == "archive":
         result = await archive_product_ps(request.code)
         action_desc = f"Product removed: {request.code}"
     else:
-        await flatbed("debug", f"invalid mode {mode}")
+        await flatbed("debug", f"invalid mode {request.mode}")
         return JSONResponse(content={"error": "Invalid mode"}, status_code=400)
 
     if result:
@@ -745,23 +744,21 @@ async def remove_product(
 
 @router.post("/remove-roll")
 async def remove_roll(
-        request: CodeRequest,
-        mode: Literal["remove", "archive"] = Body("archive", embed=True),
+        request: RemoveRequest,
         user_data: dict = Depends(verify_jwt_user(required_level=3))
 ):
     """
     Endpoint to either remove or archive a roll.
     """
-    await flatbed("debug", f"$code {request.code} mode {mode}")
-    if mode == "remove":
+    if request.mode == "remove":
         result = await remove_roll_ps(request.code)
         action_desc = f"Roll removed with history: {request.code}"
         await handle_image_update("roll", user_data['tenant'], request.code, "remove", None)
-    elif mode == "archive":
+    elif request.mode == "archive":
         result = await archive_roll_ps(request.code)
         action_desc = f"Roll removed: {request.code}"
     else:
-        await flatbed("debug", f"invalid mode {mode}")
+        await flatbed("debug", f"invalid mode {request.mode}")
         return JSONResponse(content={"error": "Invalid mode"}, status_code=400)
 
     if result:
@@ -830,20 +827,19 @@ async def remove_bill(
 @router.post("/remove-purchase")
 async def remove_purchase(
         request: RemovePurchaseRequest,
-        mode: Literal["remove", "archive"] = Body("archive", embed=True),
         user_data: dict = Depends(verify_jwt_user(required_level=3))
 ):
     """
     Endpoint to either remove or archive a purchase.
     """
-    if mode == "remove":
-        result = await remove_purchase_ps(request.code)
-        action_desc = f"Purchase removed with history: {request.code}"
-    elif mode == "archive":
-        result = await archive_purchase_ps(request.code)
-        action_desc = f"Purchase removed: {request.code}"
+    if request.mode == "remove":
+        result = await remove_purchase_ps(request.purchaseId)
+        action_desc = f"Purchase removed with history: {request.purchaseId}"
+    elif request.mode == "archive":
+        result = await archive_purchase_ps(request.purchaseId)
+        action_desc = f"Purchase removed: {request.purchaseId}"
     else:
-        await flatbed("debug", f"invalid mode {mode}")
+        await flatbed("debug", f"invalid mode {request.mode}")
         return JSONResponse(content={"error": "Invalid mode"}, status_code=400)
 
     if result:

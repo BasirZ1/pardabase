@@ -1,6 +1,5 @@
 # Define the data structure for incoming requests
-from typing import Optional
-
+from typing import Optional, Literal
 from pydantic import BaseModel
 
 
@@ -23,12 +22,18 @@ class CodeRequest(BaseModel):
     code: str
 
 
+class RemoveRequest(BaseModel):
+    code: str
+    mode: Literal["remove", "archive"] = "archive"
+
+
 class CheckSyncRequest(BaseModel):
     key: str
 
 
 class RemovePurchaseRequest(BaseModel):
     purchaseId: int
+    mode: Literal["remove", "archive"] = "archive"
 
 
 class RemoveUserRequest(BaseModel):
