@@ -752,6 +752,7 @@ async def remove_roll(
     """
     Endpoint to either remove or archive a roll.
     """
+    await flatbed("debug", f"$code {request.code} mode {mode}")
     if mode == "remove":
         result = await remove_roll_ps(request.code)
         action_desc = f"Roll removed with history: {request.code}"

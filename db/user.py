@@ -190,8 +190,12 @@ async def get_employment_info_ps(user_id):
                                 bill_bonus_percent, note FROM user_employment_info
                                WHERE user_id = $1
                            """, user_id)
+            if not data:
+                return None
+
             employment_info = make_employment_info_dic(data)
             return employment_info
+
     except Exception as e:
         await flatbed('exception', f"In get_employment_info_ps: {e}")
         raise RuntimeError(f"Failed to get employment info: {e}")
