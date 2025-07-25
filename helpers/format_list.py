@@ -410,7 +410,7 @@ def make_employment_info_dic(data):
 
 def make_salesman_dic(data):
     salesman = {
-        "user_id": data["user_id"],
+        "userId": data["user_id"],
         "fullName": data["full_name"]
     }
     return salesman
@@ -418,7 +418,7 @@ def make_salesman_dic(data):
 
 def make_tailor_dic(data):
     tailor = {
-        "user_id": data["user_id"],
+        "userId": data["user_id"],
         "fullName": data["full_name"]
     }
     return tailor
