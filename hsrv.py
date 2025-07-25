@@ -1005,7 +1005,7 @@ async def check_sync(
     """
     last_sync = await get_sync(request.key)
     last_sync = format_date(last_sync)
-    return JSONResponse(content={"last_sync": last_sync}, status_code=200)
+    return JSONResponse(content=last_sync, status_code=200)
 
 
 @router.post("/get-lists")
