@@ -62,7 +62,7 @@ async def fetch_salesmen_list():
     try:
         async with connection_context() as conn:
             query = """
-                SELECT u.user_id, u.full_name
+                SELECT u.user_id::TEXT, u.full_name
                 FROM public.users u
                 JOIN public.user_employment_info ei ON u.user_id = ei.user_id
                 WHERE ei.salesman_status = 'active';
@@ -87,7 +87,7 @@ async def fetch_tailors_list():
     try:
         async with connection_context() as conn:
             query = """
-                SELECT u.user_id, u.full_name
+                SELECT u.user_id::TEXT, u.full_name
                 FROM public.users u
                 JOIN public.user_employment_info ei ON u.user_id = ei.user_id
                 WHERE ei.tailor_type IS NOT NULL;
