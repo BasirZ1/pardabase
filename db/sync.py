@@ -1,3 +1,5 @@
+from helpers import get_formatted_tailors_list, get_formatted_salesmen_list, \
+    get_formatted_suppliers_small_list
 from utils import flatbed
 from utils.conn import connection_context
 
@@ -32,15 +34,68 @@ async def get_sync(key):
 
 
 async def fetch_suppliers_list():
-    # Replace with actual DB call
-    return [{"id": 1, "name": "Supplier A"}, {"id": 2, "name": "Supplier B"}]
+    """
+    Retrieve all suppliers id and name from suppliers table.
+
+    Returns:
+    - All suppliers id and name from the suppliers table.
+    """
+    try:
+        async with connection_context() as conn:
+            query = "SELECT id, name FROM suppliers;"
+            suppliers_data = await conn.fetch(query)
+            suppliers_list = get_formatted_suppliers_small_list(suppliers_data)
+            return suppliers_list  # Returns a list of asyncpg Record objects
+
+    except Exception as e:
+        await flatbed('exception', f"In fetch_suppliers_list: {e}")
+        raise RuntimeError(f"Failed to fetch suppliers list: {e}")
 
 
 async def fetch_salesmen_list():
-    # Replace with actual DB call
-    return [{"userId": "uuid1", "fullName": "Salesman One"}, {"userId": "uuid2", "fullName": "Salesman Two"}]
+    """
+    Retrieve all salesmen user_id and full_name from users table where salesman_status is 'active'.
+
+    Returns:
+    - List of asyncpg Record objects with 'user_id' and 'full_name' of active salesmen.
+    """
+    try:
+        async with connection_context() as conn:
+            query = """
+                SELECT u.user_id, u.full_name
+                FROM public.users u
+                JOIN public.user_employment_info ei ON u.user_id = ei.user_id
+                WHERE ei.salesman_status = 'active';
+            """
+            salesmen_data = await conn.fetch(query)
+            salesmen_list = get_formatted_salesmen_list(salesmen_data)
+            # Returns a list of asyncpg Record objects
+            return salesmen_list
+
+    except Exception as e:
+        await flatbed('exception', f"In fetch_salesmen_list: {e}")
+        raise RuntimeError(f"Failed to fetch salesmen list: {e}")
 
 
 async def fetch_tailors_list():
-    # Replace with actual DB call
-    return [{"userId": "uuid3", "fullName": "Tailor One"}]
+    """
+    Retrieve all tailors user_id and full_name from users table where tailor_type is not null.
+
+    Returns:
+    - List of asyncpg Records with 'user_id' and 'full_name' of tailors.
+    """
+    try:
+        async with connection_context() as conn:
+            query = """
+                SELECT u.user_id, u.full_name
+                FROM public.users u
+                JOIN public.user_employment_info ei ON u.user_id = ei.user_id
+                WHERE ei.tailor_type IS NOT NULL;
+            """
+            tailors_data = await conn.fetch(query)
+            tailors_list = get_formatted_tailors_list(tailors_data)
+            return tailors_list
+
+    except Exception as e:
+        await flatbed('exception', f"In fetch_tailors_list: {e}")
+        raise RuntimeError(f"Failed to fetch tailors list: {e}")

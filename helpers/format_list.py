@@ -173,6 +173,61 @@ def get_formatted_purchases_list(purchases_data):
             purchases_list.append(purchase)
     return purchases_list
 
+
+def get_formatted_salesmen_list(salesmen_data):
+    """
+    Helper function to format salesmen data into JSON-compatible objects.
+
+    Parameters:
+    - salesmen_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted salesmen dictionaries.
+    """
+    salesmen_list = []
+    if salesmen_data:
+        for data in salesmen_data:
+            salesman = make_salesman_dic(data)
+            salesmen_list.append(salesman)
+    return salesmen_list
+
+
+def get_formatted_tailors_list(tailors_data):
+    """
+    Helper function to format tailors data into JSON-compatible objects.
+
+    Parameters:
+    - tailors_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted tailors dictionaries.
+    """
+    tailors_list = []
+    if tailors_data:
+        for data in tailors_data:
+            tailor = make_tailor_dic(data)
+            tailors_list.append(tailor)
+    return tailors_list
+
+
+def get_formatted_suppliers_small_list(suppliers_data):
+    """
+    Helper function to format suppliers data into JSON-compatible objects.
+
+    Parameters:
+    - suppliers_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted suppliers dictionaries.
+    """
+    suppliers_list = []
+    if suppliers_data:
+        for data in suppliers_data:
+            supplier = make_supplier_small_dic(data)
+            suppliers_list.append(supplier)
+    return suppliers_list
+
+
 # def _ts(val: Any) -> Any:
 #     """Convert datetime → 'YYYY‑MM‑DD HH:MM:SS'; leave everything else unchanged."""
 #     return val.strftime('%Y-%m-%d %H:%M:%S') if isinstance(val, datetime) else val
@@ -317,6 +372,14 @@ def make_supplier_dic(data):
     return supplier
 
 
+def make_supplier_small_dic(data):
+    supplier = {
+        "id": data["id"],
+        "name": data["name"]
+    }
+    return supplier
+
+
 def make_purchase_dic(data):
     purchase = {
         "id": data["id"],
@@ -343,3 +406,19 @@ def make_employment_info_dic(data):
         "note": data["note"]
     }
     return employment_info
+
+
+def make_salesman_dic(data):
+    salesman = {
+        "user_id": data["user_id"],
+        "fullName": data["full_name"]
+    }
+    return salesman
+
+
+def make_tailor_dic(data):
+    tailor = {
+        "user_id": data["user_id"],
+        "fullName": data["full_name"]
+    }
+    return tailor
