@@ -56,6 +56,7 @@ class UpdateRollRequest(BaseModel):
     code: str
     quantity: int
     action: str
+    comment: Optional[str] = None
 
 
 class CommentRequest(BaseModel):
@@ -77,6 +78,7 @@ class UpdateBillStatusRequest(BaseModel):
 class UpdateBillTailorRequest(BaseModel):
     code: str
     tailor: str
+    tailorName: Optional[str] = None
 
 
 class AddPaymentBillRequest(BaseModel):

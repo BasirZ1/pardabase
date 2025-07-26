@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 
 from utils import flatbed
 from utils.conn import connection_context
@@ -10,7 +10,7 @@ async def insert_new_purchase(
         currency: Optional[str] = None,
         description: Optional[str] = None,
         user_id: Optional[str] = None,
-) -> Optional[int]:
+) -> tuple[Any, Any, Any, Any] | None:
     try:
         async with connection_context() as conn:
 
@@ -22,10 +22,10 @@ async def insert_new_purchase(
                     description,
                     created_by
                 ) VALUES ($1, $2, $3, $4, $5)
-                RETURNING id
+                RETURNING id, created_at, updated_at, created_by
             """
 
-            purchase_id = await conn.fetchval(
+            row = await conn.fetchrow(
                 sql_insert,
                 supplier_id,
                 total_amount,
@@ -33,7 +33,10 @@ async def insert_new_purchase(
                 description,
                 user_id
             )
-            return purchase_id
+            if row:
+                return row['id'], row['created_at'], row['updated_at'], row['created_by']
+            else:
+                return None
     except Exception as e:
         await flatbed('exception', f"In insert_new_purchase: {e}")
         return None
@@ -45,7 +48,7 @@ async def update_purchase(
         total_amount: Optional[int] = None,
         currency: Optional[str] = None,
         description: Optional[str] = None,
-) -> Optional[int] | None:
+) -> tuple[Any, Any, Any, Any] | None:
     try:
         async with connection_context() as conn:
 
@@ -57,8 +60,9 @@ async def update_purchase(
                     description = $4,
                     updated_at = NOW()
                 WHERE id = $5
+                RETURNING id, created_at, updated_at, created_by
             """
-            await conn.execute(
+            row = await conn.fetchrow(
                 sql_update,
                 supplier_id,
                 total_amount,
@@ -66,7 +70,10 @@ async def update_purchase(
                 description,
                 purchase_id,
             )
-            return purchase_id
+            if row:
+                return row['id'], row['created_at'], row['updated_at'], row['created_by']
+            else:
+                return None
     except Exception as e:
         await flatbed('exception', f"In update_purchase: {e}")
         return None

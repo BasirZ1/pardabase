@@ -472,36 +472,28 @@ async def add_or_edit_purchase(
 ):
     if idToEdit is None:
         # CREATE NEW
-        purchase_id = await insert_new_purchase(supplierId, totalAmount, currency, description, user_data['user_id'])
+        purchase_id, created_at, updated_at, created_by = await insert_new_purchase(supplierId, totalAmount, currency, description, user_data['user_id'])
         if not purchase_id:
             return JSONResponse(content={
-                "result": False,
-                "supplierId": supplierId,
-                "totalAmount": totalAmount,
-                "currency": currency,
-                "description": description,
+                "result": False
             })
         await remember_users_action(user_data['user_id'], f"Purchase Added: "
                                                           f"{supplierId} {totalAmount} {currency} {description}")
     else:
         # UPDATE OLD
-        purchase_id = await update_purchase(idToEdit, supplierId, totalAmount, currency, description)
+        purchase_id, created_at, updated_at, created_by = await update_purchase(idToEdit, supplierId, totalAmount, currency, description)
         if not purchase_id:
             return JSONResponse(content={
-                "result": False,
-                "supplierId": supplierId,
-                "totalAmount": totalAmount,
-                "currency": currency,
-                "description": description
+                "result": False
             })
         await remember_users_action(user_data['user_id'], f"Purchase updated: {purchase_id},"
                                                           f"{supplierId} {totalAmount} {currency} {description}")
     return JSONResponse(content={
         "result": True,
-        "supplierId": supplierId,
-        "totalAmount": totalAmount,
-        "currency": currency,
-        "description": description
+        "id": purchase_id,
+        "createdAt": created_at,
+        "updatedAt": updated_at,
+        "createdBy": created_by
     })
 
 
@@ -514,7 +506,7 @@ async def get_bills_list(
     """
     Retrieve a list of bills based on date or state.
     """
-    bills_data = await search_bills_list_filtered(date, state)
+    bills_data = await search_bills_list_filtered(date, state)  # TODO get salesmanName and TailorName
     bills_list = get_formatted_search_results_list(None, bills_data)
 
     return JSONResponse(content=bills_list, status_code=200)
@@ -679,7 +671,7 @@ async def get_bill(
     """
     Retrieve a bill based on code.
     """
-    bill = await get_bill_ps(code)
+    bill = await get_bill_ps(code)  # TODO get salesmanName and TailorName
     return JSONResponse(content=bill, status_code=200)
 
 
@@ -860,7 +852,7 @@ async def update_roll_quantity(
     """
     if request.action == "add":
         result = await add_roll_quantity_ps(request.code, request.quantity)
-    elif request.action == "subtract":
+    elif request.action == "subtract": # TODO Add comment
         result = await add_cut_fabric_tx(request.code, request.quantity, user_data['user_id'])
     else:
         result = False
@@ -956,7 +948,7 @@ async def update_bill_tailor(
     """
     result = await update_bill_tailor_ps(request.code, request.tailor)
     await remember_users_action(user_data['user_id'], f"Bill's tailor updated: "
-                                                      f"{request.code} {request.tailor}")
+                                                      f"{request.code} {request.tailor}") #  TODO tailorName instead of user_id
     return JSONResponse(content={"result": result}, status_code=200)
 
 
