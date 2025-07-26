@@ -34,6 +34,8 @@ async def insert_new_purchase(
                 user_id
             )
             if row:
+                await flatbed("debug", f"insert_new_purchase {row},"
+                                       f" {row['id'], row['created_at'], row['updated_at'], row['created_by']}")
                 return row['id'], row['created_at'], row['updated_at'], row['created_by']
             else:
                 return None

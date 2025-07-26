@@ -7,12 +7,7 @@ from utils import set_current_db
 
 async def run_this():
     set_current_db("zmt")
-    # supplier = await insert_new_supplier("Doe", "4324234", "macroyan naw", "new supplier")
-    # print(f"supplier added {supplier}")
-    # supplier = await insert_new_supplier("Ahmad", "4324234", "macroyan naw", "new supplier")
-    # print(f"supplier added {supplier}")
-    # # supplier = await update_supplier(1, "New Jhon", "07839393", "Karte naw", "nothing special")
-    # # print(f"supplier updated {supplier}")
+
     await remove_supplier_ps(1)
     suppliers = await get_suppliers_list_ps()
     print(suppliers)
