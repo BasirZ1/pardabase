@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Optional, Any, Tuple
 
 from utils import flatbed
 from utils.conn import connection_context
@@ -15,14 +15,23 @@ async def insert_new_purchase(
         async with connection_context() as conn:
 
             sql_insert = """
-                INSERT INTO purchases (
-                    supplier_id,
-                    total_amount,
-                    currency,
-                    description,
-                    created_by
-                ) VALUES ($1, $2, $3, $4, $5)
-                RETURNING id, created_at, updated_at, created_by
+                WITH inserted AS (
+                    INSERT INTO purchases (
+                        supplier_id,
+                        total_amount,
+                        currency,
+                        description,
+                        created_by
+                    ) VALUES ($1, $2, $3, $4, $5)
+                    RETURNING id, created_at, updated_at, created_by
+                )
+                SELECT 
+                    inserted.id,
+                    inserted.created_at,
+                    inserted.updated_at,
+                    users.full_name AS created_by_name
+                FROM inserted
+                JOIN users ON users.user_id = inserted.created_by
             """
 
             row = await conn.fetchrow(
@@ -34,9 +43,7 @@ async def insert_new_purchase(
                 user_id
             )
             if row:
-                await flatbed("debug", f"insert_new_purchase {row},"
-                                       f" {row['id'], row['created_at'], row['updated_at'], row['created_by']}")
-                return row['id'], row['created_at'], row['updated_at'], row['created_by']
+                return row['id'], row['created_at'], row['updated_at'], row['created_by_name']
             else:
                 return None
     except Exception as e:
@@ -50,7 +57,7 @@ async def update_purchase(
         total_amount: Optional[int] = None,
         currency: Optional[str] = None,
         description: Optional[str] = None,
-) -> tuple[Any, Any, Any, Any] | None:
+) -> tuple[Any, Any] | None:
     try:
         async with connection_context() as conn:
 
@@ -62,7 +69,7 @@ async def update_purchase(
                     description = $4,
                     updated_at = NOW()
                 WHERE id = $5
-                RETURNING id, created_at, updated_at, created_by
+                RETURNING id, updated_at
             """
             row = await conn.fetchrow(
                 sql_update,
@@ -73,7 +80,7 @@ async def update_purchase(
                 purchase_id,
             )
             if row:
-                return row['id'], row['created_at'], row['updated_at'], row['created_by']
+                return row['id'], row['updated_at']
             else:
                 return None
     except Exception as e:

@@ -13,7 +13,7 @@ from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
-    get_formatted_purchases_list, format_date
+    get_formatted_purchases_list, format_date, format_timestamp
 from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
     set_db_from_tenant, create_refresh_token, verify_refresh_token, flatbed
 from db import insert_new_product, update_product, insert_new_roll, update_roll, insert_new_bill, \
@@ -330,8 +330,8 @@ async def edit_employment_info(
                                              billBonusPercent, note)
     if not username:
         return JSONResponse(content={
-                "result": False,
-            })
+            "result": False,
+        })
     await remember_users_action(user_data['user_id'], f"Employment info updated: {username}")
     return JSONResponse(content={
         "result": True,
@@ -472,7 +472,8 @@ async def add_or_edit_purchase(
 ):
     if idToEdit is None:
         # CREATE NEW
-        purchase_id, created_at, updated_at, created_by = await insert_new_purchase(supplierId, totalAmount, currency, description, user_data['user_id'])
+        purchase_id, created_at, updated_at, created_by = await insert_new_purchase(
+            supplierId, totalAmount, currency, description, user_data['user_id'])
         if not purchase_id:
             return JSONResponse(content={
                 "result": False
@@ -481,7 +482,9 @@ async def add_or_edit_purchase(
                                                           f"{supplierId} {totalAmount} {currency} {description}")
     else:
         # UPDATE OLD
-        purchase_id, created_at, updated_at, created_by = await update_purchase(idToEdit, supplierId, totalAmount, currency, description)
+        created_at = None
+        created_by = None
+        purchase_id, updated_at = await update_purchase(idToEdit, supplierId, totalAmount, currency, description)
         if not purchase_id:
             return JSONResponse(content={
                 "result": False
@@ -491,8 +494,8 @@ async def add_or_edit_purchase(
     return JSONResponse(content={
         "result": True,
         "id": purchase_id,
-        "createdAt": created_at,
-        "updatedAt": updated_at,
+        "createdAt": format_timestamp(created_at),
+        "updatedAt": format_timestamp(updated_at),
         "createdBy": created_by
     })
 
@@ -852,7 +855,7 @@ async def update_roll_quantity(
     """
     if request.action == "add":
         result = await add_roll_quantity_ps(request.code, request.quantity)
-    elif request.action == "subtract": # TODO Add comment
+    elif request.action == "subtract":  # TODO Add comment
         result = await add_cut_fabric_tx(request.code, request.quantity, user_data['user_id'])
     else:
         result = False
@@ -948,7 +951,8 @@ async def update_bill_tailor(
     """
     result = await update_bill_tailor_ps(request.code, request.tailor)
     await remember_users_action(user_data['user_id'], f"Bill's tailor updated: "
-                                                      f"{request.code} {request.tailor}") #  TODO tailorName instead of user_id
+                                                      f"{request.code} {request.tailor}")
+    # TODO tailorName instead of user_id
     return JSONResponse(content={"result": result}, status_code=200)
 
 
@@ -1002,8 +1006,8 @@ async def check_sync(
 
 @router.post("/get-lists")
 async def get_lists(
-    request: GetListsRequest,
-    _: dict = Depends(verify_jwt_user(required_level=2)),
+        request: GetListsRequest,
+        _: dict = Depends(verify_jwt_user(required_level=2)),
 ):
     # Supported keys and their fetch functions
     list_fetchers = {

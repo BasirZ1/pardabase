@@ -237,7 +237,7 @@ def get_formatted_suppliers_small_list(suppliers_data):
 #     return val.isoformat() if isinstance(val, (date, datetime)) else val
 
 
-def _ts(val: Any) -> Any:
+def format_timestamp(val: Any) -> Any:
     """Convert datetime → 'YYYY-MM-DD HH:MM:SS'; leave everything else unchanged.
     Handles both naive and timezone-aware datetimes (timestamptz)."""
     if isinstance(val, datetime):
@@ -279,7 +279,7 @@ def format_cut_fabric_records(
     List of dicts
     """
     extra = extra or {}
-    xf = transformer or _ts  # choose the transformer only once
+    xf = transformer or format_timestamp  # choose the transformer only once
 
     formatted: List[Dict[str, Any]] = []
     append = formatted.append  # local ref for speed in large loops
