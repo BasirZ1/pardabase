@@ -509,7 +509,7 @@ async def get_bills_list(
     """
     Retrieve a list of bills based on date or state.
     """
-    bills_data = await search_bills_list_filtered(date, state)  # TODO get salesmanName and TailorName
+    bills_data = await search_bills_list_filtered(date, state)
     bills_list = get_formatted_search_results_list(None, bills_data)
 
     return JSONResponse(content=bills_list, status_code=200)
@@ -674,7 +674,7 @@ async def get_bill(
     """
     Retrieve a bill based on code.
     """
-    bill = await get_bill_ps(code)  # TODO get salesmanName and TailorName
+    bill = await get_bill_ps(code)
     return JSONResponse(content=bill, status_code=200)
 
 
@@ -949,10 +949,10 @@ async def update_bill_tailor(
     """
     Endpoint to update a bill's tailor.
     """
-    result = await update_bill_tailor_ps(request.code, request.tailor)
+    updated_tailor_name = await update_bill_tailor_ps(request.code, request.tailor)
     await remember_users_action(user_data['user_id'], f"Bill's tailor updated: "
-                                                      f"{request.code} {request.tailor}")
-    # TODO tailorName instead of user_id
+                                                      f"{request.code} {updated_tailor_name}")
+    result = updated_tailor_name is not None
     return JSONResponse(content={"result": result}, status_code=200)
 
 

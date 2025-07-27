@@ -316,7 +316,9 @@ def make_bill_dic(data):
         "parts": data["parts"],
         "status": data["status"],
         "salesman": data["salesman"],
+        "salesmanName": data["salesman_name"],
         "tailor": data["tailor"],
+        "tailorName": data["tailor_name"],
         "additionalData": data["additional_data"],
         "installation": data["installation"]
     }

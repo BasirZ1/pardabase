@@ -222,30 +222,30 @@ async def update_bill_status_ps(bill_code: str, status: str) -> bool:
         raise e
 
 
-async def update_bill_tailor_ps(bill_code: str, tailor: str) -> bool:
+async def update_bill_tailor_ps(bill_code: str, tailor: str) -> Optional[str]:
     """
-    Update a bill's tailor in the bills table.
-
-    Args:
-        bill_code (str): The unique code for the bill.
-        tailor (str): The tailor for the bill.
-
-    Returns:
-        bool: True if the item was updated successfully, False otherwise.
+    Update a bill's tailor in the bills table and return the updated tailor's full name.
     """
-
     try:
         async with connection_context() as conn:
             sql_update = """
-                UPDATE bills
-                SET tailor = $1,
-                updated_at = now()
-                WHERE bill_code = $2
-                RETURNING tailor
+                WITH updated_bill AS (
+                    UPDATE bills
+                    SET tailor = $1,
+                        updated_at = now()
+                    WHERE bill_code = $2
+                    RETURNING tailor
+                )
+                SELECT 
+                    CASE 
+                        WHEN is_uuid(ub.tailor) THEN u.full_name
+                        ELSE ub.tailor
+                    END AS tailor_full_name
+                FROM updated_bill ub
+                LEFT JOIN users u ON u.user_id = ub.tailor;
             """
-            updated_tailor = await conn.fetchval(sql_update, tailor, bill_code)
-
-            return updated_tailor is not None
+            updated_tailor_name = await conn.fetchval(sql_update, tailor, bill_code)
+            return updated_tailor_name  # Will be None if not updated
     except Exception as e:
         await flatbed('exception', f"In update_bill_tailor_ps: {e}")
         raise e
