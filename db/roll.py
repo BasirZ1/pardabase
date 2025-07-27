@@ -178,6 +178,35 @@ async def get_cutting_history_list_ps(
         raise RuntimeError(f"Failed to get cutting history list: {exc}") from exc
 
 
+async def get_cutting_history_list_for_roll_ps(
+    code: str
+):
+    sql = f"""
+        SELECT tx.id,
+            tx.roll_code,
+            tx.bill_code,
+            u.username AS created_by,
+            tx.quantity,
+            tx.status,
+            tx.comment,
+            ru.username AS reviewed_by,
+            tx.reviewed_at,
+            tx.created_at
+        FROM   cut_fabric_tx tx
+        LEFT JOIN   users u ON tx.created_by = u.user_id
+        LEFT JOIN users ru ON tx.reviewed_by = ru.user_id
+        where roll_code = $1
+        ORDER BY tx.created_at DESC;
+    """
+
+    try:
+        async with connection_context() as conn:
+            return await conn.fetch(sql, code)
+    except Exception as exc:
+        await flatbed("exception", f"get_cutting_history_list_for_roll_ps: {exc}")
+        raise RuntimeError(f"Failed to get cutting history list for roll: {exc}") from exc
+
+
 async def update_cut_fabric_tx_status_ps(
         _id: int,
         status: str,

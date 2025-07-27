@@ -30,7 +30,8 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     get_drafts_list_ps, get_cutting_history_list_ps, archive_roll_ps, archive_product_ps, remove_supplier_ps, \
     insert_new_supplier, update_supplier, get_suppliers_list_ps, get_supplier_ps, insert_new_purchase, \
     update_purchase, archive_purchase_ps, remove_purchase_ps, search_purchases_list_filtered, get_sync, \
-    edit_employment_info_ps, get_employment_info_ps, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list
+    edit_employment_info_ps, get_employment_info_ps, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list, \
+    get_cutting_history_list_for_roll_ps
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -916,6 +917,26 @@ async def get_cutting_history_list(
     Retrieve a list of cutting history.
     """
     history_data = await get_cutting_history_list_ps(status, date)
+    history_list = format_cut_fabric_records(
+        history_data,
+        extra={
+            "reviewedBy": "reviewed_by",
+            "reviewedAt": "reviewed_at"
+        }
+    )
+
+    return JSONResponse(content=history_list, status_code=200)
+
+
+@router.get("/roll-cutting-history-list-get")
+async def get_roll_cutting_history_list(
+        code: str,
+        _: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Retrieve a list of cutting history based on roll.
+    """
+    history_data = await get_cutting_history_list_for_roll_ps(code)
     history_list = format_cut_fabric_records(
         history_data,
         extra={
