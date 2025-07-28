@@ -389,8 +389,8 @@ def make_purchase_dic(data):
         "totalAmount": data["total_amount"],
         "currency": data["currency"],
         "description": data["description"],
-        "createdAt": data["created_at"],
-        "updatedAt": data["updated_at"],
+        "createdAt": format_date(data["created_at"]),
+        "updatedAt": format_date(data["updated_at"]),
         "createdBy": data["created_by"]
     }
     return purchase
