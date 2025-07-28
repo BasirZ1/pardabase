@@ -237,12 +237,10 @@ async def update_bill_tailor_ps(bill_code: str, tailor: str) -> Optional[str]:
                     RETURNING tailor
                 )
                 SELECT 
-                    CASE 
-                        WHEN is_uuid(ub.tailor) THEN u.full_name
-                        ELSE ub.tailor
-                    END AS tailor_full_name
+                    COALESCE(u.full_name, ub.tailor) AS tailor_full_name
                 FROM updated_bill ub
-                LEFT JOIN users u ON u.user_id = ub.tailor;
+                LEFT JOIN users u 
+                    ON is_uuid(ub.tailor) AND u.user_id = ub.tailor::uuid;
             """
             updated_tailor_name = await conn.fetchval(sql_update, tailor, bill_code)
             return updated_tailor_name  # Will be None if not updated
