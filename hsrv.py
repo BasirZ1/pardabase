@@ -456,6 +456,7 @@ async def add_or_edit_supplier(
         await remember_users_action(user_data['user_id'], f"Supplier updated: {supplier_id},"
                                                           f" name: {name} phone: {phone}")
     return JSONResponse(content={
+        "id": supplier_id,
         "result": True,
         "name": name,
         "phone": phone

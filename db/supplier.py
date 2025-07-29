@@ -21,7 +21,7 @@ async def insert_new_supplier(
         notes (Optional[str]): Notes and data about the supplier.
 
     Returns:
-        bool: True if the supplier was added successfully, False otherwise.
+        supplier_id: If the supplier was added successfully, return supplier_id else none.
     """
 
     try:
@@ -30,14 +30,15 @@ async def insert_new_supplier(
             sql_insert = """
                 INSERT INTO suppliers (name, phone, address, notes) 
                 VALUES ($1, $2, $3, $4)
+                RETURNING id
             """
 
-            await conn.execute(sql_insert, name, phone, address, notes)
-            return True
+            supplier_id = await conn.fetchval(sql_insert, name, phone, address, notes)
+            return supplier_id
 
     except Exception as e:
         await flatbed('exception', f"in add_new_supplier_ps: {e}")
-        return False
+        return None
 
 
 async def update_supplier(
@@ -58,7 +59,7 @@ async def update_supplier(
         notes (Optional[str]): Notes and data about the supplier.
 
     Returns:
-        bool: True if the update was successful, False otherwise.
+        supplier_id: If the update was successful, return supplier_id else None.
     """
     try:
         async with connection_context() as conn:
@@ -67,14 +68,15 @@ async def update_supplier(
                 UPDATE suppliers
                 SET name = $1, phone = $2, address = $3, notes = $4
                 WHERE id = $5
+                RETURNING id
             """
 
-            await conn.execute(sql_update, name, phone, address, notes, idToEdit)
-            return True
+            supplier_id = await conn.fetchval(sql_update, name, phone, address, notes, idToEdit)
+            return supplier_id
 
     except Exception as e:
         await flatbed('exception', f"In update_supplier: {e}")
-        return False
+        return None
 
 
 async def get_supplier_ps(supplier_id: int):
