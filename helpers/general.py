@@ -26,9 +26,26 @@ async def classify_image_upload(upload: Optional[UploadFile]) -> Tuple[str, Opti
 #     return end - timedelta(days=days), end
 
 
+# def get_date_range(idx: Optional[int]) -> Optional[Tuple[datetime, datetime]]:
+#     """Return (start, end) datetime range in Kabul timezone."""
+#     ranges = {0: 1, 1: 7, 2: 30, 3: 365}
+#     days = ranges.get(idx)
+#     if days is None:
+#         return None
+#
+#     kabul_tz = ZoneInfo("Asia/Kabul")
+#     now = datetime.now(kabul_tz)
+#
+#     # Truncate to start of today
+#     end = now.replace(hour=0, minute=0, second=0, microsecond=0)
+#     start = end - timedelta(days=days)
+#
+#     return start, end + timedelta(days=1)  # Make 'end' exclusive (next day's midnight)
+
+
 def get_date_range(idx: Optional[int]) -> Optional[Tuple[datetime, datetime]]:
     """Return (start, end) datetime range in Kabul timezone."""
-    ranges = {0: 1, 1: 7, 2: 30, 3: 365}
+    ranges = {0: 0, 1: 6, 2: 29, 3: 364}  # idx: (days back)
     days = ranges.get(idx)
     if days is None:
         return None
@@ -37,10 +54,12 @@ def get_date_range(idx: Optional[int]) -> Optional[Tuple[datetime, datetime]]:
     now = datetime.now(kabul_tz)
 
     # Truncate to start of today
-    end = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    start = end - timedelta(days=days)
+    start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    return start, end + timedelta(days=1)  # Make 'end' exclusive (next day's midnight)
+    start = start_of_today - timedelta(days=days)
+    end = start_of_today + timedelta(days=1)  # Exclusive end (next day's midnight)
+
+    return start, end
 
 
 def delete_temp_file(file_path: str):
