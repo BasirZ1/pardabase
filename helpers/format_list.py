@@ -386,6 +386,7 @@ def make_purchase_dic(data):
     purchase = {
         "id": data["id"],
         "supplierId": data["supplier_id"],
+        "supplierName": data["supplier_name"],
         "totalAmount": data["total_amount"],
         "currency": data["currency"],
         "description": data["description"],
