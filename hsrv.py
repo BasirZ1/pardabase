@@ -31,7 +31,7 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     insert_new_supplier, update_supplier, get_suppliers_list_ps, get_supplier_ps, insert_new_purchase, \
     update_purchase, archive_purchase_ps, remove_purchase_ps, search_purchases_list_filtered, get_sync, \
     edit_employment_info_ps, get_employment_info_ps, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list, \
-    get_cutting_history_list_for_roll_ps
+    get_cutting_history_list_for_roll_ps, insert_new_purchase_item, update_purchase_item
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -499,6 +499,40 @@ async def add_or_edit_purchase(
         "createdAt": format_timestamp(created_at),
         "updatedAt": format_timestamp(updated_at),
         "createdBy": created_by
+    })
+
+
+@router.post("/add-or-edit-purchase-item")
+async def add_or_edit_purchase_item(
+        idToEdit: Optional[int] = Form(None),
+        purchaseId: int = Form(...),
+        productCode: str = Form(...),
+        costPerMetre: int = Form(...),
+        user_data: dict = Depends(verify_jwt_user(required_level=3))
+):
+    if idToEdit is None:
+        # CREATE NEW
+        purchase_item_id = await insert_new_purchase_item(
+            purchaseId, productCode, costPerMetre)
+        if not purchase_item_id:
+            return JSONResponse(content={
+                "result": False
+            })
+        await remember_users_action(user_data['user_id'], f"Purchase Item Added: "
+                                                          f"{purchase_item_id} {purchaseId}"
+                                                          f" {productCode} {costPerMetre}")
+    else:
+        # UPDATE OLD
+        purchase_item_id = await update_purchase_item(idToEdit, purchaseId, productCode, costPerMetre)
+        if not purchase_item_id:
+            return JSONResponse(content={
+                "result": False
+            })
+        await remember_users_action(user_data['user_id'], f"Purchase Item updated: {purchase_item_id},"
+                                                          f"{purchaseId} {productCode} {costPerMetre}")
+    return JSONResponse(content={
+        "result": True,
+        "id": purchase_item_id
     })
 
 

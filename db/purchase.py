@@ -1,4 +1,4 @@
-from typing import Optional, Any, Tuple
+from typing import Optional, Any
 
 from utils import flatbed
 from utils.conn import connection_context
@@ -85,6 +85,71 @@ async def update_purchase(
                 return None
     except Exception as e:
         await flatbed('exception', f"In update_purchase: {e}")
+        return None
+
+
+async def insert_new_purchase_item(
+        purchase_id: int,
+        product_code: str,
+        cost_per_metre: int
+) -> int | None:
+    try:
+        async with connection_context() as conn:
+
+            sql_insert = """
+                INSERT INTO purchase_items (
+                    purchase_id,
+                    product_code,
+                    cost_per_metre
+                ) VALUES ($1, $2, $3)
+                RETURNING id
+            """
+
+            purchase_item_id = await conn.fetchrow(
+                sql_insert,
+                purchase_id,
+                product_code,
+                cost_per_metre
+            )
+            if purchase_item_id:
+                return purchase_item_id
+            else:
+                return None
+    except Exception as e:
+        await flatbed('exception', f"In insert_new_purchase_item: {e}")
+        return None
+
+
+async def update_purchase_item(
+        id_to_edit: int,
+        purchase_id: int,
+        productCode: str,
+        cost_per_metre: int
+) -> int | None:
+    try:
+        async with connection_context() as conn:
+
+            sql_update = """
+                UPDATE purchase_items
+                SET purchase_id = $1,
+                    product_code = $2,
+                    cost_per_metre = $3
+                WHERE id = $4
+                RETURNING id
+            """
+            purchase_item_id = await conn.fetchrow(
+                sql_update,
+                purchase_id,
+                productCode,
+                cost_per_metre,
+                id_to_edit
+            )
+            if purchase_item_id:
+                return purchase_item_id
+            else:
+                return None
+    except Exception as e:
+        await flatbed('exception', f"In update_purchase_item: {e}")
         return None
 
 

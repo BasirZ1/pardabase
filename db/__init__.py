@@ -2,7 +2,8 @@ from .product import insert_new_product, update_product, get_product_and_roll_ps
     remove_product_ps, search_products_list, search_products_list_filtered, \
     get_roll_and_product_ps, archive_product_ps
 from .purchase import insert_new_purchase, update_purchase, remove_purchase_ps, \
-    search_purchases_list_filtered, archive_purchase_ps
+    search_purchases_list_filtered, archive_purchase_ps, update_purchase_item, \
+    insert_new_purchase_item
 from .supplier import insert_new_supplier, update_supplier, get_supplier_ps, \
     get_suppliers_list_ps, remove_supplier_ps
 from .image import update_image_bucket_db, remove_image_bucket_db, handle_image_update
