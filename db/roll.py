@@ -244,7 +244,7 @@ async def search_rolls_for_product(product_code):
     try:
         async with connection_context() as conn:
             query = """
-            SELECT product_code, roll_code, quantity, color, image_url 
+            SELECT product_code, roll_code, quantity, color, image_url, purchase_item_id 
             FROM rolls
             WHERE product_code = $1 and archived = false
             """
@@ -253,7 +253,32 @@ async def search_rolls_for_product(product_code):
 
     except Exception as e:
         await flatbed('exception', f"In search_rolls_for_product: {e}")
-        raise RuntimeError(f"Failed to search rolls: {e}")
+        raise RuntimeError(f"Failed to search rolls for product: {e}")
+
+
+async def search_rolls_for_purchase_item(purchase_item_id):
+    """
+    Retrieve rolls list based on product_code.
+
+    Parameters:
+    - purchase_item_id (int): The id for the purchase item to which the rolls belong.
+
+    Returns:
+    - List of records from the rolls table that match the purchase item id.
+    """
+    try:
+        async with connection_context() as conn:
+            query = """
+            SELECT product_code, roll_code, quantity, color, image_url, purchase_item_id 
+            FROM rolls
+            WHERE purchase_item_id = $1 and archived = false
+            """
+            rolls_list = await conn.fetch(query, purchase_item_id)
+            return rolls_list  # Returns a list of asyncpg Record objects
+
+    except Exception as e:
+        await flatbed('exception', f"In search_rolls_for_purchase_item: {e}")
+        raise RuntimeError(f"Failed to search rolls for purchase item: {e}")
 
 
 async def remove_roll_ps(code):

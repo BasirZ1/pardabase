@@ -376,7 +376,8 @@ def make_roll_dic(data):
         "rollCode": data["roll_code"],
         "quantityInCm": data["quantity"],
         "colorLetter": data["color"],
-        "imageUrl": data["image_url"]
+        "imageUrl": data["image_url"],
+        "purchaseItemId": data["purchase_item_id"]
     }
     return roll
 

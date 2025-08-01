@@ -31,7 +31,8 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     insert_new_supplier, update_supplier, get_suppliers_list_ps, get_supplier_ps, insert_new_purchase, \
     update_purchase, archive_purchase_ps, remove_purchase_ps, search_purchases_list_filtered, get_sync, \
     edit_employment_info_ps, get_employment_info_ps, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list, \
-    get_cutting_history_list_for_roll_ps, insert_new_purchase_item, update_purchase_item, get_purchase_items_ps
+    get_cutting_history_list_for_roll_ps, insert_new_purchase_item, update_purchase_item, get_purchase_items_ps, \
+    search_rolls_for_purchase_item
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -695,6 +696,19 @@ async def get_rolls_for_product(
     Retrieve a list of rolls based on product code.
     """
     rolls_data = await search_rolls_for_product(code)
+    rolls_list = get_formatted_rolls_list(rolls_data)
+    return JSONResponse(content=rolls_list, status_code=200)
+
+
+@router.get("/rolls-for-purchase-item-get")
+async def get_rolls_for_purchase_item(
+        purchaseItemId: int,
+        _: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Retrieve a list of rolls based on purchase item id.
+    """
+    rolls_data = await search_rolls_for_purchase_item(purchaseItemId)
     rolls_list = get_formatted_rolls_list(rolls_data)
     return JSONResponse(content=rolls_list, status_code=200)
 
