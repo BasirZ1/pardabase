@@ -420,6 +420,7 @@ def make_purchase_item_dic(data):
         "id": data["id"],
         "purchaseId": data["purchase_id"],
         "productCode": data["product_code"],
+        "productName": data["product_name"],
         "costPerMetre": data["cost_per_metre"]
     }
     return purchase_item

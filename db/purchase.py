@@ -200,19 +200,24 @@ async def search_purchases_list_filtered(_date):
 
 async def get_purchase_items_ps(purchase_id):
     """
-    Retrieve purchase items for a particular purchase based on purchase id.
+    Retrieve purchase items with product names for a particular purchase.
 
     Parameters:
-    - purchase_id (int): purchase id of purchase.
+    - purchase_id (int): ID of the purchase.
 
     Returns:
-    - List of records from the purchase_items table that match the criteria.
+    - List of records including purchase item fields and the product name.
     """
     try:
         async with connection_context() as conn:
-            query = "SELECT * FROM purchase_items where purchase_id = $1;"
+            query = """
+                SELECT pi.*, p.name AS product_name
+                FROM purchase_items pi
+                JOIN products p ON pi.product_code = p.product_code
+                WHERE pi.purchase_id = $1;
+            """
             purchase_items = await conn.fetch(query, purchase_id)
-            return purchase_items  # Returns a list of asyncpg Record objects
+            return purchase_items  # Each record includes product_name
 
     except Exception as e:
         await flatbed('exception', f"In get_purchase_items_ps: {e}")
