@@ -245,7 +245,7 @@ async def search_rolls_for_product(product_code):
     try:
         async with connection_context() as conn:
             query = """
-            SELECT product_code, roll_code, quantity, color, image_url, purchase_item_id 
+            SELECT product_code, roll_code, quantity, color, image_url 
             FROM rolls
             WHERE product_code = $1 and archived = false
             """
@@ -270,7 +270,7 @@ async def search_rolls_for_purchase_item(purchase_item_id):
     try:
         async with connection_context() as conn:
             query = """
-            SELECT product_code, roll_code, quantity, color, image_url, purchase_item_id 
+            SELECT product_code, roll_code, quantity, color, image_url 
             FROM rolls
             WHERE purchase_item_id = $1 and archived = false
             """
