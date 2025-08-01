@@ -234,7 +234,8 @@ async def add_or_edit_product(
 @router.post("/add-or-edit-roll")
 async def add_or_edit_roll(
         codeToEdit: Optional[str] = Form(None),
-        productCode: Optional[str] = Form(None),
+        productCode: str = Form(...),
+        purchaseItemId: int = Form(...),
         quantity: int = Form(...),
         color: Optional[str] = Form(None),
         image: Optional[UploadFile] = File(None),
@@ -244,7 +245,7 @@ async def add_or_edit_roll(
 
     if codeToEdit is None:
         # CREATE NEW
-        code = await insert_new_roll(productCode, quantity, color)
+        code = await insert_new_roll(productCode, purchaseItemId, quantity, color)
         if not code:
             return JSONResponse(content={
                 "result": False

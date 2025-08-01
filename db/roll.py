@@ -5,18 +5,19 @@ from utils import flatbed
 from utils.conn import connection_context
 
 
-async def insert_new_roll(product_code, quantity, color_letter):
+async def insert_new_roll(product_code, purchase_item_id, quantity, color_letter):
     try:
         async with connection_context() as conn:
             sql_insert = """
                 INSERT INTO rolls (
                     product_code,
+                    purchase_item_id,
                     quantity,
                     color
-                ) VALUES ($1, $2, $3)
+                ) VALUES ($1, $2, $3, $4)
                 RETURNING roll_code
             """
-            roll_code = await conn.fetchval(sql_insert, product_code, quantity, color_letter)
+            roll_code = await conn.fetchval(sql_insert, product_code, purchase_item_id, quantity, color_letter)
 
             return roll_code
     except Exception as e:
