@@ -13,7 +13,7 @@ from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
-    get_formatted_purchases_list, format_date, format_timestamp
+    get_formatted_purchases_list, format_date, format_timestamp, get_formatted_purchase_items
 from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
     set_db_from_tenant, create_refresh_token, verify_refresh_token, flatbed
 from db import insert_new_product, update_product, insert_new_roll, update_roll, insert_new_bill, \
@@ -31,7 +31,7 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     insert_new_supplier, update_supplier, get_suppliers_list_ps, get_supplier_ps, insert_new_purchase, \
     update_purchase, archive_purchase_ps, remove_purchase_ps, search_purchases_list_filtered, get_sync, \
     edit_employment_info_ps, get_employment_info_ps, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list, \
-    get_cutting_history_list_for_roll_ps, insert_new_purchase_item, update_purchase_item
+    get_cutting_history_list_for_roll_ps, insert_new_purchase_item, update_purchase_item, get_purchase_items_ps
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -563,6 +563,20 @@ async def get_purchases_list(
     purchases_list = get_formatted_purchases_list(purchases_data)
 
     return JSONResponse(content=purchases_list, status_code=200)
+
+
+@router.get("/purchase-items-get")
+async def get_purchase_items(
+        purchaseId: int,
+        _: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Retrieve purchase items for a particular purchase.
+    """
+    purchase_items_data = await get_purchase_items_ps(purchaseId)
+    purchase_items = get_formatted_purchase_items(purchase_items_data)
+
+    return JSONResponse(content=purchase_items, status_code=200)
 
 
 @router.get("/expenses-list-get")

@@ -174,6 +174,24 @@ def get_formatted_purchases_list(purchases_data):
     return purchases_list
 
 
+def get_formatted_purchase_items(purchase_items_data):
+    """
+    Helper function to format purchase_items data into JSON-compatible objects.
+
+    Parameters:
+    - purchase_items_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted purchase_items dictionaries.
+    """
+    purchase_items = []
+    if purchase_items_data:
+        for data in purchase_items_data:
+            purchase_item = make_purchase_item_dic(data)
+            purchase_items.append(purchase_item)
+    return purchase_items
+
+
 def get_formatted_salesmen_list(salesmen_data):
     """
     Helper function to format salesmen data into JSON-compatible objects.
@@ -395,6 +413,16 @@ def make_purchase_dic(data):
         "createdBy": data["created_by"]
     }
     return purchase
+
+
+def make_purchase_item_dic(data):
+    purchase_item = {
+        "id": data["id"],
+        "purchaseId": data["purchase_id"],
+        "productCode": data["product_code"],
+        "costPerMetre": data["cost_per_metre"]
+    }
+    return purchase_item
 
 
 def make_employment_info_dic(data):

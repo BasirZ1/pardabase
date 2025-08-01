@@ -198,6 +198,27 @@ async def search_purchases_list_filtered(_date):
         raise RuntimeError(f"Failed to search purchases: {e}")
 
 
+async def get_purchase_items_ps(purchase_id):
+    """
+    Retrieve purchase items for a particular purchase based on purchase id.
+
+    Parameters:
+    - purchase_id (int): purchase id of purchase.
+
+    Returns:
+    - List of records from the purchase_items table that match the criteria.
+    """
+    try:
+        async with connection_context() as conn:
+            query = "SELECT * FROM purchase_items where purchase_id = $1;"
+            purchase_items = await conn.fetch(query, purchase_id)
+            return purchase_items  # Returns a list of asyncpg Record objects
+
+    except Exception as e:
+        await flatbed('exception', f"In get_purchase_items_ps: {e}")
+        raise RuntimeError(f"Failed to get purchase items: {e}")
+
+
 # async def get_purchase_ps(purchase_id):
 #     """
 #     Retrieve purchase based on purchase_id (Async Version for asyncpg).
