@@ -235,7 +235,7 @@ async def add_or_edit_product(
 async def add_or_edit_roll(
         codeToEdit: Optional[str] = Form(None),
         productCode: str = Form(...),
-        purchaseItemId: int = Form(...),
+        purchaseItemId: Optional[int] = Form(None),
         quantity: int = Form(...),
         color: Optional[str] = Form(None),
         image: Optional[UploadFile] = File(None),
@@ -263,7 +263,7 @@ async def add_or_edit_roll(
 
     return JSONResponse(content={
         "result": True,
-        "code": f"{productCode}{code}"
+        "code": code
     })
 
 
