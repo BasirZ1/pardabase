@@ -422,7 +422,8 @@ def make_purchase_item_dic(data):
         "purchaseId": data["purchase_id"],
         "productCode": data["product_code"],
         "productName": data["product_name"],
-        "costPerMetre": data["cost_per_metre"]
+        "costPerMetre": data["cost_per_metre"],
+        "rollsList": []
     }
     return purchase_item
 

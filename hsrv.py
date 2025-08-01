@@ -247,8 +247,7 @@ async def add_or_edit_roll(
         code = await insert_new_roll(productCode, quantity, color)
         if not code:
             return JSONResponse(content={
-                "result": False,
-                "code": f"{productCode}{code}"
+                "result": False
             })
         await handle_image_update("roll", user_data['tenant'], code, image_status, image_data)
         await remember_users_action(user_data['user_id'], f"Roll Added: {productCode}{code}")
@@ -256,8 +255,7 @@ async def add_or_edit_roll(
         code = await update_roll(codeToEdit, quantity, color)
         if not code:
             return JSONResponse(content={
-                "result": False,
-                "code": f"{productCode}{code}"
+                "result": False
             })
         await handle_image_update("roll", user_data['tenant'], code, image_status, image_data)
         await remember_users_action(user_data['user_id'], f"Roll updated: {productCode}{code}")
