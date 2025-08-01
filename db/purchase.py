@@ -105,7 +105,7 @@ async def insert_new_purchase_item(
                 RETURNING id
             """
 
-            purchase_item_id = await conn.fetchrow(
+            purchase_item_id = await conn.fetchval(
                 sql_insert,
                 purchase_id,
                 product_code,
@@ -137,7 +137,7 @@ async def update_purchase_item(
                 WHERE id = $4
                 RETURNING id
             """
-            purchase_item_id = await conn.fetchrow(
+            purchase_item_id = await conn.fetchval(
                 sql_update,
                 purchase_id,
                 productCode,
