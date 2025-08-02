@@ -211,7 +211,7 @@ async def get_purchase_items_ps(purchase_id):
     try:
         async with connection_context() as conn:
             query = """
-                SELECT pi.*, p.name AS product_name
+                SELECT pi.*, p.name AS product_name, p.category as category_index
                 FROM purchase_items pi
                 JOIN products p ON pi.product_code = p.product_code
                 WHERE pi.purchase_id = $1;

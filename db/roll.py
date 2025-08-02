@@ -245,9 +245,16 @@ async def search_rolls_for_product(product_code):
     try:
         async with connection_context() as conn:
             query = """
-            SELECT product_code, roll_code, quantity, color, image_url 
-            FROM rolls
-            WHERE product_code = $1 and archived = false
+            SELECT 
+                r.product_code, 
+                r.roll_code, 
+                r.quantity, 
+                r.color, 
+                r.image_url,
+                pi.cost_per_metre
+            FROM rolls r
+            LEFT JOIN purchase_items pi ON r.purchase_item_id = pi.id
+            WHERE r.product_code = $1 AND r.archived = false
             """
             rolls_list = await conn.fetch(query, product_code)
             return rolls_list  # Returns a list of asyncpg Record objects
@@ -270,9 +277,16 @@ async def search_rolls_for_purchase_item(purchase_item_id):
     try:
         async with connection_context() as conn:
             query = """
-            SELECT product_code, roll_code, quantity, color, image_url 
-            FROM rolls
-            WHERE purchase_item_id = $1 and archived = false
+            SELECT 
+                r.product_code, 
+                r.roll_code, 
+                r.quantity, 
+                r.color, 
+                r.image_url,
+                pi.cost_per_metre
+            FROM rolls r
+            LEFT JOIN purchase_items pi ON r.purchase_item_id = pi.id
+            WHERE r.purchase_item_id = $1 AND r.archived = false
             """
             rolls_list = await conn.fetch(query, purchase_item_id)
             return rolls_list  # Returns a list of asyncpg Record objects

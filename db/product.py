@@ -113,8 +113,16 @@ async def get_product_and_roll_ps(code):
             # Fetch the specific roll
             if roll_code:
                 query_roll = """
-                    SELECT product_code, roll_code, quantity, color, image_url FROM rolls
-                    WHERE product_code = $1 AND roll_code = $2 and archived = false
+                SELECT 
+                    r.product_code, 
+                    r.roll_code, 
+                    r.quantity, 
+                    r.color, 
+                    r.image_url,
+                    pi.cost_per_metre
+                FROM rolls r
+                LEFT JOIN purchase_items pi ON r.purchase_item_id = pi.id
+                WHERE r.product_code = $1 AND r.roll_code = $2 AND r.archived = false
                 """
                 roll = await conn.fetchrow(query_roll, product_code, roll_code)
 
@@ -135,9 +143,17 @@ async def get_roll_and_product_ps(code):
             roll_code = code.upper()
             # Fetch the specific roll
             query_roll = """
-                                SELECT product_code, roll_code, quantity, color, image_url FROM rolls
-                                WHERE roll_code = $1 and archived = false
-                            """
+            SELECT 
+                r.product_code, 
+                r.roll_code, 
+                r.quantity, 
+                r.color, 
+                r.image_url,
+                pi.cost_per_metre
+            FROM rolls r
+            LEFT JOIN purchase_items pi ON r.purchase_item_id = pi.id
+            WHERE r.roll_code = $1 AND r.archived = false
+            """
             roll = await conn.fetchrow(query_roll, roll_code)
 
             if not roll:

@@ -419,6 +419,7 @@ def make_purchase_item_dic(data):
     purchase_item = {
         "id": data["id"],
         "purchaseId": data["purchase_id"],
+        "categoryIndex": data["category_index"],
         "productCode": data["product_code"],
         "productName": data["product_name"],
         "costPerMetre": data["cost_per_metre"],
