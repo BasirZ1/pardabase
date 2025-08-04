@@ -192,7 +192,7 @@ async def check_username_and_set_chat_id(username, chat_id):
 
             await conn.execute("""
                 UPDATE users SET telegram_id = $1 WHERE user_id = $2
-            """, chat_id, stored_user_id)
+            """, str(chat_id), stored_user_id)
 
             return True
     except Exception as e:

@@ -1167,7 +1167,6 @@ user_states = {}  # TEMP IN-MEMORY (reset on server restart)
 
 @router.post("/telegram-webhook")
 async def telegram_webhook(request: Request):
-    set_current_db("pardaaf_main")
     data = await request.json()
     message_text = data.get("message", {}).get("text", "").strip()
     chat_id = data.get("message", {}).get("chat", {}).get("id")
@@ -1181,10 +1180,20 @@ async def telegram_webhook(request: Request):
         await send_notification(chat_id, "Please send your username@gallery_codename to link your account.")
         user_states[chat_id] = "awaiting_username"
     elif state == "awaiting_username":
+        if '@' not in message_text or message_text.count('@') != 1:
+            await send_notification(chat_id, "❌ Invalid format. Please send username@gallery_codename.")
+            return {"ok": True}
+
         username, gallery_codename = message_text.split('@')
+        if not username or not gallery_codename:
+            await send_notification(chat_id, "❌ Both username and gallery codename must be provided.")
+            return {"ok": True}
+
+        set_current_db("pardaaf_main")
         gallery_db_name = await get_gallery_db_name(gallery_codename)
         if not gallery_db_name:
             await send_notification(chat_id, "❌ Failed to link your Telegram account.")
+            return {"ok": True}
         set_current_db(gallery_db_name)
         await flatbed("debug", f"username {username} {gallery_codename} {gallery_db_name}")
         success = await check_username_and_set_chat_id(username, chat_id)
