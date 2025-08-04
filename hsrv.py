@@ -1162,45 +1162,6 @@ async def get_lists(
     return JSONResponse(content=results, status_code=200)
 
 
-@router.post("/telegram-webhook")
-async def telegram_webhook(request: Request):
-    data = await request.json()
-    message_text = data.get("message", {}).get("text", "")
-    chat_id = data.get("message", {}).get("chat", {}).get("id")
-
-    if message_text == "/link":
-        await send_notification(chat_id,
-                                """
-                                Now give us your username.
-                                
-                                """)
-    if message_text == "/checkbillstatus":
-        await send_notification(chat_id,
-                                """
-                                Not implemented yet...
-                                """)
-    else:
-        if previous message was "/link":
-            success = check_username_and_set_chat_id(message_text)
-            if success:
-                await send_notification(chat_id,
-                                        """
-                                        Your telegram account has been successfully linked!
-                                        """)
-            else:
-                await send_notification(chat_id,
-                                        """
-                                        Failed to link your telegram account!
-                                        """)
-        else:
-            await send_notification(chat_id,"""
-            give a welcome message tell them to navigate to parda.af.
-            """)
-
-
-    return {"ok": True}
-
-
 user_states = {} # TEMP IN-MEMORY (reset on server restart)
 @router.post("/telegram-webhook")
 async def telegram_webhook(request: Request):
