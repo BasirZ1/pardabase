@@ -2,7 +2,7 @@ import re
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Form, File, UploadFile, Query, HTTPException, Depends
+from fastapi import APIRouter, Form, File, UploadFile, Query, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 
 from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
@@ -14,6 +14,7 @@ from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
     get_formatted_purchases_list, format_date, format_timestamp, get_formatted_purchase_items
+from telegram import send_notification
 from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
     set_db_from_tenant, create_refresh_token, verify_refresh_token, flatbed
 from db import insert_new_product, update_product, insert_new_roll, update_roll, insert_new_bill, \
@@ -1158,6 +1159,19 @@ async def get_lists(
         results[key] = await fetcher()
 
     return JSONResponse(content=results, status_code=200)
+
+
+@router.post("/telegram-webhook")
+async def telegram_webhook(request: Request):
+    data = await request.json()
+    message_text = data.get("message", {}).get("text", "")
+    chat_id = data.get("message", {}).get("chat", {}).get("id")
+
+    # Handle user query here (e.g., check bill status)
+    reply_text = f"You sent: {message_text}"
+    await send_notification(chat_id, reply_text)
+
+    return {"ok": True}
 
 
 @router.get("/submit-request")
