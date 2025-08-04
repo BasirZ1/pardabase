@@ -1,7 +1,8 @@
 import datetime
+import uuid
 from typing import Optional
 
-from helpers import make_employment_info_dic
+from helpers import make_employment_info_dic, make_profile_data_dic
 from utils import flatbed
 from utils.conn import connection_context
 from utils.hasher import hash_password, check_password
@@ -199,6 +200,41 @@ async def get_employment_info_ps(user_id):
     except Exception as e:
         await flatbed('exception', f"In get_employment_info_ps: {e}")
         raise RuntimeError(f"Failed to get employment info: {e}")
+
+
+# TODO Fix calculation and retrieval
+async def get_profile_data_ps(user_id: str):
+    """
+    Fetches the total earnings and total withdrawals for a given user from the database.
+
+    Parameters:
+    ----------
+    user_id : str
+        The UUID of the user as a string. This will be validated and cast to UUID type.
+        If the provided string is not a valid UUID, a RuntimeError will be raised.
+
+    Returns:
+    -------
+    dict or None
+        A dictionary containing 'total_earnings' and 'total_withdrawals' if the user exists.
+        Returns None if no data is found for the given user_id.
+    """
+    try:
+        async with connection_context() as conn:
+
+            user_id = uuid.UUID(user_id)
+            data = await conn.fetchrow("""
+                SELECT * FROM get_profile_data($1);
+                           """, user_id)
+            if not data:
+                return None
+
+            profile_data = make_profile_data_dic(data)
+            return profile_data
+
+    except Exception as e:
+        await flatbed('exception', f"In get_profile_data_ps: {e}")
+        raise RuntimeError(f"Failed to get profile data: {e}")
 
 
 async def update_users_password(username, new_password):

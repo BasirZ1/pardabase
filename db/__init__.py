@@ -17,7 +17,7 @@ from .bill import insert_new_bill, update_bill, get_bill_ps, search_bills_list, 
 from .user import insert_new_user, update_user, check_username_password, \
     get_users_data, update_users_password, remember_users_action, \
     get_users_list_ps, remove_user_ps, edit_employment_info_ps, \
-    get_employment_info_ps
+    get_employment_info_ps, get_profile_data_ps
 from .dashboard import search_recent_activities_list, get_dashboard_data_ps, \
     get_recent_activities_preview
 from .expense import search_expenses_list_filtered, insert_new_expense, \
@@ -27,3 +27,4 @@ from .order import insert_new_online_order, subscribe_newsletter_ps, \
 from .report import report_recent_activities_list, report_tags_list
 from .sync import insert_update_sync, get_sync, fetch_tailors_list, \
     fetch_salesmen_list, fetch_suppliers_list
+from .payment import add_payment_to_user, add_payment_to_supplier

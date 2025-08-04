@@ -443,6 +443,14 @@ def make_employment_info_dic(data):
     return employment_info
 
 
+def make_profile_data_dic(data):
+    profile_data = {
+        "totalEarnings": data["total_earnings"],
+        "totalWithdrawals": data["total_withdrawals"]
+    }
+    return profile_data
+
+
 def make_salesman_dic(data):
     salesman = {
         "userId": data["user_id"],

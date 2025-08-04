@@ -32,7 +32,7 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     update_purchase, archive_purchase_ps, remove_purchase_ps, search_purchases_list_filtered, get_sync, \
     edit_employment_info_ps, get_employment_info_ps, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list, \
     get_cutting_history_list_for_roll_ps, insert_new_purchase_item, update_purchase_item, get_purchase_items_ps, \
-    search_rolls_for_purchase_item
+    search_rolls_for_purchase_item, add_payment_to_user, add_payment_to_supplier, get_profile_data_ps
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -312,6 +312,37 @@ async def add_or_edit_bill(
         "result": True,
         "code": code,
         "name": customerName
+    })
+
+
+@router.post("/add-payment")
+async def add_payment(
+        paymentType: Optional[str] = Form(None),
+        supplierId: Optional[int] = Form(None),
+        userId: Optional[str] = Form(None),
+        amount: Optional[int] = Form(None),
+        currency: Optional[str] = Form(None),
+        note: Optional[int] = Form(None),
+        user_data: dict = Depends(verify_jwt_user(required_level=3))
+):
+    if paymentType == "user":
+        # USER PAYMENT
+        username = await add_payment_to_user(userId, amount, currency, note, user_data['user_id'])
+        if not username:
+            return JSONResponse(content={
+                "result": False,
+            })
+        await remember_users_action(user_data['user_id'], f"payment added to user: {username}")
+    elif paymentType == "supplier":
+        # SUPPLIER PAYMENT
+        supplier_name = await add_payment_to_supplier(supplierId, amount, currency, note, user_data['user_id'])
+        if not supplier_name:
+            return JSONResponse(content={
+                "result": False
+            })
+        await remember_users_action(user_data['user_id'], f"Payment added to supplier: {supplier_name}")
+    return JSONResponse(content={
+        "result": True
     })
 
 
@@ -751,6 +782,18 @@ async def get_employment_info(
     """
     employment_info = await get_employment_info_ps(userId)
     return JSONResponse(content=employment_info, status_code=200)
+
+
+@router.get("/profile-data-get")
+async def get_profile_data(
+        userId: str,
+        _: dict = Depends(verify_jwt_user(required_level=1))
+):
+    """
+    Retrieve profile data based on userId.
+    """
+    profile_data = await get_profile_data_ps(userId)
+    return JSONResponse(content=profile_data, status_code=200)
 
 
 @router.get("/supplier-get")
