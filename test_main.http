@@ -54,4 +54,9 @@ GET https://zmt.basirsoft.tech/subscribe-newsletter?email=tester@example.com
 GET https://zmt.basirsoft.tech/send-html-mail?email=ba3irzurmati@gmail.com&subject=Newsletter%20Confirmation&html_content=<h1>Test</h1>&text_content=Test%20Body
 
 
+### REGISTER WEBHOOK
+GET https://api.telegram.org//setWebhook?url=https://zmt.basirsoft.tech/telegram-webhook
+
+
 ### Recent Activities
+POST https://api.telegram.org/bot8356435433:AAEGo6tigAgzccHGh7p6ZUX3OqKJ7c8JeFg/setWebhook?url=https://zmt.basirsoft.tech/telegram-webhook

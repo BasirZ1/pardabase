@@ -33,7 +33,8 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     update_purchase, archive_purchase_ps, remove_purchase_ps, search_purchases_list_filtered, get_sync, \
     edit_employment_info_ps, get_employment_info_ps, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list, \
     get_cutting_history_list_for_roll_ps, insert_new_purchase_item, update_purchase_item, get_purchase_items_ps, \
-    search_rolls_for_purchase_item, add_payment_to_user, add_payment_to_supplier, get_profile_data_ps
+    search_rolls_for_purchase_item, add_payment_to_user, add_payment_to_supplier, get_profile_data_ps, \
+    check_username_and_set_chat_id
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -1167,9 +1168,65 @@ async def telegram_webhook(request: Request):
     message_text = data.get("message", {}).get("text", "")
     chat_id = data.get("message", {}).get("chat", {}).get("id")
 
-    # Handle user query here (e.g., check bill status)
-    reply_text = f"You sent: {message_text}"
-    await send_notification(chat_id, reply_text)
+    if message_text == "/link":
+        await send_notification(chat_id,
+                                """
+                                Now give us your username.
+                                
+                                """)
+    if message_text == "/checkbillstatus":
+        await send_notification(chat_id,
+                                """
+                                Not implemented yet...
+                                """)
+    else:
+        if previous message was "/link":
+            success = check_username_and_set_chat_id(message_text)
+            if success:
+                await send_notification(chat_id,
+                                        """
+                                        Your telegram account has been successfully linked!
+                                        """)
+            else:
+                await send_notification(chat_id,
+                                        """
+                                        Failed to link your telegram account!
+                                        """)
+        else:
+            await send_notification(chat_id,"""
+            give a welcome message tell them to navigate to parda.af.
+            """)
+
+
+    return {"ok": True}
+
+
+user_states = {} # TEMP IN-MEMORY (reset on server restart)
+@router.post("/telegram-webhook")
+async def telegram_webhook(request: Request):
+    data = await request.json()
+    message_text = data.get("message", {}).get("text", "").strip()
+    chat_id = data.get("message", {}).get("chat", {}).get("id")
+
+    state = user_states.get(chat_id)
+
+    if message_text == "/start":
+        await send_notification(chat_id, "Welcome to Parda.af bot!\nUse /link to connect your account.")
+        user_states[chat_id] = None  # Reset state
+    elif message_text == "/link":
+        await send_notification(chat_id, "Please send your username to link your account.")
+        user_states[chat_id] = "awaiting_username"
+    elif state == "awaiting_username":
+        success = check_username_and_set_chat_id(message_text, chat_id)
+        if success:
+            await send_notification(chat_id, "✅ Your Telegram account has been successfully linked!")
+        else:
+            await send_notification(chat_id, "❌ Failed to link your Telegram account.")
+        user_states[chat_id] = None  # Clear state after attempt
+    elif message_text == "/checkbillstatus":
+        await send_notification(chat_id, "Not implemented yet...")
+    else:
+        await send_notification(chat_id, "Unrecognized command. Go to parda.af for our curtains collection or use /link or /checkbillstatus.")
 
     return {"ok": True}
 

@@ -170,6 +170,31 @@ async def check_username_password(username, password):
         raise RuntimeError(f"Failed to check username and password: {e}")
 
 
+async def check_username_and_set_chat_id(username, chat_id):
+    """
+        Validates a user's username and sets chat_id for the user.
+
+        Args:
+            username (str): The username provided by the user.
+            chat_id (str): The chat_id for the user.
+
+        Returns:
+            bool: True if the username was valid, False otherwise.
+        """
+    try:
+        async with connection_context() as conn:
+            stored_user_id = await conn.fetchval("""
+                        UPDATE users
+                        SET telegram_id = $1
+                        WHERE username = lower($2)
+                        RETURNING user_id
+                    """, chat_id, username)
+            return stored_user_id is not None
+    except Exception as e:
+        await flatbed('exception', f"In check_username_and_set_chat_id: {e}")
+        return False
+
+
 async def get_users_data(username):
     try:
         async with connection_context() as conn:
