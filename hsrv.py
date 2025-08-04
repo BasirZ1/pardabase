@@ -34,7 +34,7 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     edit_employment_info_ps, get_employment_info_ps, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list, \
     get_cutting_history_list_for_roll_ps, insert_new_purchase_item, update_purchase_item, get_purchase_items_ps, \
     search_rolls_for_purchase_item, add_payment_to_user, add_payment_to_supplier, get_profile_data_ps, \
-    check_username_and_set_chat_id
+    check_username_and_set_chat_id, get_gallery_db_name
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -1162,9 +1162,12 @@ async def get_lists(
     return JSONResponse(content=results, status_code=200)
 
 
-user_states = {} # TEMP IN-MEMORY (reset on server restart)
+user_states = {}  # TEMP IN-MEMORY (reset on server restart)
+
+
 @router.post("/telegram-webhook")
 async def telegram_webhook(request: Request):
+    set_current_db("pardaaf_main")
     data = await request.json()
     message_text = data.get("message", {}).get("text", "").strip()
     chat_id = data.get("message", {}).get("chat", {}).get("id")
@@ -1172,13 +1175,18 @@ async def telegram_webhook(request: Request):
     state = user_states.get(chat_id)
 
     if message_text == "/start":
-        await send_notification(chat_id, "Welcome to Parda.af bot!\nUse /link to connect your account.")
+        await send_notification(chat_id, "Welcome to parda.af bot!\nUse /link to connect your account.")
         user_states[chat_id] = None  # Reset state
     elif message_text == "/link":
-        await send_notification(chat_id, "Please send your username to link your account.")
+        await send_notification(chat_id, "Please send your username@gallery_codename to link your account.")
         user_states[chat_id] = "awaiting_username"
     elif state == "awaiting_username":
-        success = check_username_and_set_chat_id(message_text, chat_id)
+        username, gallery_codename = message_text.split('@')
+        gallery_db_name = get_gallery_db_name(gallery_codename)
+        if not gallery_db_name:
+            await send_notification(chat_id, "❌ Failed to link your Telegram account.")
+        set_current_db(gallery_db_name)
+        success = check_username_and_set_chat_id(username, chat_id)
         if success:
             await send_notification(chat_id, "✅ Your Telegram account has been successfully linked!")
         else:
@@ -1187,7 +1195,9 @@ async def telegram_webhook(request: Request):
     elif message_text == "/checkbillstatus":
         await send_notification(chat_id, "Not implemented yet...")
     else:
-        await send_notification(chat_id, "Unrecognized command. Go to parda.af for our curtains collection or use /link or /checkbillstatus.")
+        await send_notification(chat_id,
+                                "Unrecognized command. Go to parda.af for our curtains collection or use /link or "
+                                "/checkbillstatus.")
 
     return {"ok": True}
 

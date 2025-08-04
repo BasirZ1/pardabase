@@ -28,3 +28,4 @@ from .report import report_recent_activities_list, report_tags_list
 from .sync import insert_update_sync, get_sync, fetch_tailors_list, \
     fetch_salesmen_list, fetch_suppliers_list
 from .payment import add_payment_to_user, add_payment_to_supplier
+from .main import get_gallery_db_name

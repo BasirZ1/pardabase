@@ -184,12 +184,17 @@ async def check_username_and_set_chat_id(username, chat_id):
     try:
         async with connection_context() as conn:
             stored_user_id = await conn.fetchval("""
-                        UPDATE users
-                        SET telegram_id = $1
-                        WHERE username = lower($2)
-                        RETURNING user_id
-                    """, chat_id, username)
-            return stored_user_id is not None
+                SELECT user_id FROM users WHERE username = lower($1)
+            """, username)
+
+            if not stored_user_id:
+                return False  # Username not found, abort.
+
+            await conn.execute("""
+                UPDATE users SET telegram_id = $1 WHERE user_id = $2
+            """, chat_id, stored_user_id)
+
+            return True
     except Exception as e:
         await flatbed('exception', f"In check_username_and_set_chat_id: {e}")
         return False
