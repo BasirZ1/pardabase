@@ -9,3 +9,4 @@ aiosmtplib
 pyJWT
 boto3
 pillow
+aiogram

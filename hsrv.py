@@ -133,6 +133,8 @@ async def get_dashboard_data(
     activities_data = await get_recent_activities_preview()
     activities_list = get_formatted_recent_activities_list(activities_data)
     data["recentActivities"] = activities_list
+    # TODO REMOVE THIS..
+    await flatbed("test", f"dashboard data was accessed: {str(data)}")
     # Fetch data for the dashboard
     return JSONResponse(content=data, status_code=200)
 
