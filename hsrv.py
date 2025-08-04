@@ -1182,12 +1182,12 @@ async def telegram_webhook(request: Request):
         user_states[chat_id] = "awaiting_username"
     elif state == "awaiting_username":
         username, gallery_codename = message_text.split('@')
-        gallery_db_name = get_gallery_db_name(gallery_codename)
+        gallery_db_name = await get_gallery_db_name(gallery_codename)
         if not gallery_db_name:
             await send_notification(chat_id, "❌ Failed to link your Telegram account.")
         set_current_db(gallery_db_name)
         await flatbed("debug", f"username {username} {gallery_codename} {gallery_db_name}")
-        success = check_username_and_set_chat_id(username, chat_id)
+        success = await check_username_and_set_chat_id(username, chat_id)
         if success:
             await send_notification(chat_id, "✅ Your Telegram account has been successfully linked!")
         else:
