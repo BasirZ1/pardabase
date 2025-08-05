@@ -1,5 +1,4 @@
-import datetime
-
+from helpers import parse_date
 from utils import flatbed
 from utils.conn import connection_context
 
@@ -58,12 +57,10 @@ async def report_recent_activities_list(from_date, to_date):
     - List of records from the admins_records table that match the criteria.
     """
     if from_date:
-        from_date = datetime.datetime.strptime(from_date, "%Y-%m-%d").date() \
-            if isinstance(from_date, str) else from_date
+        from_date = parse_date(from_date)
 
     if to_date:
-        to_date = datetime.datetime.strptime(to_date, "%Y-%m-%d").date() \
-            if isinstance(to_date, str) else to_date
+        to_date = parse_date(to_date)
 
     query = """
         SELECT 
@@ -90,13 +87,9 @@ async def report_tags_list(from_date, to_date):
     Retrieve tags list with fullCode and productName according to dates.
     """
 
-    if from_date:
-        from_date = datetime.datetime.strptime(from_date, "%Y-%m-%d").date() \
-            if isinstance(from_date, str) else from_date
+    from_date = parse_date(from_date)
 
-    if to_date:
-        to_date = datetime.datetime.strptime(to_date, "%Y-%m-%d").date() \
-            if isinstance(to_date, str) else to_date
+    to_date = parse_date(to_date)
 
     query = """
     SELECT
@@ -104,7 +97,7 @@ async def report_tags_list(from_date, to_date):
         products.name AS product_name,
         products.category AS category,
         rolls.color AS color,
-        rolls.created_on AS created_on
+        rolls.created_at AS created_at
     FROM
         rolls
     INNER JOIN
@@ -112,9 +105,9 @@ async def report_tags_list(from_date, to_date):
     ON
         rolls.product_code = products.product_code
     WHERE
-        rolls.created_on >= $1 AND rolls.created_on <= $2
+        rolls.created_at >= $1 AND rolls.created_at <= $2
     ORDER BY
-        rolls.created_on
+        rolls.created_at
     """
 
     try:

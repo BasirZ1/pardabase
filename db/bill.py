@@ -3,7 +3,7 @@ import json
 from typing import Optional
 from zoneinfo import ZoneInfo
 
-from helpers import make_bill_dic
+from helpers import make_bill_dic, parse_date
 from utils import flatbed
 from utils.conn import connection_context
 
@@ -28,11 +28,10 @@ async def insert_new_bill(
         async with connection_context() as conn:
             # Convert bill_date and due_date from string to date if provided
             if bill_date:
-                bill_date = datetime.datetime.strptime(bill_date, "%Y-%m-%d").date() if isinstance(bill_date,
-                                                                                                   str) else bill_date
+                bill_date = parse_date(bill_date)
+
             if due_date:
-                due_date = datetime.datetime.strptime(due_date, "%Y-%m-%d").date() if isinstance(due_date,
-                                                                                                 str) else due_date
+                due_date = parse_date(due_date)
 
             kabul_tz = ZoneInfo("Asia/Kabul")
             payment_history = json.dumps([

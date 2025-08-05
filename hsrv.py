@@ -1203,6 +1203,7 @@ async def telegram_webhook(request: Request):
             await send_notification(chat_id, "❌ Failed to link your Telegram account.")
         user_states[chat_id] = None  # Clear state after attempt
     elif message_text == "/checkbillstatus":
+
         await send_notification(chat_id, "Not implemented yet...")
     else:
         await send_notification(chat_id,

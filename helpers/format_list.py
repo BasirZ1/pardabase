@@ -1,6 +1,6 @@
 #  Helper Functions
 from datetime import datetime, date
-from typing import Any, Iterable, Mapping, Callable, Optional, Dict, List
+from typing import Any, Iterable, Mapping, Callable, Optional, Dict, List, Union
 
 
 def get_formatted_recent_activities_list(recent_activity_data):
@@ -45,8 +45,7 @@ def get_formatted_tags_list(tags_data):
                 "productName": data["product_name"],
                 "categoryIndex": data["category"],
                 "colorLetter": data["color"],
-                "createdOn": data["created_on"].strftime('%Y-%m-%d')
-                if isinstance(data["created_on"], (date, datetime)) else data["created_on"]
+                "createdAt": format_timestamp(data["created_at"])
             }
             tags_list.append(tag)
     return tags_list
@@ -246,15 +245,6 @@ def get_formatted_suppliers_small_list(suppliers_data):
     return suppliers_list
 
 
-# def _ts(val: Any) -> Any:
-#     """Convert datetime → 'YYYY‑MM‑DD HH:MM:SS'; leave everything else unchanged."""
-#     return val.strftime('%Y-%m-%d %H:%M:%S') if isinstance(val, datetime) else val
-#
-#
-# def format_date(val):
-#     return val.isoformat() if isinstance(val, (date, datetime)) else val
-
-
 def format_timestamp(val: Any) -> Any:
     """Convert datetime → 'YYYY-MM-DD HH:MM:SS'; leave everything else unchanged.
     Handles both naive and timezone-aware datetimes (timestamptz)."""
@@ -275,6 +265,40 @@ def format_date(val: Any) -> Any:
     if isinstance(val, date):
         return val.isoformat()
     return val
+
+
+# def parse_date(val: Any) -> date:
+#     """Ensure the value is a date object. Parse if str, pass through if already date."""
+#     if isinstance(val, str):
+#         return datetime.strptime(val, "%Y-%m-%d").date()
+#     return val  # Assume it's already a date or None
+
+
+def parse_date(val: Any) -> Union[date, datetime, None]:
+    """
+    Parses a string to date or datetime object.
+    - If string has only date (YYYY-MM-DD) → returns date object.
+    - If string has date and time (YYYY-MM-DD HH:MM[:SS]) → returns datetime object.
+    - If already date/datetime → returns as is.
+    """
+    if isinstance(val, str):
+        try:
+            # Try parsing as datetime first
+            dt = datetime.fromisoformat(val)
+            return dt if dt.time() != datetime.min.time() else dt.date()
+        except ValueError:
+            pass  # Fall back to strict date parsing
+
+        try:
+            # Try parsing date format explicitly if isoformat fails
+            return datetime.strptime(val, "%Y-%m-%d").date()
+        except ValueError:
+            pass  # Invalid format, let it pass through
+
+    if isinstance(val, (date, datetime)):
+        return val
+
+    return None  # For None or unexpected types
 
 
 def format_cut_fabric_records(
