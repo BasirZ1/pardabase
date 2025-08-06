@@ -1504,35 +1504,70 @@ async def send_html_mail(
 
 
 # In-memory Job Queue
-print_jobs = []
-last_job_id = 0
 
 
 @router.get("/get-print-jobs")
-async def get_print_jobs(since: int = 0):
-    jobs = [job for job in print_jobs if job.id > since]
+async def get_print_jobs(
+        since: int = 0,
+        user_data: dict = Depends(verify_jwt_user(required_level=3))
+        ):
+    jobs = [job for job in print_jobs if job["id"] > since and job["tenant"] == user_data["tenant"]]
     await flatbed("debug", f"get print jobs {str(jobs)}")
-    return {"jobs": [{"id": job.id, "file_content_base64": job.file_content_base64} for job in jobs]}
+    return {"jobs": [{"id": job["id"], "file_content_base64": job["file_content_base64"]} for job in jobs]}
+
+
+print_jobs = {}  # tenant_id -> list of jobs
+tenant_last_job_ids = {}  # tenant_id -> last_job_id
+
+
+@router.get("/get-print-jobs")
+async def get_print_jobs(
+        tenant: str,
+        since: int = 0,
+        # user_data: dict = Depends(verify_jwt_user(required_level=3))
+):
+    tenant_jobs = print_jobs.get(tenant, [])
+
+    jobs = [job for job in tenant_jobs if job["id"] > since]
+    return {"jobs": [{"id": job["id"], "file_content_base64": job["file_content_base64"]} for job in jobs]}
 
 
 @router.post("/mark-printed")
-async def mark_printed(req: MarkPrintedRequest):
-    global print_jobs
-    print_jobs = [job for job in print_jobs if job.id != req.job_id]
+async def mark_printed(req: MarkPrintedRequest, user_data: dict = Depends(verify_jwt_user(required_level=3))):
+    tenant_id = user_data["tenant"]
+    tenant_jobs = print_jobs.get(tenant_id, [])
+
+    # Remove the job with the given ID for this tenant
+    print_jobs[tenant_id] = [job for job in tenant_jobs if job["id"] != req.job_id]
     return {"ok": True}
 
 
 @router.post("/add-print-job")
-async def add_print_job(req: AddPrintJobRequest):
-    global last_job_id
-    last_job_id += 1
+async def add_print_job(
+        req: AddPrintJobRequest,
+        user_data: dict = Depends(verify_jwt_user(required_level=2))
+):
+    tenant = user_data["tenant"]
+
+    # Initialize tenant job list and job counter if not exists
+    if tenant not in print_jobs:
+        print_jobs[tenant] = []
+        tenant_last_job_ids[tenant] = 0
+
+    # Increment this tenant's last job ID
+    tenant_last_job_ids[tenant] += 1
+    job_id = tenant_last_job_ids[tenant]
+
     job = {
-        "id": last_job_id,
+        "id": job_id,
         "file_name": req.fileName,
-        "file_content_base64": req.fileContentBase64
+        "file_content_base64": req.fileContentBase64,
+        "tenant": tenant
     }
+
+    print_jobs[tenant].append(job)
+
     await flatbed("debug", f"add print job {str(job)}")
-    print_jobs.append(job)
     return {"result": True, "job_id": job["id"]}
 
 

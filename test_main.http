@@ -70,3 +70,6 @@ Content-Type: application/json
   "fileName": "bill.jpg",
   "fileContentBase64": "base64"
 }
+
+### List print jobs
+GET https://zmt.basirsoft.tech/list-print-jobs
