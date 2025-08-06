@@ -73,3 +73,11 @@ Content-Type: application/json
 
 ### List print jobs
 GET https://zmt.basirsoft.tech/list-print-jobs
+
+### get print jobs
+GET https://zmt.basirsoft.tech/get-print-jobs
+Content-Type: application/json
+
+{
+  "tenant": "zmt"
+}

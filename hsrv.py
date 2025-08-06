@@ -1504,18 +1504,6 @@ async def send_html_mail(
 
 
 # In-memory Job Queue
-
-
-@router.get("/get-print-jobs")
-async def get_print_jobs(
-        since: int = 0,
-        user_data: dict = Depends(verify_jwt_user(required_level=3))
-        ):
-    jobs = [job for job in print_jobs if job["id"] > since and job["tenant"] == user_data["tenant"]]
-    await flatbed("debug", f"get print jobs {str(jobs)}")
-    return {"jobs": [{"id": job["id"], "file_content_base64": job["file_content_base64"]} for job in jobs]}
-
-
 print_jobs = {}  # tenant_id -> list of jobs
 tenant_last_job_ids = {}  # tenant_id -> last_job_id
 
