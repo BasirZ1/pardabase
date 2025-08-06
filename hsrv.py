@@ -9,7 +9,8 @@ from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     UpdateRollRequest, AddExpenseRequest, UpdateBillStatusRequest, \
     UpdateBillTailorRequest, AddPaymentBillRequest, RemoveUserRequest, AddOnlineOrderRequest, RefreshTokenRequest, \
     RemoveExpenseRequest, GenerateReportRequest, CommentRequest, UpdateCutFabricTXStatusRequest, \
-    RemoveSupplierRequest, RemovePurchaseRequest, CheckSyncRequest, RemoveRequest, GetListsRequest
+    RemoveSupplierRequest, RemovePurchaseRequest, CheckSyncRequest, RemoveRequest, GetListsRequest, \
+    MarkPrintedRequest, AddPrintJobRequest
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
@@ -135,8 +136,6 @@ async def get_dashboard_data(
     activities_data = await get_recent_activities_preview()
     activities_list = get_formatted_recent_activities_list(activities_data)
     data["recentActivities"] = activities_list
-    # TODO REMOVE THIS..
-    await flatbed("test", f"dashboard data was accessed: {str(data)}")
     # Fetch data for the dashboard
     return JSONResponse(content=data, status_code=200)
 
@@ -1502,6 +1501,43 @@ async def send_html_mail(
     #     return JSONResponse(content={"error": "Access denied"}, status_code=401)
     result = await send_mail_html(subject, email, html_content, text_content)
     return JSONResponse(content={"result": result})
+
+
+# In-memory Job Queue
+print_jobs = []
+last_job_id = 0
+
+
+@router.get("/get-print-jobs")
+async def get_print_jobs(since: int = 0):
+    jobs = [job for job in print_jobs if job.id > since]
+    return {"jobs": [{"id": job.id, "file_content_base64": job.file_content_base64} for job in jobs]}
+
+
+@router.post("/mark-printed")
+async def mark_printed(req: MarkPrintedRequest):
+    global print_jobs
+    print_jobs = [job for job in print_jobs if job.id != req.job_id]
+    return {"ok": True}
+
+
+@router.post("/add-print-job")
+async def add_print_job(req: AddPrintJobRequest):
+    global last_job_id
+    last_job_id += 1
+    job = {
+        "id": last_job_id,
+        "file_name": req.fileName,
+        "file_content_base64": req.fileContentBase64
+    }
+    print_jobs.append(job)
+    return {"job_id": job["id"]}
+
+
+# For Testing Only
+@router.get("/list-print-jobs")
+async def list_all_jobs():
+    return {"jobs": print_jobs}
 
 
 if __name__ == '__main__':

@@ -60,3 +60,13 @@ GET https://api.telegram.org//setWebhook?url=https://zmt.basirsoft.tech/telegram
 
 ### Recent Activities
 POST https://api.telegram.org/bot8356435433:AAEGo6tigAgzccHGh7p6ZUX3OqKJ7c8JeFg/setWebhook?url=https://zmt.basirsoft.tech/telegram-webhook
+
+
+### Add print Job
+POST http://localhost:8000/add-print-job
+Content-Type: application/json
+
+{
+  "fileName": "bill.jpg",
+  "fileContentBase64": "base64"
+}

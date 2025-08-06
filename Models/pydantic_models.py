@@ -1,4 +1,5 @@
 # Define the data structure for incoming requests
+from datetime import datetime
 from typing import Optional, Literal, List
 from pydantic import BaseModel
 
@@ -96,6 +97,22 @@ class AddExpenseRequest(BaseModel):
     categoryIndex: int
     description: str
     amount: int
+
+
+class PrintJob(BaseModel):
+    id: int
+    file_url: str
+    status: str  # PENDING or PRINTED
+    created_at: datetime
+
+
+class AddPrintJobRequest(BaseModel):
+    fileName: str
+    fileContentBase64: str  # The base64 string of the bill image/pdf
+
+
+class MarkPrintedRequest(BaseModel):
+    job_id: int
 
 
 class AddOnlineOrderRequest(BaseModel):
