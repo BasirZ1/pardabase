@@ -237,9 +237,9 @@ async def check_bill_status_ps(bill_code: str):
                 SELECT status from bills
                 WHERE bill_code = $2
             """
-            updated_status = await conn.fetchval(sql_query, bill_code)
+            status = await conn.fetchval(sql_query, bill_code)
 
-            return updated_status is not None
+            return status
     except Exception as e:
         await flatbed('exception', f"In check_bill_status_ps: {e}")
         raise e

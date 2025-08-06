@@ -68,4 +68,4 @@ async def perform_bill_check(message_text, chat_id):
         elif status == "delivered":
             await send_notification(chat_id, f"The {bill_code} bill has been delivered successfully")
     else:
-        await send_notification(chat_id, "❌ Failed to link your Telegram account.")
+        await send_notification(chat_id, "❌ Bill not found! Check your bill_number@gallery_code_name and try again.")
