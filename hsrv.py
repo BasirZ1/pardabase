@@ -1567,7 +1567,6 @@ async def add_print_job(
 
     print_jobs[tenant].append(job)
 
-    await flatbed("debug", f"add print job {str(job)}")
     return {"result": True, "job_id": job["id"]}
 
 
