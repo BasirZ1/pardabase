@@ -1529,7 +1529,7 @@ async def get_print_jobs(
     tenant_jobs = print_jobs.get(tenant, [])
 
     jobs = [job for job in tenant_jobs if job["id"] > since]
-    return {"jobs": [{"id": job["id"], "file_content_base64": job["file_content_base64"]} for job in jobs]}
+    return {"jobs": [{"id": job["id"], "file_name": job["file_name"], "file_content_base64": job["file_content_base64"]} for job in jobs]}
 
 
 @router.post("/mark-printed")
