@@ -1511,6 +1511,7 @@ last_job_id = 0
 @router.get("/get-print-jobs")
 async def get_print_jobs(since: int = 0):
     jobs = [job for job in print_jobs if job.id > since]
+    await flatbed("debug", f"get print jobs {str(jobs)}")
     return {"jobs": [{"id": job.id, "file_content_base64": job.file_content_base64} for job in jobs]}
 
 
@@ -1530,8 +1531,9 @@ async def add_print_job(req: AddPrintJobRequest):
         "file_name": req.fileName,
         "file_content_base64": req.fileContentBase64
     }
+    await flatbed("debug", f"add print job {str(job)}")
     print_jobs.append(job)
-    return {"job_id": job["id"]}
+    return {"result": True, "job_id": job["id"]}
 
 
 # For Testing Only
