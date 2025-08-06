@@ -15,7 +15,8 @@ from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
     get_formatted_purchases_list, format_date, format_timestamp, get_formatted_purchase_items
-from telegram import send_notification
+from telegram import send_notification, get_text_according_to_message_text, perform_linking_telegram_to_username, \
+    perform_bill_check
 from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
     set_db_from_tenant, create_refresh_token, verify_refresh_token, flatbed
 from db import insert_new_product, update_product, insert_new_roll, update_roll, insert_new_bill, \
@@ -34,8 +35,7 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     update_purchase, archive_purchase_ps, remove_purchase_ps, search_purchases_list_filtered, get_sync, \
     edit_employment_info_ps, get_employment_info_ps, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list, \
     get_cutting_history_list_for_roll_ps, insert_new_purchase_item, update_purchase_item, get_purchase_items_ps, \
-    search_rolls_for_purchase_item, add_payment_to_user, add_payment_to_supplier, get_profile_data_ps, \
-    check_username_and_set_chat_id, get_gallery_db_name
+    search_rolls_for_purchase_item, add_payment_to_user, add_payment_to_supplier, get_profile_data_ps
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -1171,43 +1171,32 @@ async def telegram_webhook(request: Request):
     chat_id = data.get("message", {}).get("chat", {}).get("id")
 
     state = user_states.get(chat_id)
+    reply_text = get_text_according_to_message_text(message_text)
 
     if message_text == "/start":
-        await send_notification(chat_id, "Welcome to parda.af bot!\nUse /link to connect your account.")
+        await send_notification(chat_id, reply_text)
         user_states[chat_id] = None  # Reset state
     elif message_text == "/link":
-        await send_notification(chat_id, "Please send your username@gallery_codename to link your account.")
+        await send_notification(chat_id, reply_text)
         user_states[chat_id] = "awaiting_username"
     elif state == "awaiting_username":
-        if '@' not in message_text or message_text.count('@') != 1:
-            await send_notification(chat_id, "❌ Invalid format. Please send username@gallery_codename.")
-            return {"ok": True}
-
-        username, gallery_codename = message_text.split('@')
-        if not username or not gallery_codename:
-            await send_notification(chat_id, "❌ Both username and gallery codename must be provided.")
-            return {"ok": True}
-
-        set_current_db("pardaaf_main")
-        gallery_db_name = await get_gallery_db_name(gallery_codename)
-        if not gallery_db_name:
-            await send_notification(chat_id, "❌ Failed to link your Telegram account.")
-            return {"ok": True}
-        set_current_db(gallery_db_name)
-        await flatbed("debug", f"username {username} {gallery_codename} {gallery_db_name}")
-        success = await check_username_and_set_chat_id(username, chat_id)
-        if success:
-            await send_notification(chat_id, "✅ Your Telegram account has been successfully linked!")
-        else:
-            await send_notification(chat_id, "❌ Failed to link your Telegram account.")
+        await perform_linking_telegram_to_username(message_text, chat_id)
         user_states[chat_id] = None  # Clear state after attempt
     elif message_text == "/checkbillstatus":
-
+        await send_notification(chat_id, reply_text)
+        user_states[chat_id] = "awaiting_bill_check"
+    elif state == "awaiting_bill_check":
+        await perform_bill_check(message_text, chat_id)
+        user_states[chat_id] = None  # Clear state after attempt
+    elif message_text == "/inform":
+        await send_notification(chat_id, reply_text)
+        user_states[chat_id] = "awaiting_bill_number"
+    elif state == "awaiting_bill_number":
+        await perform_bill_check(message_text, chat_id)
         await send_notification(chat_id, "Not implemented yet...")
+        user_states[chat_id] = None  # Clear state after attempt
     else:
-        await send_notification(chat_id,
-                                "Unrecognized command. Go to parda.af for our curtains collection or use /link or "
-                                "/checkbillstatus.")
+        await send_notification(chat_id, reply_text)
 
     return {"ok": True}
 
@@ -1517,7 +1506,8 @@ async def get_print_jobs(
     tenant_jobs = print_jobs.get(tenant, [])
 
     jobs = [job for job in tenant_jobs if job["id"] > since]
-    return {"jobs": [{"id": job["id"], "file_name": job["file_name"], "file_content_base64": job["file_content_base64"]} for job in jobs]}
+    return {"jobs": [{"id": job["id"], "file_name": job["file_name"],
+                      "file_content_base64": job["file_content_base64"]} for job in jobs]}
 
 
 @router.post("/mark-printed")

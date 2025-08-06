@@ -1,6 +1,5 @@
-from telegram import send_notification
 from utils.email_sender import send_mail
-from utils.config import ADMIN_EMAIL, ADMIN_TELEGRAM
+from utils.config import ADMIN_EMAIL
 from utils.conn import get_connection, release_connection
 
 

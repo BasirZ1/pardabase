@@ -221,6 +221,30 @@ async def update_bill_status_ps(bill_code: str, status: str) -> bool:
         raise e
 
 
+async def check_bill_status_ps(bill_code: str):
+    """
+    Check and retrieve a bill's status from the bills table.
+
+    Args:
+        bill_code (str): The unique code for the bill.
+
+    Returns:
+        status (str): The status of the bill.
+    """
+    try:
+        async with connection_context() as conn:
+            sql_query = """
+                SELECT status from bills
+                WHERE bill_code = $2
+            """
+            updated_status = await conn.fetchval(sql_query, bill_code)
+
+            return updated_status is not None
+    except Exception as e:
+        await flatbed('exception', f"In check_bill_status_ps: {e}")
+        raise e
+
+
 async def update_bill_tailor_ps(bill_code: str, tailor: str) -> Optional[str]:
     """
     Update a bill's tailor in the bills table and return the updated tailor's full name.

@@ -25,7 +25,7 @@ async def get_dashboard_data_ps():
                 "billsPending": data["bills_pending"],
                 "billsCut": data["bills_cut"],
                 "billsWithTailor": data["bills_with_tailor"],
-                "billsSewn": data["bills_sewn"],
+                "billsReady": data["bills_ready"],
                 "totalRevenue": data["total_revenue"],
                 "outstandingDues": data["outstanding_dues"],
                 "todayExpenses": data["today_expenses"],
