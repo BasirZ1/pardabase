@@ -144,6 +144,7 @@ class AddOnlineOrderRequest(BaseModel):
 
 
 class BotState(str, Enum):
+    IDLE = "idle"
     AWAITING_USERNAME = "awaiting_username"
     AWAITING_BILL_CHECK = "awaiting_bill_check"
     AWAITING_BILL_NUMBER = "awaiting_bill_number"

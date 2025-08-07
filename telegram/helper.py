@@ -1,3 +1,8 @@
+import asyncio
+from datetime import time
+
+from expiringdict import ExpiringDict
+
 from db import get_gallery_db_name, check_username_and_set_chat_id, check_bill_status_ps, save_notify_bill_status_ps, \
     get_chat_ids_for_bill, delete_notify_records_for_bill
 from .notify import send_notification
@@ -116,3 +121,27 @@ async def notify_if_applicable(bill_code: str, previous_status: str, new_status:
                 await flatbed("exception", f"Failed to notify {chat_id} for bill {bill_code}: {e}")
 
         await delete_notify_records_for_bill(bill_code)
+
+
+STATE_TTL_SECONDS = 3600
+# Stores request timestamps for each client
+rate_limit_store = ExpiringDict(max_len=1000, max_age_seconds=STATE_TTL_SECONDS)
+
+# Configuration
+RATE_LIMIT_WINDOW = 60  # seconds
+MAX_REQUESTS = 10  # per window
+rate_limit_lock = asyncio.Lock()
+
+
+async def is_rate_limited(chat_id: int) -> bool:
+    now = time()
+    async with rate_limit_lock:
+        requests = rate_limit_store.get(chat_id, [])
+        requests = [req for req in requests if now - req < RATE_LIMIT_WINDOW]
+
+        if len(requests) >= MAX_REQUESTS:
+            return True
+
+        requests.append(now)
+        rate_limit_store[chat_id] = requests
+        return False

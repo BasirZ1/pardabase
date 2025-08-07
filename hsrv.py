@@ -1,9 +1,16 @@
+import asyncio
 import re
-from typing import Optional
+import threading
+from contextlib import asynccontextmanager
+from datetime import time
+from typing import Optional, Dict, Union
 
 from dotenv import load_dotenv
+from expiringdict import ExpiringDict
 from fastapi import APIRouter, Form, File, UploadFile, Query, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     UpdateRollRequest, AddExpenseRequest, UpdateBillStatusRequest, \
@@ -17,7 +24,7 @@ from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
     get_formatted_purchases_list, format_date, format_timestamp, get_formatted_purchase_items
 from telegram import send_notification, get_text_according_to_message_text, perform_linking_telegram_to_username, \
-    handle_bill_status, notify_if_applicable
+    handle_bill_status, notify_if_applicable, is_rate_limited
 from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
     set_db_from_tenant, create_refresh_token, verify_refresh_token, flatbed
 from db import insert_new_product, update_product, insert_new_roll, update_roll, insert_new_bill, \
@@ -1002,7 +1009,7 @@ async def update_bill_status(
     if result:
         await notify_if_applicable(request.code, previous_status, request.status)
         await remember_users_action(user_data['user_id'], f"Bill status updated: "
-                                    f"{request.code} from {previous_status} to {request.status}")
+                                                          f"{request.code} from {previous_status} to {request.status}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 
@@ -1165,44 +1172,75 @@ async def get_lists(
     return JSONResponse(content=results, status_code=200)
 
 
-user_states = {}  # TEMP IN-MEMORY (reset on server restart)
+# State management with auto-cleanup (states expire after 1 hour)
+STATE_TTL_SECONDS = 3600
+user_states = ExpiringDict(max_len=1000, max_age_seconds=STATE_TTL_SECONDS)
+state_lock = asyncio.Lock()  # For thread-safe state operations
+
+
+class MutableState:
+    def __init__(self, value=None):
+        self.value = value
+
+
+@asynccontextmanager
+async def state_transaction(chat_id: int):
+    async with state_lock:
+        state = MutableState(user_states.get(chat_id, BotState.IDLE))  # Default state
+        yield state
+        user_states[chat_id] = state.value
+
+
+STATE_CHANGING_COMMANDS = ["/link", "/checkbillstatus", "/notify"]
 
 
 @router.post("/telegram-webhook")
 async def telegram_webhook(request: Request):
+    # Initial validation remains the same
     data = await request.json()
-    message_text = data.get("message", {}).get("text", "").strip()
-    chat_id = data.get("message", {}).get("chat", {}).get("id")
+    if "message" not in data:
+        return {"ok": True}
 
-    if not message_text or not chat_id:
-        return {"ok": True}  # Ignore non-text or broken messages
+    message = data["message"]
+    chat_id = message.get("chat", {}).get("id")
+    if not chat_id:
+        return {"ok": True}
 
-    state = user_states.get(chat_id)
-    reply_text = get_text_according_to_message_text(message_text)
+    # Rate limiting imported
+    if await is_rate_limited(chat_id):
+        raise HTTPException(status_code=429, detail="Too many requests")
 
-    if message_text.lower().startswith("/start"):
-        await send_notification(chat_id, reply_text)
-        user_states[chat_id] = None  # Reset state
-    elif message_text.lower().startswith("/link"):
-        await send_notification(chat_id, reply_text)
-        user_states[chat_id] = BotState.AWAITING_USERNAME
-    elif message_text.lower().startswith("/checkbillstatus"):
-        await send_notification(chat_id, reply_text)
-        user_states[chat_id] = BotState.AWAITING_BILL_CHECK
-    elif message_text.lower().startswith("/notify"):
-        await send_notification(chat_id, reply_text)
-        user_states[chat_id] = BotState.AWAITING_BILL_NUMBER
-    elif state == BotState.AWAITING_USERNAME:
-        await perform_linking_telegram_to_username(message_text, chat_id)
-        user_states[chat_id] = None  # Clear state after attempt
-    elif state == BotState.AWAITING_BILL_CHECK:
-        await handle_bill_status(message_text, chat_id)
-        user_states[chat_id] = None  # Clear state after attempt
-    elif state == BotState.AWAITING_BILL_NUMBER:
-        await handle_bill_status(message_text, chat_id, should_save=True)
-        user_states[chat_id] = None  # Clear state after attempt
-    else:
-        await send_notification(chat_id, reply_text)
+    message_text = message.get("text", "").strip()
+    if not message_text:
+        return {"ok": True}
+
+    async with state_transaction(chat_id) as state:
+        reply_text = get_text_according_to_message_text(message_text)
+        normalized_text = message_text.lower()
+
+        if normalized_text.startswith("/start"):
+            state.value = BotState.IDLE
+            await send_notification(chat_id, reply_text)
+        elif normalized_text.startswith("/link"):
+            state.value = BotState.AWAITING_USERNAME
+            await send_notification(chat_id, reply_text)
+        elif normalized_text.startswith("/checkbillstatus"):
+            state.value = BotState.AWAITING_BILL_CHECK
+            await send_notification(chat_id, reply_text)
+        elif normalized_text.startswith("/notify"):
+            state.value = BotState.AWAITING_BILL_NUMBER
+            await send_notification(chat_id, reply_text)
+        elif state.value == BotState.AWAITING_USERNAME:
+            await perform_linking_telegram_to_username(message_text, chat_id)
+        elif state.value == BotState.AWAITING_BILL_CHECK:
+            await handle_bill_status(message_text, chat_id)
+        elif state.value == BotState.AWAITING_BILL_NUMBER:
+            await handle_bill_status(message_text, chat_id, should_save=True)
+        else:
+            await send_notification(chat_id, reply_text)
+
+        if not any(normalized_text.startswith(cmd) for cmd in STATE_CHANGING_COMMANDS):
+            state.value = BotState.IDLE
 
     return {"ok": True}
 

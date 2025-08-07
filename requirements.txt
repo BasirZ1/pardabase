@@ -10,3 +10,5 @@ pyJWT
 boto3
 pillow
 aiogram
+slowapi
+expiringdict
