@@ -64,6 +64,7 @@ async def handle_bill_status(message_text: str, chat_id: str, should_save=False)
         return {"ok": True}
 
     set_current_db(gallery_db_name)
+    bill_code = bill_code.upper()
     status = await check_bill_status_ps(bill_code)
 
     if not status:

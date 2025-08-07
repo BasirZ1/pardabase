@@ -1168,7 +1168,7 @@ user_states = {}  # TEMP IN-MEMORY (reset on server restart)
 async def telegram_webhook(request: Request):
     data = await request.json()
     message_text = data.get("message", {}).get("text", "").strip()
-    chat_id = data.get("message", {}).get("chat", {}).get("id")
+    chat_id = str(data.get("message", {}).get("chat", {}).get("id"))
 
     state = user_states.get(chat_id)
     reply_text = get_text_according_to_message_text(message_text)
