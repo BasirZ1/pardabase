@@ -16,7 +16,7 @@ from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
     get_formatted_purchases_list, format_date, format_timestamp, get_formatted_purchase_items
 from telegram import send_notification, get_text_according_to_message_text, perform_linking_telegram_to_username, \
-    handle_bill_status
+    handle_bill_status, notify_if_applicable
 from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
     set_db_from_tenant, create_refresh_token, verify_refresh_token, flatbed
 from db import insert_new_product, update_product, insert_new_roll, update_roll, insert_new_bill, \
@@ -996,9 +996,12 @@ async def update_bill_status(
     """
     Endpoint to update a bill's status.
     """
-    result = await update_bill_status_ps(request.code, request.status)
-    await remember_users_action(user_data['user_id'], f"Bill status updated: "
-                                                      f"{request.code} {request.status}")
+    previous_status = await update_bill_status_ps(request.code, request.status)
+    result = previous_status is not None
+    if result:
+        await notify_if_applicable(request.code, previous_status, request.status)
+        await remember_users_action(user_data['user_id'], f"Bill status updated: "
+                                    f"{request.code} from {previous_status} to {request.status}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 

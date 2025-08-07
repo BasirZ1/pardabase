@@ -1,6 +1,7 @@
-from db import get_gallery_db_name, check_username_and_set_chat_id, check_bill_status_ps, save_notify_bill_status_ps
+from db import get_gallery_db_name, check_username_and_set_chat_id, check_bill_status_ps, save_notify_bill_status_ps, \
+    get_chat_ids_for_bill, delete_notify_records_for_bill
 from .notify import send_notification
-from utils import set_current_db
+from utils import set_current_db, flatbed
 
 
 def get_text_according_to_message_text(message_text):
@@ -93,3 +94,20 @@ async def handle_bill_status(message_text: str, chat_id: str, should_save=False)
 
     await send_notification(chat_id, notify_text)
     return {"ok": True}
+
+
+async def notify_if_applicable(bill_code: str, previous_status: str, new_status: str):
+    # Only trigger notification if moving to "ready" from a waiting state
+    if previous_status in ("cut", "pending", "with_tailor") and new_status == "ready":
+        chat_ids = await get_chat_ids_for_bill(bill_code)
+        if not chat_ids:
+            return
+
+        for chat_id in chat_ids:
+            try:
+                await send_notification(chat_id, f"✅ Your bill {bill_code} is ready! You can pick it up.")
+            except Exception as e:
+                # Optional: Log or handle blocked users or errors
+                await flatbed("exception", f"Failed to notify {chat_id} for bill {bill_code}: {e}")
+
+        await delete_notify_records_for_bill(bill_code)

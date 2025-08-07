@@ -1,6 +1,6 @@
 import datetime
 import json
-from typing import Optional
+from typing import Optional, Any
 from zoneinfo import ZoneInfo
 
 from helpers import make_bill_dic, parse_date
@@ -193,29 +193,37 @@ async def update_bill(
         return None
 
 
-async def update_bill_status_ps(bill_code: str, status: str) -> bool:
+async def update_bill_status_ps(bill_code: str, new_status: str) -> str | None:
     """
-    Update a bill's status in the bills table.
+    Update a bill's status in the bills table and return the previous status.
 
     Args:
         bill_code (str): The unique code for the bill.
-        status (str): The new status for the bill.
+        new_status (str): The new status for the bill.
 
     Returns:
-        bool: True if the item was updated successfully, False otherwise.
+        str: The previous status if updated successfully, None if bill not found.
     """
     try:
         async with connection_context() as conn:
+            # Step 1: Get current status
+            sql_select = "SELECT status FROM bills WHERE bill_code = $1"
+            previous_status = await conn.fetchval(sql_select, bill_code)
+
+            if previous_status is None:
+                return None  # Bill not found
+
+            # Step 2: Perform update
             sql_update = """
                 UPDATE bills
                 SET status = $1,
-                updated_at = now()
+                    updated_at = now()
                 WHERE bill_code = $2
-                RETURNING status
             """
-            updated_status = await conn.fetchval(sql_update, status, bill_code)
+            await conn.execute(sql_update, new_status, bill_code)
 
-            return updated_status is not None
+            return previous_status
+
     except Exception as e:
         await flatbed('exception', f"In update_bill_status_ps: {e}")
         raise e
@@ -269,6 +277,21 @@ async def save_notify_bill_status_ps(chat_id: str, bill_code: str):
     except Exception as e:
         await flatbed('exception', f"In save_notify_bill_status_ps: {e}")
         raise e
+
+
+async def get_chat_ids_for_bill(bill_code: str) -> list[str]:
+    async with connection_context() as conn:
+        rows = await conn.fetch(
+            "SELECT chat_id FROM notify_bill_status WHERE bill_code = $1", bill_code
+        )
+        return [row["chat_id"] for row in rows]
+
+
+async def delete_notify_records_for_bill(bill_code: str):
+    async with connection_context() as conn:
+        await conn.execute(
+            "DELETE FROM notify_bill_status WHERE bill_code = $1", bill_code
+        )
 
 
 async def update_bill_tailor_ps(bill_code: str, tailor: str) -> Optional[str]:
