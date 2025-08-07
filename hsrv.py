@@ -16,7 +16,7 @@ from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
     get_formatted_purchases_list, format_date, format_timestamp, get_formatted_purchase_items
 from telegram import send_notification, get_text_according_to_message_text, perform_linking_telegram_to_username, \
-    perform_bill_check
+    handle_bill_status
 from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
     set_db_from_tenant, create_refresh_token, verify_refresh_token, flatbed
 from db import insert_new_product, update_product, insert_new_roll, update_roll, insert_new_bill, \
@@ -1186,14 +1186,13 @@ async def telegram_webhook(request: Request):
         await send_notification(chat_id, reply_text)
         user_states[chat_id] = "awaiting_bill_check"
     elif state == "awaiting_bill_check":
-        await perform_bill_check(message_text, chat_id)
+        await handle_bill_status(message_text, chat_id)
         user_states[chat_id] = None  # Clear state after attempt
-    elif message_text == "/inform":
+    elif message_text == "/notify":
         await send_notification(chat_id, reply_text)
         user_states[chat_id] = "awaiting_bill_number"
     elif state == "awaiting_bill_number":
-        await perform_bill_check(message_text, chat_id)
-        await send_notification(chat_id, "Not implemented yet...")
+        await handle_bill_status(message_text, chat_id, should_save=True)
         user_states[chat_id] = None  # Clear state after attempt
     else:
         await send_notification(chat_id, reply_text)

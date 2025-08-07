@@ -235,13 +235,39 @@ async def check_bill_status_ps(bill_code: str):
         async with connection_context() as conn:
             sql_query = """
                 SELECT status from bills
-                WHERE bill_code = $2
+                WHERE bill_code = $1
             """
             status = await conn.fetchval(sql_query, bill_code)
 
             return status
     except Exception as e:
         await flatbed('exception', f"In check_bill_status_ps: {e}")
+        raise e
+
+
+async def save_notify_bill_status_ps(chat_id: str, bill_code: str):
+    """
+    Add an entry to notify telegram id when the bill's status changes to ready.
+
+    Args:
+        chat_id (str): The unique chat_id of telegram to notify.
+        bill_code (str): The unique code for the bill.
+
+    Returns:
+        bool: True if inserted successfully, False otherwise.
+    """
+    try:
+        async with connection_context() as conn:
+            sql_insert = """
+                INSERT INTO notify_bill_status (chat_id, bill_code)
+                VALUES ($1, $2)
+                ON CONFLICT DO NOTHING;
+            """
+            await conn.execute(sql_insert, chat_id, bill_code)
+
+            return True
+    except Exception as e:
+        await flatbed('exception', f"In save_notify_bill_status_ps: {e}")
         raise e
 
 

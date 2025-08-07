@@ -14,7 +14,7 @@ from .roll import insert_new_roll, update_roll, search_rolls_for_product, \
 from .bill import insert_new_bill, update_bill, get_bill_ps, search_bills_list, \
     search_bills_list_filtered, remove_bill_ps, update_bill_status_ps, \
     update_bill_tailor_ps, add_payment_bill_ps, get_payment_history_ps, \
-    check_bill_status_ps
+    check_bill_status_ps, save_notify_bill_status_ps
 from .user import insert_new_user, update_user, check_username_password, \
     get_users_data, update_users_password, remember_users_action, \
     get_users_list_ps, remove_user_ps, edit_employment_info_ps, \
