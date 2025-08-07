@@ -5,17 +5,17 @@ from utils import set_current_db, flatbed
 
 
 def get_text_according_to_message_text(message_text):
-    if message_text == "/start":
+    if message_text.lower().startswith("/start"):
         return (
             "👋 Welcome to the *Parda.af* bot!"
             "\nVisit [parda.af](https://parda.af) to explore our curtain collection."
             "\nUse /notify to get notified when your bill is ready, or /checkbillstatus to check your bill's status."
         )
-    elif message_text == "/link":
+    elif message_text.lower().startswith("/link"):
         return "🔗 To link your account, send: `your_username@gallery_codename`"
-    elif message_text == "/checkbillstatus":
+    elif message_text.lower().startswith("/checkbillstatus"):
         return "📋 To check your bill status, send: `bill_number@gallery_codename`"
-    elif message_text == "/notify":
+    elif message_text.lower().startswith("/notify"):
         return "🔔 To get notified when your bill is ready, send: `bill_number@gallery_codename`"
     else:
         return (
@@ -35,6 +35,9 @@ async def perform_linking_telegram_to_username(message_text, chat_id):
         await send_notification(chat_id, "❌ Both username and gallery codename must be provided.")
         return {"ok": True}
 
+    username = username.lower().strip()
+    gallery_codename = gallery_codename.lower().strip()
+
     set_current_db("pardaaf_main")
     gallery_db_name = await get_gallery_db_name(gallery_codename)
     if not gallery_db_name:
@@ -48,7 +51,7 @@ async def perform_linking_telegram_to_username(message_text, chat_id):
         await send_notification(chat_id, "❌ Failed to link your Telegram account.")
 
 
-async def handle_bill_status(message_text: str, chat_id: str, should_save=False):
+async def handle_bill_status(message_text: str, chat_id: int, should_save=False):
     if '@' not in message_text or message_text.count('@') != 1:
         await send_notification(chat_id, "❌ Invalid format. Please send bill_number@gallery_code_name.")
         return {"ok": True}
@@ -58,6 +61,9 @@ async def handle_bill_status(message_text: str, chat_id: str, should_save=False)
         await send_notification(chat_id, "❌ Both bill_number and gallery codename must be provided.")
         return {"ok": True}
 
+    bill_code = bill_code.upper().strip()
+    gallery_codename = gallery_codename.lower().strip()
+
     set_current_db("pardaaf_main")
     gallery_db_name = await get_gallery_db_name(gallery_codename)
     if not gallery_db_name:
@@ -65,7 +71,6 @@ async def handle_bill_status(message_text: str, chat_id: str, should_save=False)
         return {"ok": True}
 
     set_current_db(gallery_db_name)
-    bill_code = bill_code.upper()
     status = await check_bill_status_ps(bill_code)
 
     if not status:

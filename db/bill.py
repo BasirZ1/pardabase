@@ -253,12 +253,12 @@ async def check_bill_status_ps(bill_code: str):
         raise e
 
 
-async def save_notify_bill_status_ps(chat_id: str, bill_code: str):
+async def save_notify_bill_status_ps(chat_id: int, bill_code: str):
     """
     Add an entry to notify telegram id when the bill's status changes to ready.
 
     Args:
-        chat_id (str): The unique chat_id of telegram to notify.
+        chat_id (int): The unique chat_id of telegram to notify.
         bill_code (str): The unique code for the bill.
 
     Returns:
@@ -279,7 +279,7 @@ async def save_notify_bill_status_ps(chat_id: str, bill_code: str):
         raise e
 
 
-async def get_chat_ids_for_bill(bill_code: str) -> list[str]:
+async def get_chat_ids_for_bill(bill_code: str) -> list[int]:
     async with connection_context() as conn:
         rows = await conn.fetch(
             "SELECT chat_id FROM notify_bill_status WHERE bill_code = $1", bill_code

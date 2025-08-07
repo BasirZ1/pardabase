@@ -170,13 +170,13 @@ async def check_username_password(username, password):
         raise RuntimeError(f"Failed to check username and password: {e}")
 
 
-async def check_username_and_set_chat_id(username, chat_id):
+async def check_username_and_set_chat_id(username: str, chat_id: int):
     """
         Validates a user's username and sets chat_id for the user.
 
         Args:
             username (str): The username provided by the user.
-            chat_id (str): The chat_id for the user.
+            chat_id (int): The chat_id for the user.
 
         Returns:
             bool: True if the username was valid, False otherwise.
@@ -192,7 +192,7 @@ async def check_username_and_set_chat_id(username, chat_id):
 
             await conn.execute("""
                 UPDATE users SET telegram_id = $1 WHERE user_id = $2
-            """, str(chat_id), stored_user_id)
+            """, chat_id, stored_user_id)
 
             return True
     except Exception as e:

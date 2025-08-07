@@ -11,6 +11,7 @@ from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     RemoveExpenseRequest, GenerateReportRequest, CommentRequest, UpdateCutFabricTXStatusRequest, \
     RemoveSupplierRequest, RemovePurchaseRequest, CheckSyncRequest, RemoveRequest, GetListsRequest, \
     MarkPrintedRequest, AddPrintJobRequest
+from Models.pydantic_models import BotState
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
@@ -1171,30 +1172,33 @@ user_states = {}  # TEMP IN-MEMORY (reset on server restart)
 async def telegram_webhook(request: Request):
     data = await request.json()
     message_text = data.get("message", {}).get("text", "").strip()
-    chat_id = str(data.get("message", {}).get("chat", {}).get("id"))
+    chat_id = data.get("message", {}).get("chat", {}).get("id")
+
+    if not message_text or not chat_id:
+        return {"ok": True}  # Ignore non-text or broken messages
 
     state = user_states.get(chat_id)
     reply_text = get_text_according_to_message_text(message_text)
 
-    if message_text == "/start":
+    if message_text.lower().startswith("/start"):
         await send_notification(chat_id, reply_text)
         user_states[chat_id] = None  # Reset state
-    elif message_text == "/link":
+    elif message_text.lower().startswith("/link"):
         await send_notification(chat_id, reply_text)
-        user_states[chat_id] = "awaiting_username"
-    elif state == "awaiting_username":
+        user_states[chat_id] = BotState.AWAITING_USERNAME
+    elif message_text.lower().startswith("/checkbillstatus"):
+        await send_notification(chat_id, reply_text)
+        user_states[chat_id] = BotState.AWAITING_BILL_CHECK
+    elif message_text.lower().startswith("/notify"):
+        await send_notification(chat_id, reply_text)
+        user_states[chat_id] = BotState.AWAITING_BILL_NUMBER
+    elif state == BotState.AWAITING_USERNAME:
         await perform_linking_telegram_to_username(message_text, chat_id)
         user_states[chat_id] = None  # Clear state after attempt
-    elif message_text == "/checkbillstatus":
-        await send_notification(chat_id, reply_text)
-        user_states[chat_id] = "awaiting_bill_check"
-    elif state == "awaiting_bill_check":
+    elif state == BotState.AWAITING_BILL_CHECK:
         await handle_bill_status(message_text, chat_id)
         user_states[chat_id] = None  # Clear state after attempt
-    elif message_text == "/notify":
-        await send_notification(chat_id, reply_text)
-        user_states[chat_id] = "awaiting_bill_number"
-    elif state == "awaiting_bill_number":
+    elif state == BotState.AWAITING_BILL_NUMBER:
         await handle_bill_status(message_text, chat_id, should_save=True)
         user_states[chat_id] = None  # Clear state after attempt
     else:
