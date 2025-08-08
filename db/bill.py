@@ -1,6 +1,6 @@
 import datetime
 import json
-from typing import Optional, Any
+from typing import Optional
 from zoneinfo import ZoneInfo
 
 from helpers import make_bill_dic, parse_date

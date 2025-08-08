@@ -1,10 +1,7 @@
-import asyncio
 import re
-from contextlib import asynccontextmanager
 from typing import Optional
 
 from dotenv import load_dotenv
-from expiringdict import ExpiringDict
 from fastapi import APIRouter, Form, File, UploadFile, Query, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 
@@ -19,8 +16,10 @@ from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
     get_formatted_purchases_list, format_date, format_timestamp, get_formatted_purchase_items
+from redisdb import get_user_state, set_user_state, get_print_jobs_redis, add_print_job_redis, \
+    mark_printed_redis
 from telegram import send_notification, get_text_according_to_message_text, perform_linking_telegram_to_username, \
-    handle_bill_status, notify_if_applicable, is_rate_limited
+    handle_bill_status, notify_if_applicable
 from utils import verify_jwt_user, set_current_db, send_mail_html, create_jwt_token, \
     set_db_from_tenant, create_refresh_token, verify_refresh_token, flatbed
 from db import insert_new_product, update_product, insert_new_roll, update_roll, insert_new_bill, \
@@ -40,6 +39,7 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     edit_employment_info_ps, get_employment_info_ps, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list, \
     get_cutting_history_list_for_roll_ps, insert_new_purchase_item, update_purchase_item, get_purchase_items_ps, \
     search_rolls_for_purchase_item, add_payment_to_user, add_payment_to_supplier, get_profile_data_ps
+from utils.config import STATE_CHANGING_COMMANDS
 from utils.hasher import hash_password
 
 router = APIRouter()
@@ -1168,79 +1168,6 @@ async def get_lists(
     return JSONResponse(content=results, status_code=200)
 
 
-# State management with auto-cleanup (states expire after 1 hour)
-STATE_TTL_SECONDS = 3600
-user_states = ExpiringDict(max_len=1000, max_age_seconds=STATE_TTL_SECONDS)
-state_lock = asyncio.Lock()  # For thread-safe state operations
-
-
-class MutableState:
-    def __init__(self, value=None):
-        self.value = value
-
-
-@asynccontextmanager
-async def state_transaction(chat_id: int):
-    async with state_lock:
-        state = MutableState(user_states.get(chat_id, BotState.IDLE))  # Default state
-        yield state
-        user_states[chat_id] = state.value
-
-
-STATE_CHANGING_COMMANDS = ["/link", "/checkbillstatus", "/notify"]
-
-
-@router.post("/telegram-webhook")
-async def telegram_webhook(request: Request):
-    # Initial validation remains the same
-    data = await request.json()
-    if "message" not in data:
-        return {"ok": True}
-
-    message = data["message"]
-    chat_id = message.get("chat", {}).get("id")
-    if not chat_id:
-        return {"ok": True}
-
-    # Rate limiting imported
-    if await is_rate_limited(chat_id):
-        raise HTTPException(status_code=429, detail="Too many requests")
-
-    message_text = message.get("text", "").strip()
-    if not message_text:
-        return {"ok": True}
-
-    async with state_transaction(chat_id) as state:
-        reply_text = get_text_according_to_message_text(message_text)
-        normalized_text = message_text.lower()
-
-        if normalized_text.startswith("/start"):
-            state.value = BotState.IDLE
-            await send_notification(chat_id, reply_text)
-        elif normalized_text.startswith("/link"):
-            state.value = BotState.AWAITING_USERNAME
-            await send_notification(chat_id, reply_text)
-        elif normalized_text.startswith("/checkbillstatus"):
-            state.value = BotState.AWAITING_BILL_CHECK
-            await send_notification(chat_id, reply_text)
-        elif normalized_text.startswith("/notify"):
-            state.value = BotState.AWAITING_BILL_NUMBER
-            await send_notification(chat_id, reply_text)
-        elif state.value == BotState.AWAITING_USERNAME:
-            await perform_linking_telegram_to_username(message_text, chat_id)
-        elif state.value == BotState.AWAITING_BILL_CHECK:
-            await handle_bill_status(message_text, chat_id)
-        elif state.value == BotState.AWAITING_BILL_NUMBER:
-            await handle_bill_status(message_text, chat_id, should_save=True)
-        else:
-            await send_notification(chat_id, reply_text)
-
-        if not any(normalized_text.startswith(cmd) for cmd in STATE_CHANGING_COMMANDS):
-            state.value = BotState.IDLE
-
-    return {"ok": True}
-
-
 @router.get("/submit-request")
 async def submit_request(
         currentLang: str,
@@ -1532,66 +1459,72 @@ async def send_html_mail(
     return JSONResponse(content={"result": result})
 
 
-# In-memory Job Queue
-print_jobs = {}  # tenant_id -> list of jobs
-tenant_last_job_ids = {}  # tenant_id -> last_job_id
+@router.post("/telegram-webhook")
+async def telegram_webhook(request: Request):
+    data = await request.json()
+    if "message" not in data:
+        return {"ok": True}
+
+    message = data["message"]
+    chat_id = message.get("chat", {}).get("id")
+    if not chat_id:
+        return {"ok": True}
+
+    state = await get_user_state(chat_id)
+
+    message_text = message.get("text", "").strip()
+    if not message_text:
+        return {"ok": True}
+
+    reply_text = get_text_according_to_message_text(message_text)
+    normalized_text = message_text.lower()
+
+    if normalized_text.startswith("/start"):
+        await set_user_state(chat_id, BotState.IDLE)
+        await send_notification(chat_id, reply_text)
+    elif normalized_text.startswith("/link"):
+        await set_user_state(chat_id, BotState.AWAITING_USERNAME)
+        await send_notification(chat_id, reply_text)
+    elif normalized_text.startswith("/checkbillstatus"):
+        await set_user_state(chat_id, BotState.AWAITING_BILL_CHECK)
+        await send_notification(chat_id, reply_text)
+    elif normalized_text.startswith("/notify"):
+        await set_user_state(chat_id, BotState.AWAITING_BILL_NUMBER)
+        await send_notification(chat_id, reply_text)
+    elif state == BotState.AWAITING_USERNAME:
+        await perform_linking_telegram_to_username(message_text, chat_id)
+    elif state == BotState.AWAITING_BILL_CHECK:
+        await handle_bill_status(message_text, chat_id)
+    elif state == BotState.AWAITING_BILL_NUMBER:
+        await handle_bill_status(message_text, chat_id, should_save=True)
+    else:
+        await send_notification(chat_id, reply_text)
+
+    if not any(normalized_text.startswith(cmd) for cmd in STATE_CHANGING_COMMANDS):
+        await set_user_state(chat_id, BotState.IDLE)
+
+
+@router.post("/add-print-job")
+async def add_print_job(req: AddPrintJobRequest, user_data: dict = Depends(verify_jwt_user(required_level=2))):
+    tenant = user_data["tenant"]
+    job_id = await add_print_job_redis(tenant, req.fileName, req.fileContentBase64)
+    return {"result": True, "job_id": job_id}
 
 
 @router.get("/get-print-jobs")
 async def get_print_jobs(
         tenant: str,
-        since: int = 0,
-        # user_data: dict = Depends(verify_jwt_user(required_level=3))
+        since: int = 0
 ):
-    tenant_jobs = print_jobs.get(tenant, [])
-
-    jobs = [job for job in tenant_jobs if job["id"] > since]
-    return {"jobs": [{"id": job["id"], "file_name": job["file_name"],
-                      "file_content_base64": job["file_content_base64"]} for job in jobs]}
+    jobs = await get_print_jobs_redis(tenant, since)
+    return {"jobs": jobs}
 
 
 @router.post("/mark-printed")
 async def mark_printed(req: MarkPrintedRequest, user_data: dict = Depends(verify_jwt_user(required_level=3))):
-    tenant_id = user_data["tenant"]
-    tenant_jobs = print_jobs.get(tenant_id, [])
-
-    # Remove the job with the given ID for this tenant
-    print_jobs[tenant_id] = [job for job in tenant_jobs if job["id"] != req.job_id]
-    return {"ok": True}
-
-
-@router.post("/add-print-job")
-async def add_print_job(
-        req: AddPrintJobRequest,
-        user_data: dict = Depends(verify_jwt_user(required_level=2))
-):
     tenant = user_data["tenant"]
-
-    # Initialize tenant job list and job counter if not exists
-    if tenant not in print_jobs:
-        print_jobs[tenant] = []
-        tenant_last_job_ids[tenant] = 0
-
-    # Increment this tenant's last job ID
-    tenant_last_job_ids[tenant] += 1
-    job_id = tenant_last_job_ids[tenant]
-
-    job = {
-        "id": job_id,
-        "file_name": req.fileName,
-        "file_content_base64": req.fileContentBase64,
-        "tenant": tenant
-    }
-
-    print_jobs[tenant].append(job)
-
-    return {"result": True, "job_id": job["id"]}
-
-
-# For Testing Only
-@router.get("/list-print-jobs")
-async def list_all_jobs():
-    return {"jobs": print_jobs}
+    await mark_printed_redis(tenant, req.job_id)
+    return {"ok": True}
 
 
 if __name__ == '__main__':

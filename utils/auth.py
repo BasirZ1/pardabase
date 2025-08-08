@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
 
-from utils import set_current_db
+from utils.conn import set_current_db
 from utils.config import JWT_EXPIRY_MINUTES, REFRESH_EXPIRY_DAYS
 
 load_dotenv(override=True)
