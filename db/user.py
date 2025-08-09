@@ -76,7 +76,7 @@ async def update_user(usernameToEdit: str, full_name: str, user_name: str,
                 UPDATE users
                 SET {", ".join(update_fields)}
                 WHERE username = ${index}
-                RETURNING user_id
+                RETURNING user_id::text
             """
 
             user_id = await conn.fetchval(sql_update, *values)
