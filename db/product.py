@@ -65,7 +65,7 @@ async def search_products_list(search_query, search_by):
 
     except Exception as e:
         await flatbed('exception', f"In search_products_list: {e}")
-        raise RuntimeError(f"Failed to search products: {e}")
+        raise
 
 
 async def search_products_list_filtered(stock_condition, category):
@@ -87,7 +87,7 @@ async def search_products_list_filtered(stock_condition, category):
 
     except Exception as e:
         await flatbed('exception', f"In search_products_list_filtered: {e}")
-        raise RuntimeError(f"Failed to search products: {e}")
+        raise
 
 
 async def get_product_and_roll_ps(code):

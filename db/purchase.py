@@ -174,7 +174,7 @@ async def update_purchase_item(
 #
 #     except Exception as e:
 #         await flatbed('exception', f"In search_purchases_list: {e}")
-#         raise RuntimeError(f"Failed to search purchases: {e}")
+#         raise
 
 
 async def search_purchases_list_filtered(_date):
@@ -195,7 +195,45 @@ async def search_purchases_list_filtered(_date):
 
     except Exception as e:
         await flatbed('exception', f"In search_purchases_list_filtered: {e}")
-        raise RuntimeError(f"Failed to search purchases: {e}")
+        raise
+
+
+async def search_purchases_list_for_supplier(supplier_id):
+    """
+    Retrieve purchases list based on supplier_id.
+
+    Parameters:
+    - supplier_id (int): The supplier id for which to retrieve purchases list.
+
+    Returns:
+    - List of records from the purchases table that match the criteria.
+    """
+    try:
+        async with connection_context() as conn:
+            query = """
+            SELECT
+                p.id,
+                p.supplier_id,
+                s.name AS supplier_name,
+                p.total_amount,
+                p.currency,
+                p.description,
+                p.created_at,
+                p.updated_at,
+                u.username
+            FROM purchases p
+            LEFT JOIN users u ON p.created_by = u.user_id
+            LEFT JOIN suppliers s ON p.supplier_id = s.id
+            WHERE
+                p.archived = false AND p.supplier_id = $1
+            ORDER BY p.created_at DESC;
+            """
+            purchases_list = await conn.fetch(query, supplier_id)
+            return purchases_list  # Returns a list of asyncpg Record objects
+
+    except Exception as e:
+        await flatbed('exception', f"In search_purchases_list_for_supplier: {e}")
+        raise
 
 
 async def get_purchase_items_ps(purchase_id):
@@ -221,7 +259,7 @@ async def get_purchase_items_ps(purchase_id):
 
     except Exception as e:
         await flatbed('exception', f"In get_purchase_items_ps: {e}")
-        raise RuntimeError(f"Failed to get purchase items: {e}")
+        raise
 
 
 # async def get_purchase_ps(purchase_id):

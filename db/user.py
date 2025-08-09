@@ -168,7 +168,7 @@ async def check_username_password(username, password):
 
     except Exception as e:
         await flatbed('exception', f"In check_username_password: {e}")
-        raise RuntimeError(f"Failed to check username and password: {e}")
+        raise
 
 
 async def check_username_and_set_chat_id(username: str, chat_id: int):
@@ -211,7 +211,7 @@ async def get_users_data(username):
             return data if data else None
     except Exception as e:
         await flatbed('exception', f"In get_users_data: {e}")
-        raise RuntimeError(f"Failed to get users data: {e}")
+        raise
 
 
 async def get_employment_info_ps(user_id):
@@ -230,10 +230,9 @@ async def get_employment_info_ps(user_id):
 
     except Exception as e:
         await flatbed('exception', f"In get_employment_info_ps: {e}")
-        raise RuntimeError(f"Failed to get employment info: {e}")
+        raise
 
 
-# TODO Fix calculation and retrieval
 async def get_profile_data_ps(user_id: str):
     """
     Fetches the total earnings and total withdrawals for a given user from the database.
@@ -242,7 +241,6 @@ async def get_profile_data_ps(user_id: str):
     ----------
     user_id : str
         The UUID of the user as a string. This will be validated and cast to UUID type.
-        If the provided string is not a valid UUID, a RuntimeError will be raised.
 
     Returns:
     -------
@@ -265,7 +263,7 @@ async def get_profile_data_ps(user_id: str):
 
     except Exception as e:
         await flatbed('exception', f"In get_profile_data_ps: {e}")
-        raise RuntimeError(f"Failed to get profile data: {e}")
+        raise
 
 
 async def update_users_password(username, new_password):
@@ -278,7 +276,7 @@ async def update_users_password(username, new_password):
         """, new_password, username)
     except Exception as e:
         await flatbed('exception', f"In update_users_password: {e}")
-        raise RuntimeError(f"Failed to update users password: {e}")
+        raise
 
 
 async def get_users_list_ps():
@@ -296,7 +294,7 @@ async def get_users_list_ps():
 
     except Exception as e:
         await flatbed('exception', f"In get_users_list_ps: {e}")
-        raise RuntimeError(f"Failed to get users list: {e}")
+        raise
 
 
 async def remove_user_ps(username):
@@ -327,4 +325,4 @@ async def remember_users_action(user_id, action):
             await conn.execute(sql_insert, user_id, action)
     except Exception as e:
         await flatbed('exception', f"In remember_users_action: {e}")
-        raise RuntimeError(f"Failed to remember users action: {e}")
+        raise

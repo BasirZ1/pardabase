@@ -366,7 +366,7 @@ async def search_bills_list(search_query, search_by):
 
     except Exception as e:
         await flatbed('exception', f"In search_bills_list: {e}")
-        raise RuntimeError(f"Failed to search bills: {e}")
+        raise
 
 
 async def search_bills_list_filtered(_date, state):
@@ -388,7 +388,7 @@ async def search_bills_list_filtered(_date, state):
 
     except Exception as e:
         await flatbed('exception', f"In search_bills_list_filtered: {e}")
-        raise RuntimeError(f"Failed to search bills: {e}")
+        raise
 
 
 async def get_bill_ps(code):

@@ -126,7 +126,7 @@ async def get_drafts_list_ps():
 
     except Exception as e:
         await flatbed('exception', f"In get_drafts_list_ps: {e}")
-        raise RuntimeError(f"Failed to get drafts list: {e}")
+        raise
 
 
 async def get_cutting_history_list_ps(
@@ -176,7 +176,7 @@ async def get_cutting_history_list_ps(
             return await conn.fetch(sql, *params)
     except Exception as exc:
         await flatbed("exception", f"get_cutting_history_list_ps: {exc}")
-        raise RuntimeError(f"Failed to get cutting history list: {exc}") from exc
+        raise
 
 
 async def get_cutting_history_list_for_roll_ps(
@@ -205,7 +205,7 @@ async def get_cutting_history_list_for_roll_ps(
             return await conn.fetch(sql, code)
     except Exception as exc:
         await flatbed("exception", f"get_cutting_history_list_for_roll_ps: {exc}")
-        raise RuntimeError(f"Failed to get cutting history list for roll: {exc}") from exc
+        raise
 
 
 async def update_cut_fabric_tx_status_ps(
@@ -261,7 +261,7 @@ async def search_rolls_for_product(product_code):
 
     except Exception as e:
         await flatbed('exception', f"In search_rolls_for_product: {e}")
-        raise RuntimeError(f"Failed to search rolls for product: {e}")
+        raise
 
 
 async def search_rolls_for_purchase_item(purchase_item_id):
@@ -293,7 +293,7 @@ async def search_rolls_for_purchase_item(purchase_item_id):
 
     except Exception as e:
         await flatbed('exception', f"In search_rolls_for_purchase_item: {e}")
-        raise RuntimeError(f"Failed to search rolls for purchase item: {e}")
+        raise
 
 
 async def remove_roll_ps(code):

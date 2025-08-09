@@ -40,7 +40,7 @@ from utils.conn import connection_context
 #             return await conn.fetch(query, from_date, to_date)
 #     except Exception as e:
 #         await flatbed('exception', f"In report_recent_activities_list: {e}")
-#         raise RuntimeError(f"Failed to report_recent_activities_list: {e}")
+#         raise
 #
 #
 # import datetime
@@ -79,7 +79,7 @@ async def report_recent_activities_list(from_date, to_date):
             return await conn.fetch(query, from_date, to_date)
     except Exception as e:
         await flatbed('exception', f"In report_recent_activities_list: {e}")
-        raise RuntimeError(f"Failed to report_recent_activities_list: {e}")
+        raise
 
 
 async def report_tags_list(from_date, to_date):
@@ -115,4 +115,4 @@ async def report_tags_list(from_date, to_date):
             return await conn.fetch(query, from_date, to_date)
     except Exception as e:
         await flatbed('exception', f"In report_tags_list: {e}")
-        raise RuntimeError(f"Failed to report_tags_list: {e}")
+        raise

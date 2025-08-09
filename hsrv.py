@@ -38,7 +38,8 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     update_purchase, archive_purchase_ps, remove_purchase_ps, search_purchases_list_filtered, get_sync, \
     edit_employment_info_ps, get_employment_info_ps, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list, \
     get_cutting_history_list_for_roll_ps, insert_new_purchase_item, update_purchase_item, get_purchase_items_ps, \
-    search_rolls_for_purchase_item, add_payment_to_user, add_payment_to_supplier, get_profile_data_ps
+    search_rolls_for_purchase_item, add_payment_to_user, add_payment_to_supplier, get_profile_data_ps, \
+    search_purchases_list_for_supplier, get_supplier_details_ps
 from utils.config import STATE_CHANGING_COMMANDS
 from utils.hasher import hash_password
 
@@ -607,6 +608,20 @@ async def get_purchases_list(
     return JSONResponse(content=purchases_list, status_code=200)
 
 
+@router.get("/purchases-list-for-supplier-get")
+async def get_purchases_list_for_supplier(
+        supplierId: int,
+        _: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Retrieve a list of purchases based on supplierId.
+    """
+    purchases_data = await search_purchases_list_for_supplier(supplierId)
+    purchases_list = get_formatted_purchases_list(purchases_data)
+
+    return JSONResponse(content=purchases_list, status_code=200)
+
+
 @router.get("/purchase-items-get")
 async def get_purchase_items(
         purchaseId: int,
@@ -817,6 +832,18 @@ async def get_supplier(
     """
     supplier = await get_supplier_ps(supplierId)
     return JSONResponse(content=supplier, status_code=200)
+
+
+@router.get("/supplier-details-get")
+async def get_supplier(
+        supplierId: int,
+        _: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Retrieve a supplier's details based on supplier id.
+    """
+    supplier_details = await get_supplier_details_ps(supplierId)
+    return JSONResponse(content=supplier_details, status_code=200)
 
 
 @router.get("/payment-history-get")

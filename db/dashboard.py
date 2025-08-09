@@ -35,7 +35,7 @@ async def get_dashboard_data_ps():
 
     except Exception as e:
         await flatbed('exception', f"In get_dashboard_data_ps: {e}")
-        raise RuntimeError(f"Failed to get dashboard data: {e}")
+        raise
 
 
 async def search_recent_activities_list(_date):
@@ -50,7 +50,7 @@ async def search_recent_activities_list(_date):
             return await conn.fetch(query, *params)
     except Exception as e:
         await flatbed('exception', f"In search_recent_activities_list: {e}")
-        raise RuntimeError(f"Failed to search_recent_activities_list: {e}")
+        raise
 
 
 async def get_recent_activities_preview(limit=4):
@@ -64,7 +64,7 @@ async def get_recent_activities_preview(limit=4):
             return await conn.fetch(query, *params)
     except Exception as e:
         await flatbed('exception', f"In get_recent_activities_preview: {e}")
-        raise RuntimeError(f"Failed to get_recent_activities_preview: {e}")
+        raise
 
 
 def build_admin_records_query(date_range=None, limit=None):

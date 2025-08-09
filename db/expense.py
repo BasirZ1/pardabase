@@ -63,7 +63,7 @@ async def search_expenses_list_filtered(_date, category):
 
     except Exception as e:
         await flatbed('exception', f"In search_expenses_list_filtered: {e}")
-        raise RuntimeError(f"Failed to search expenses: {e}")
+        raise
 
 
 async def remove_expense_ps(expense_id):

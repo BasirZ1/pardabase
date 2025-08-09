@@ -417,6 +417,21 @@ def make_supplier_dic(data):
     return supplier
 
 
+def make_supplier_details_dic(data):
+    supplier_details = {
+        "purchasesTotalAFN": data["purchases_total_afn"],
+        "purchasesTotalUSD": data["purchases_total_usd"],
+        "purchasesTotalCNY": data["purchases_total_cny"],
+        "miscellaneousTotalAFN": data["miscellaneous_total_afn"],
+        "miscellaneousTotalUSD": data["miscellaneous_total_usd"],
+        "miscellaneousTotalCNY": data["miscellaneous_total_cny"],
+        "totalPaidAFN": data["total_paid_afn"],
+        "totalPaidUSD": data["total_paid_usd"],
+        "totalPaidCNY": data["total_paid_cny"]
+    }
+    return supplier_details
+
+
 def make_supplier_small_dic(data):
     supplier = {
         "id": data["id"],

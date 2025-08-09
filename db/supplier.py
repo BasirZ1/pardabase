@@ -1,6 +1,6 @@
 from typing import Optional
 
-from helpers import make_supplier_dic
+from helpers import make_supplier_dic, make_supplier_details_dic
 from utils import flatbed
 from utils.conn import connection_context
 
@@ -93,7 +93,7 @@ async def get_supplier_ps(supplier_id: int):
             return None
     except Exception as e:
         await flatbed('exception', f"In get_supplier_ps: {e}")
-        raise RuntimeError(f"Failed to get supplier: {e}")
+        raise
 
 
 async def get_suppliers_list_ps():
@@ -111,7 +111,62 @@ async def get_suppliers_list_ps():
 
     except Exception as e:
         await flatbed('exception', f"In get_suppliers_list_ps: {e}")
-        raise RuntimeError(f"Failed to get suppliers list: {e}")
+        raise
+
+
+async def get_supplier_details_ps(supplier_id: int):
+    """
+     Retrieve a supplier's details like aggregated totals for purchases, payments,
+     and miscellaneous transactions per currency.
+     """
+    try:
+        async with connection_context() as conn:
+            data = await conn.fetchrow("""
+                WITH purchase_totals AS (
+                    SELECT
+                        SUM(CASE WHEN currency = 'AFN' THEN total_amount ELSE 0 END) AS purchases_total_afn,
+                        SUM(CASE WHEN currency = 'USD' THEN total_amount ELSE 0 END) AS purchases_total_usd,
+                        SUM(CASE WHEN currency = 'CNY' THEN total_amount ELSE 0 END) AS purchases_total_cny
+                    FROM purchases
+                    WHERE archived = FALSE AND supplier_id = $1
+                ),
+                payment_totals AS (
+                    SELECT
+                        SUM(CASE WHEN currency = 'AFN' THEN amount ELSE 0 END) AS total_paid_afn,
+                        SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END) AS total_paid_usd,
+                        SUM(CASE WHEN currency = 'CNY' THEN amount ELSE 0 END) AS total_paid_cny
+                    FROM supplier_payments
+                    WHERE supplier_id = $1
+                ),
+                misc_totals AS (
+                    SELECT
+                        SUM(CASE WHEN currency = 'AFN' THEN amount ELSE 0 END) AS miscellaneous_total_afn,
+                        SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END) AS miscellaneous_total_usd,
+                        SUM(CASE WHEN currency = 'CNY' THEN amount ELSE 0 END) AS miscellaneous_total_cny
+                    FROM misc_transactions
+                    WHERE supplier_id = $1
+                )
+                SELECT
+                    COALESCE(pt.purchases_total_afn, 0) AS purchases_total_afn,
+                    COALESCE(pt.purchases_total_usd, 0) AS purchases_total_usd,
+                    COALESCE(pt.purchases_total_cny, 0) AS purchases_total_cny,
+                    COALESCE(pay.total_paid_afn, 0) AS total_paid_afn,
+                    COALESCE(pay.total_paid_usd, 0) AS total_paid_usd,
+                    COALESCE(pay.total_paid_cny, 0) AS total_paid_cny,
+                    COALESCE(mt.miscellaneous_total_afn, 0) AS miscellaneous_total_afn,
+                    COALESCE(mt.miscellaneous_total_usd, 0) AS miscellaneous_total_usd,
+                    COALESCE(mt.miscellaneous_total_cny, 0) AS miscellaneous_total_cny
+                FROM purchase_totals pt, payment_totals pay, misc_totals mt
+            """, supplier_id)
+
+            if data:
+                supplier_details = make_supplier_details_dic(data)
+                return supplier_details
+
+            return None
+    except Exception as e:
+        await flatbed('exception', f"In get_supplier_details_ps: {e}")
+        raise
 
 
 async def remove_supplier_ps(supplier_id: int):

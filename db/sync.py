@@ -49,7 +49,7 @@ async def fetch_suppliers_list():
 
     except Exception as e:
         await flatbed('exception', f"In fetch_suppliers_list: {e}")
-        raise RuntimeError(f"Failed to fetch suppliers list: {e}")
+        raise
 
 
 async def fetch_salesmen_list():
@@ -74,7 +74,7 @@ async def fetch_salesmen_list():
 
     except Exception as e:
         await flatbed('exception', f"In fetch_salesmen_list: {e}")
-        raise RuntimeError(f"Failed to fetch salesmen list: {e}")
+        raise
 
 
 async def fetch_tailors_list():
@@ -98,4 +98,4 @@ async def fetch_tailors_list():
 
     except Exception as e:
         await flatbed('exception', f"In fetch_tailors_list: {e}")
-        raise RuntimeError(f"Failed to fetch tailors list: {e}")
+        raise
