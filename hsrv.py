@@ -449,6 +449,7 @@ async def add_or_edit_user(
         if password is None:
             return JSONResponse(content={"error": "Password is missing"}, status_code=403)
         user_id = await insert_new_user(fullName, usernameChange, password, level)
+        await flatbed("debug", f"the user_id of the new add {user_id}")
         if not user_id:
             return JSONResponse(content={"result": False}, status_code=201)
         await handle_image_update("user", user_data['tenant'], usernameChange, image_status, image_data)
