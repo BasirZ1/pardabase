@@ -448,19 +448,22 @@ async def add_or_edit_user(
         # CREATE NEW
         if password is None:
             return JSONResponse(content={"error": "Password is missing"}, status_code=403)
-        result = await insert_new_user(fullName, usernameChange, password, level)
-        if not result:
+        user_id = await insert_new_user(fullName, usernameChange, password, level)
+        if not user_id:
             return JSONResponse(content={"result": False}, status_code=201)
         await handle_image_update("user", user_data['tenant'], usernameChange, image_status, image_data)
         await remember_users_action(user_data['user_id'], f"User added: {usernameChange}")
     else:
-        result = await update_user(usernameToEdit, fullName, usernameChange, level, password)
-        if not result:
+        user_id = await update_user(usernameToEdit, fullName, usernameChange, level, password)
+        if not user_id:
             return JSONResponse(content={"result": False}, status_code=201)
         await handle_image_update("user", user_data['tenant'], usernameChange, image_status, image_data)
         await remember_users_action(user_data['user_id'], f"user updated: {usernameChange}")
 
-    return JSONResponse(content={"result": True}, status_code=200)
+    return JSONResponse(content={
+        "result": True,
+        "userId": user_id
+    }, status_code=200)
 
 
 @router.post("/add-or-edit-supplier")

@@ -19,7 +19,7 @@ async def insert_new_user(full_name, username, password, level):
         level (int): The access level of the user.
 
     Returns:
-        bool: True if the user was added successfully, False otherwise.
+        user_id: user_id if the user was added successfully, None otherwise.
     """
 
     try:
@@ -35,7 +35,7 @@ async def insert_new_user(full_name, username, password, level):
                 level
             )
 
-            return user_id is not None
+            return user_id
 
     except Exception as e:
         await flatbed('exception', f"in insert_new_user: {e}")
@@ -55,7 +55,7 @@ async def update_user(usernameToEdit: str, full_name: str, user_name: str,
         password (Optional[str]): The new password (hashed before storage) or None to keep the existing one.
 
     Returns:
-        bool: True if the update was successful, False otherwise.
+        user_id: user_id if the update was successful, None otherwise.
     """
     try:
         async with connection_context() as conn:
@@ -76,14 +76,15 @@ async def update_user(usernameToEdit: str, full_name: str, user_name: str,
                 UPDATE users
                 SET {", ".join(update_fields)}
                 WHERE username = ${index}
+                RETURNING user_id
             """
 
-            await conn.execute(sql_update, *values)
-            return True
+            user_id = await conn.fetchval(sql_update, *values)
+            return user_id
 
     except Exception as e:
         await flatbed('exception', f"In update_user: {e}")
-        return False
+        return None
 
 
 async def edit_employment_info_ps(
