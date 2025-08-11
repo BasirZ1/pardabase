@@ -28,6 +28,6 @@ from .order import insert_new_online_order, subscribe_newsletter_ps, \
     unsubscribe_newsletter_ps, confirm_email_newsletter_ps
 from .report import report_recent_activities_list, report_tags_list
 from .sync import insert_update_sync, get_sync, fetch_tailors_list, \
-    fetch_salesmen_list, fetch_suppliers_list
+    fetch_salesmen_list, fetch_suppliers_list, fetch_users_list
 from .payment import add_payment_to_user, add_payment_to_supplier
 from .main import get_gallery_db_name

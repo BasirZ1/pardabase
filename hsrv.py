@@ -39,7 +39,7 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     edit_employment_info_ps, get_employment_info_ps, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list, \
     get_cutting_history_list_for_roll_ps, insert_new_purchase_item, update_purchase_item, get_purchase_items_ps, \
     search_rolls_for_purchase_item, add_payment_to_user, add_payment_to_supplier, get_profile_data_ps, \
-    search_purchases_list_for_supplier, get_supplier_details_ps
+    search_purchases_list_for_supplier, get_supplier_details_ps, fetch_users_list
 from utils.config import STATE_CHANGING_COMMANDS
 from utils.hasher import hash_password
 
@@ -1181,6 +1181,7 @@ async def get_lists(
         "suppliers": fetch_suppliers_list,
         "salesmen": fetch_salesmen_list,
         "tailors": fetch_tailors_list,
+        "users": fetch_users_list,
     }
     keys = request.keys
     # If "all" is requested, replace keys with all supported keys

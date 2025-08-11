@@ -1,5 +1,4 @@
-from helpers import get_formatted_tailors_list, get_formatted_salesmen_list, \
-    get_formatted_suppliers_small_list
+from helpers import get_formatted_suppliers_small_list, get_formatted_users_small_list
 from utils import flatbed
 from utils.conn import connection_context
 
@@ -68,7 +67,7 @@ async def fetch_salesmen_list():
                 WHERE ei.salesman_status = 'active';
             """
             salesmen_data = await conn.fetch(query)
-            salesmen_list = get_formatted_salesmen_list(salesmen_data)
+            salesmen_list = get_formatted_users_small_list(salesmen_data)
             # Returns a list of asyncpg Record objects
             return salesmen_list
 
@@ -93,9 +92,31 @@ async def fetch_tailors_list():
                 WHERE ei.tailor_type IS NOT NULL;
             """
             tailors_data = await conn.fetch(query)
-            tailors_list = get_formatted_tailors_list(tailors_data)
+            tailors_list = get_formatted_users_small_list(tailors_data)
             return tailors_list
 
     except Exception as e:
         await flatbed('exception', f"In fetch_tailors_list: {e}")
+        raise
+
+
+async def fetch_users_list():
+    """
+    Retrieve all users user_id and full_name from users table.
+
+    Returns:
+    - List of asyncpg Records with 'user_id' and 'full_name' of users.
+    """
+    try:
+        async with connection_context() as conn:
+            query = """
+                SELECT user_id::TEXT, full_name
+                FROM users
+            """
+            users_data = await conn.fetch(query)
+            users_list = get_formatted_users_small_list(users_data)
+            return users_list
+
+    except Exception as e:
+        await flatbed('exception', f"In fetch_users_list: {e}")
         raise

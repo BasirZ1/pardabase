@@ -191,40 +191,22 @@ def get_formatted_purchase_items(purchase_items_data):
     return purchase_items
 
 
-def get_formatted_salesmen_list(salesmen_data):
+def get_formatted_users_small_list(users_data):
     """
-    Helper function to format salesmen data into JSON-compatible objects.
+    Helper function to format users data into JSON-compatible objects.
 
     Parameters:
-    - salesmen_data: Raw data fetched from the database.
+    - users_data: Raw data fetched from the database.
 
     Returns:
-    - A list of formatted salesmen dictionaries.
+    - A list of formatted users dictionaries.
     """
-    salesmen_list = []
-    if salesmen_data:
-        for data in salesmen_data:
-            salesman = make_salesman_dic(data)
-            salesmen_list.append(salesman)
-    return salesmen_list
-
-
-def get_formatted_tailors_list(tailors_data):
-    """
-    Helper function to format tailors data into JSON-compatible objects.
-
-    Parameters:
-    - tailors_data: Raw data fetched from the database.
-
-    Returns:
-    - A list of formatted tailors dictionaries.
-    """
-    tailors_list = []
-    if tailors_data:
-        for data in tailors_data:
-            tailor = make_tailor_dic(data)
-            tailors_list.append(tailor)
-    return tailors_list
+    users_list = []
+    if users_data:
+        for data in users_data:
+            user = make_user_dic(data)
+            users_list.append(user)
+    return users_list
 
 
 def get_formatted_suppliers_small_list(suppliers_data):
@@ -490,17 +472,9 @@ def make_profile_data_dic(data):
     return profile_data
 
 
-def make_salesman_dic(data):
-    salesman = {
+def make_user_dic(data):
+    user = {
         "userId": data["user_id"],
         "fullName": data["full_name"]
     }
-    return salesman
-
-
-def make_tailor_dic(data):
-    tailor = {
-        "userId": data["user_id"],
-        "fullName": data["full_name"]
-    }
-    return tailor
+    return user
