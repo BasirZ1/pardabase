@@ -330,7 +330,7 @@ async def add_payment(
         userId: Optional[str] = Form(None),
         amount: Optional[int] = Form(None),
         currency: Optional[str] = Form(None),
-        note: Optional[int] = Form(None),
+        note: Optional[str] = Form(None),
         user_data: dict = Depends(verify_jwt_user(required_level=3))
 ):
     if paymentType == "user":
