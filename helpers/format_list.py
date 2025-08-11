@@ -209,6 +209,24 @@ def get_formatted_users_small_list(users_data):
     return users_list
 
 
+def get_formatted_payments_list(payments_data):
+    """
+    Helper function to format payments data into JSON-compatible objects.
+
+    Parameters:
+    - payments_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted payments dictionaries.
+    """
+    payments_list = []
+    if payments_data:
+        for data in payments_data:
+            payment = make_payment_dic(data)
+            payments_list.append(payment)
+    return payments_list
+
+
 def get_formatted_suppliers_small_list(suppliers_data):
     """
     Helper function to format suppliers data into JSON-compatible objects.
@@ -473,6 +491,14 @@ def make_profile_data_dic(data):
 
 
 def make_user_dic(data):
+    user = {
+        "userId": data["user_id"],
+        "fullName": data["full_name"]
+    }
+    return user
+
+
+def make_payment_dic(data):
     user = {
         "userId": data["user_id"],
         "fullName": data["full_name"]

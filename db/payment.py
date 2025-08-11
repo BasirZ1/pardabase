@@ -1,3 +1,4 @@
+import uuid
 from typing import Optional
 
 from utils import flatbed
@@ -44,3 +45,62 @@ async def add_payment_to_supplier(supplierId, amount, currency, note, payed_by) 
     except Exception as e:
         await flatbed('exception', f"In add_payment_to_supplier: {e}")
         return None
+
+
+async def get_supplier_payment_history_ps(supplier_id: int):
+    """
+    Retrieve payment history based on supplier ID
+
+    Parameters:
+    - supplier_id (int): The id of the supplier.
+
+    Returns:
+    - asyncpg record: payment history.
+    """
+    try:
+        async with connection_context() as conn:
+            query = """
+                SELECT id, amount, currency, note, payed_by, created_at 
+                FROM supplier_payments
+                WHERE supplier_id = $1;
+            """
+            payment_history = await conn.fetch(query, supplier_id)
+
+            if payment_history:
+                return payment_history
+
+            return None
+
+    except Exception as e:
+        await flatbed('exception', f"In get_supplier_payment_history_ps: {e}")
+        raise
+
+
+async def get_user_payment_history_ps(user_id: str):
+    """
+    Retrieve payment history based on user_id
+
+    Parameters:
+    - user_id (str): The id for the user.
+
+    Returns:
+    - asyncpg record: payment history.
+    """
+    try:
+        user_id = uuid.UUID(user_id)
+        async with connection_context() as conn:
+            query = """
+                SELECT id, amount, currency, note, payed_by, created_at
+                FROM user_payments
+                WHERE user_id = $1;
+            """
+            payment_history = await conn.fetch(query, user_id)
+
+            if payment_history:
+                return payment_history
+
+            return None
+
+    except Exception as e:
+        await flatbed('exception', f"In get_user_payment_history_ps: {e}")
+        raise

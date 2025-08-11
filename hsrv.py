@@ -15,7 +15,8 @@ from Models.pydantic_models import BotState
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
-    get_formatted_purchases_list, format_date, format_timestamp, get_formatted_purchase_items
+    get_formatted_purchases_list, format_date, format_timestamp, get_formatted_purchase_items, \
+    get_formatted_payments_list
 from redisdb import get_user_state, set_user_state, get_print_jobs_redis, add_print_job_redis, \
     mark_printed_redis
 from telegram import send_notification, get_text_according_to_message_text, perform_linking_telegram_to_username, \
@@ -39,7 +40,8 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     edit_employment_info_ps, get_employment_info_ps, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list, \
     get_cutting_history_list_for_roll_ps, insert_new_purchase_item, update_purchase_item, get_purchase_items_ps, \
     search_rolls_for_purchase_item, add_payment_to_user, add_payment_to_supplier, get_profile_data_ps, \
-    search_purchases_list_for_supplier, get_supplier_details_ps, fetch_users_list
+    search_purchases_list_for_supplier, get_supplier_details_ps, fetch_users_list, get_user_payment_history_ps, \
+    get_supplier_payment_history_ps
 from utils.config import STATE_CHANGING_COMMANDS
 from utils.hasher import hash_password
 
@@ -846,16 +848,36 @@ async def get_supplier(
     return JSONResponse(content=supplier_details, status_code=200)
 
 
-@router.get("/payment-history-get")
-async def get_payment_history(
+@router.get("/bill-payment-history-get")
+async def get_bill_payment_history(
         code: str,
         _: dict = Depends(verify_jwt_user(required_level=1))
 ):
     """
-    Retrieve payment_history based on code.
+    Retrieve bill payment_history based on code.
     """
     payment_history = await get_payment_history_ps(code)
     return JSONResponse(content=payment_history, status_code=200)
+
+
+@router.get("/payment-history-get")
+async def get_payment_history(
+        paymentType: str,
+        partyValue: str,
+        _: dict = Depends(verify_jwt_user(required_level=1))
+):
+    """
+    Retrieve payment_history based on paymentType and partyValue.
+    """
+    if paymentType == "user":
+        payments_data = await get_user_payment_history_ps(partyValue)
+        payments_history = get_formatted_payments_list(payments_data)
+    elif paymentType == "supplier":
+        payments_data = await get_supplier_payment_history_ps(int(partyValue))
+        payments_history = get_formatted_payments_list(payments_data)
+    else:
+        payments_history = []
+    return JSONResponse(content=payments_history, status_code=200)
 
 
 @router.post("/remove-product")
