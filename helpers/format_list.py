@@ -499,8 +499,12 @@ def make_user_dic(data):
 
 
 def make_payment_dic(data):
-    user = {
-        "userId": data["user_id"],
-        "fullName": data["full_name"]
+    payment = {
+        "id": data["id"],
+        "amount": data["amount"],
+        "currency": data["currency"],
+        "note": data["note"],
+        "payedByName": data["payed_by_name"],
+        "createdAt": format_date(data["created_at"])
     }
-    return user
+    return payment

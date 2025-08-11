@@ -55,21 +55,26 @@ async def get_supplier_payment_history_ps(supplier_id: int):
     - supplier_id (int): The id of the supplier.
 
     Returns:
-    - asyncpg record: payment history.
+    - asyncpg.Record list: payment history with payer's name.
     """
     try:
         async with connection_context() as conn:
             query = """
-                SELECT id, amount, currency, note, payed_by, created_at 
-                FROM supplier_payments
-                WHERE supplier_id = $1;
+                SELECT sp.id,
+                       sp.amount,
+                       sp.currency,
+                       sp.note,
+                       u.full_name AS payed_by_name,
+                       sp.created_at
+                FROM supplier_payments sp
+                LEFT JOIN users u
+                ON sp.payed_by = u.user_id
+                WHERE sp.supplier_id = $1
+                ORDER BY sp.created_at DESC;
             """
             payment_history = await conn.fetch(query, supplier_id)
 
-            if payment_history:
-                return payment_history
-
-            return None
+            return payment_history or None
 
     except Exception as e:
         await flatbed('exception', f"In get_supplier_payment_history_ps: {e}")
@@ -84,22 +89,27 @@ async def get_user_payment_history_ps(user_id: str):
     - user_id (str): The id for the user.
 
     Returns:
-    - asyncpg record: payment history.
+    - asyncpg.Record list: payment history with payer's name.
     """
     try:
         user_id = uuid.UUID(user_id)
         async with connection_context() as conn:
             query = """
-                SELECT id, amount, currency, note, payed_by, created_at
-                FROM user_payments
-                WHERE user_id = $1;
+                SELECT up.id,
+                       up.amount,
+                       up.currency,
+                       up.note,
+                       u.full_name AS payed_by_name,
+                       up.created_at
+                FROM user_payments up
+                LEFT JOIN users u
+                ON up.payed_by = u.user_id
+                WHERE up.user_id = $1
+                ORDER BY up.created_at DESC;
             """
             payment_history = await conn.fetch(query, user_id)
 
-            if payment_history:
-                return payment_history
-
-            return None
+            return payment_history or None
 
     except Exception as e:
         await flatbed('exception', f"In get_user_payment_history_ps: {e}")
