@@ -139,9 +139,9 @@ async def get_cutting_history_list_ps(
     # status filter
     if status and status.lower() not in {"all", ""}:
         params.append(status)
-        clauses.append(f"status = ${len(params)}")
+        clauses.append(f"tx.status = ${len(params)}")
     else:
-        clauses.append("status <> 'draft'")
+        clauses.append("tx.status <> 'draft'")
 
     # date filter
     dr = get_date_range(date_idx)
@@ -149,7 +149,7 @@ async def get_cutting_history_list_ps(
         start, end = dr
         params += [start, end]
         # placeholders are the two most‑recent params we just appended
-        clauses.append(f"created_at BETWEEN ${len(params)-1} AND ${len(params)}")
+        clauses.append(f"tx.created_at BETWEEN ${len(params)-1} AND ${len(params)}")
 
     where_sql = "WHERE " + " AND ".join(clauses)
 
@@ -196,7 +196,7 @@ async def get_cutting_history_list_for_roll_ps(
         FROM   cut_fabric_tx tx
         LEFT JOIN   users u ON tx.created_by = u.user_id
         LEFT JOIN users ru ON tx.reviewed_by = ru.user_id
-        where roll_code = $1
+        where tx.roll_code = $1
         ORDER BY tx.created_at DESC;
     """
 

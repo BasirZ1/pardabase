@@ -32,3 +32,5 @@ from .sync import insert_update_sync, get_sync, fetch_tailors_list, \
 from .payment import add_payment_to_user, add_payment_to_supplier, \
     get_supplier_payment_history_ps, get_user_payment_history_ps
 from .main import get_gallery_db_name
+from .miscellaneous import add_miscellaneous_record_ps, \
+    search_miscellaneous_records_for_supplier

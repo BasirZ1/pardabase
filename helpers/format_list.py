@@ -227,6 +227,24 @@ def get_formatted_payments_list(payments_data):
     return payments_list
 
 
+def get_formatted_misc_list(misc_records_data):
+    """
+    Helper function to format misc_records data into JSON-compatible objects.
+
+    Parameters:
+    - misc_records_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted misc dictionaries.
+    """
+    misc_list = []
+    if misc_records_data:
+        for data in misc_records_data:
+            misc = make_misc_dic(data)
+            misc_list.append(misc)
+    return misc_list
+
+
 def get_formatted_suppliers_small_list(suppliers_data):
     """
     Helper function to format suppliers data into JSON-compatible objects.
@@ -508,3 +526,17 @@ def make_payment_dic(data):
         "createdAt": format_date(data["created_at"])
     }
     return payment
+
+
+def make_misc_dic(data):
+    misc = {
+        "id": data["id"],
+        "transactionType": data["transaction_type"],
+        "amount": data["amount"],
+        "currency": data["currency"],
+        "direction": data["direction"],
+        "note": data["note"],
+        "createdBy": data["created_by"],
+        "createdAt": format_date(data["created_at"])
+    }
+    return misc
