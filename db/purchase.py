@@ -220,7 +220,7 @@ async def search_purchases_list_for_supplier(supplier_id):
                 p.description,
                 p.created_at,
                 p.updated_at,
-                u.username
+                u.username AS created_by
             FROM purchases p
             LEFT JOIN users u ON p.created_by = u.user_id
             LEFT JOIN suppliers s ON p.supplier_id = s.id
