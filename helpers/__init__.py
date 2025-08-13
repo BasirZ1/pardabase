@@ -6,4 +6,4 @@ from .format_list import get_formatted_search_results_list, get_formatted_users_
     get_formatted_purchases_list, make_employment_info_dic, make_purchase_dic, format_date, \
     get_formatted_suppliers_small_list, get_formatted_purchase_items, make_profile_data_dic, \
     parse_date, make_supplier_details_dic, get_formatted_users_small_list, \
-    get_formatted_payments_list, get_formatted_misc_list
+    get_formatted_payments_list, get_formatted_misc_list, get_formatted_earnings_list

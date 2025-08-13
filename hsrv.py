@@ -16,7 +16,7 @@ from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
     get_formatted_purchases_list, format_date, format_timestamp, get_formatted_purchase_items, \
-    get_formatted_payments_list, get_formatted_misc_list
+    get_formatted_payments_list, get_formatted_misc_list, get_formatted_earnings_list
 from redisdb import get_user_state, set_user_state, get_print_jobs_redis, add_print_job_redis, \
     mark_printed_redis
 from telegram import send_notification, get_text_according_to_message_text, perform_linking_telegram_to_username, \
@@ -41,7 +41,8 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     get_cutting_history_list_for_roll_ps, insert_new_purchase_item, update_purchase_item, get_purchase_items_ps, \
     search_rolls_for_purchase_item, add_payment_to_user, add_payment_to_supplier, get_profile_data_ps, \
     search_purchases_list_for_supplier, get_supplier_details_ps, fetch_users_list, get_user_payment_history_ps, \
-    get_supplier_payment_history_ps, search_miscellaneous_records_for_supplier, add_miscellaneous_record_ps
+    get_supplier_payment_history_ps, search_miscellaneous_records, add_miscellaneous_record_ps, \
+    get_users_earning_history_ps, add_earning_to_user
 from utils.config import STATE_CHANGING_COMMANDS
 from utils.hasher import hash_password
 
@@ -374,7 +375,30 @@ async def add_miscellaneous_record(
         return JSONResponse(content={
             "result": False,
         })
-    await remember_users_action(user_data['user_id'], f"miscellaneous record added: {direction} -> {name} {amount} {currency} {transactionType}")
+    await remember_users_action(user_data['user_id'], f"miscellaneous record added: {direction} -> "
+                                                      f"{name} {amount} {currency} {transactionType}")
+    return JSONResponse(content={
+        "result": True
+    })
+
+
+@router.post("/add-user-earning")
+async def add_user_earning(
+        userId: str,
+        amount: int,
+        earningType: str,
+        reference: Optional[str] = Form(None),
+        note: Optional[str] = Form(None),
+        user_data: dict = Depends(verify_jwt_user(required_level=3))
+):
+    # EARNING RECORD
+    username = await add_earning_to_user(userId, amount, earningType, reference, note, user_data['user_id'])
+    if not username:
+        return JSONResponse(content={
+            "result": False,
+        })
+    await remember_users_action(user_data['user_id'], f"earning added for user: {username} -> "
+                                                      f"{amount} {earningType} {reference}")
     return JSONResponse(content={
         "result": True
     })
@@ -906,16 +930,31 @@ async def get_payment_history(
 
 @router.get("/miscellaneous-records-history-get")
 async def get_miscellaneous_records_history(
-        supplierId: int,
+        recordId: int,
+        recordType: str,
         _: dict = Depends(verify_jwt_user(required_level=3))
 ):
     """
-    Retrieve miscellaneous records based on supplierId.
+    Retrieve miscellaneous records based on id (supplier_id, entity_id) and type (supplier, entity).
     """
-    misc_records_data = await search_miscellaneous_records_for_supplier(supplierId)
+    misc_records_data = await search_miscellaneous_records(recordId, recordType)
     misc_list = get_formatted_misc_list(misc_records_data)
 
     return JSONResponse(content=misc_list, status_code=200)
+
+
+@router.get("/earnings-history-get")
+async def get_earnings_history(
+        userId: str,
+        _: dict = Depends(verify_jwt_user(required_level=1))
+):
+    """
+    Retrieve earnings history based on userId.
+    """
+    earnings_data = await get_users_earning_history_ps(userId)
+    earnings_list = get_formatted_earnings_list(earnings_data)
+
+    return JSONResponse(content=earnings_list, status_code=200)
 
 
 @router.post("/remove-product")

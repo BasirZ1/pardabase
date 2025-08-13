@@ -245,6 +245,24 @@ def get_formatted_misc_list(misc_records_data):
     return misc_list
 
 
+def get_formatted_earnings_list(earnings_data):
+    """
+    Helper function to format earnings data into JSON-compatible objects.
+
+    Parameters:
+    - earnings_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted earning dictionaries.
+    """
+    earnings_list = []
+    if earnings_data:
+        for data in earnings_data:
+            earning = make_earning_dic(data)
+            earnings_list.append(earning)
+    return earnings_list
+
+
 def get_formatted_suppliers_small_list(suppliers_data):
     """
     Helper function to format suppliers data into JSON-compatible objects.
@@ -540,3 +558,16 @@ def make_misc_dic(data):
         "createdAt": format_date(data["created_at"])
     }
     return misc
+
+
+def make_earning_dic(data):
+    earning = {
+        "id": data["id"],
+        "amount": data["amount"],
+        "earningType": data["earning_type"],
+        "reference": data["reference"],
+        "note": data["note"],
+        "createdAt": format_date(data["created_at"]),
+        "addedBy": data["added_by_display"]
+    }
+    return earning

@@ -40,37 +40,45 @@ async def add_miscellaneous_record_ps(
         return None
 
 
-async def search_miscellaneous_records_for_supplier(supplier_id):
+async def search_miscellaneous_records(_id: int, _type: str):
     """
-    Retrieve miscellaneous records based on supplier_id.
+    Retrieve miscellaneous records based on id and type.
 
     Parameters:
-    - supplier_id (int): The supplier id for which to retrieve miscellaneous records.
+        _id (int): The id for which to retrieve miscellaneous records (supplier_id or entity_id).
+        _type (str): "supplier" or "entity".
 
     Returns:
-    - List of records from the misc_transactions table that match the criteria.
+        list[asyncpg.Record]: Miscellaneous records that match the criteria.
     """
     try:
         async with connection_context() as conn:
-            query = """
-            SELECT
-                mt.id,
-                mt.transaction_type,
-                mt.amount,
-                mt.currency,
-                mt.direction,
-                mt.note,
-                u.username AS created_by,
-                mt.created_at
-            FROM misc_transactions mt
-            LEFT JOIN users u ON mt.created_by = u.user_id
-            WHERE
-                mt.supplier_id = $1
-            ORDER BY mt.created_at DESC;
+            if _type == "supplier":
+                where_clause = "mt.supplier_id = $1"
+            elif _type == "entity":
+                where_clause = "mt.entity_id = $1"
+            else:
+                raise ValueError("type must be 'supplier' or 'entity'")
+
+            query = f"""
+                SELECT
+                    mt.id,
+                    mt.transaction_type,
+                    mt.amount,
+                    mt.currency,
+                    mt.direction,
+                    mt.note,
+                    u.username AS created_by,
+                    mt.created_at
+                FROM misc_transactions mt
+                LEFT JOIN users u ON mt.created_by = u.user_id
+                WHERE {where_clause}
+                ORDER BY mt.created_at DESC;
             """
-            misc_records = await conn.fetch(query, supplier_id)
+
+            misc_records = await conn.fetch(query, _id)
             return misc_records  # Returns a list of asyncpg Record objects
 
     except Exception as e:
-        await flatbed('exception', f"In search_miscellaneous_records_for_supplier: {e}")
+        await flatbed('exception', f"In search_miscellaneous_records: {e}")
         raise
