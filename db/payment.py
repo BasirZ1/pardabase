@@ -47,6 +47,29 @@ async def add_payment_to_supplier(supplierId, amount, currency, note, payed_by) 
         return None
 
 
+async def add_payment_to_entity(entity_id, amount, currency, note, created_by) -> Optional[str]:
+    try:
+        async with connection_context() as conn:
+            sql_insert = """
+                WITH inserted AS (
+                    INSERT INTO misc_transactions (entity_id, transaction_type,
+                     amount, currency, direction, note, created_by)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    RETURNING entity_id
+                )
+                SELECT e.name
+                FROM inserted i
+                JOIN entities e ON e.id = i.entity_id;
+            """
+            entity_name = await conn.fetchval(sql_insert, entity_id, "payment",
+                                              amount, currency, "out", note, created_by)
+
+            return entity_name
+    except Exception as e:
+        await flatbed('exception', f"In add_payment_to_entity: {e}")
+        return None
+
+
 async def get_supplier_payment_history_ps(supplier_id: int):
     """
     Retrieve payment history based on supplier ID

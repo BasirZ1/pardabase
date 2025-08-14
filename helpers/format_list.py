@@ -155,6 +155,24 @@ def get_formatted_suppliers_list(suppliers_data):
     return suppliers_list
 
 
+def get_formatted_entities_list(entities_data):
+    """
+    Helper function to format entities data into JSON-compatible objects.
+
+    Parameters:
+    - entities_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted entities dictionaries.
+    """
+    entities_list = []
+    if entities_data:
+        for data in entities_data:
+            entity = make_entity_dic(data)
+            entities_list.append(entity)
+    return entities_list
+
+
 def get_formatted_purchases_list(purchases_data):
     """
     Helper function to format purchases data into JSON-compatible objects.
@@ -263,22 +281,22 @@ def get_formatted_earnings_list(earnings_data):
     return earnings_list
 
 
-def get_formatted_suppliers_small_list(suppliers_data):
+def get_formatted_id_name_list(pg_data):
     """
-    Helper function to format suppliers data into JSON-compatible objects.
+    Helper function to format pg data into JSON-compatible objects.
 
     Parameters:
-    - suppliers_data: Raw data fetched from the database.
+    - pg_data: Raw data fetched from the database.
 
     Returns:
-    - A list of formatted suppliers dictionaries.
+    - A list of formatted (id, name) dictionaries.
     """
-    suppliers_list = []
-    if suppliers_data:
-        for data in suppliers_data:
-            supplier = make_supplier_small_dic(data)
-            suppliers_list.append(supplier)
-    return suppliers_list
+    _list = []
+    if pg_data:
+        for data in pg_data:
+            dic = make_id_name_dic(data)
+            _list.append(dic)
+    return _list
 
 
 def format_timestamp(val: Any) -> Any:
@@ -453,6 +471,17 @@ def make_supplier_dic(data):
     return supplier
 
 
+def make_entity_dic(data):
+    entity = {
+        "id": data["id"],
+        "name": data["name"],
+        "phone": data["phone"],
+        "address": data["address"],
+        "notes": data["notes"]
+    }
+    return entity
+
+
 def make_supplier_details_dic(data):
     supplier_details = {
         "purchasesTotalAFN": data["purchases_total_afn"],
@@ -468,12 +497,12 @@ def make_supplier_details_dic(data):
     return supplier_details
 
 
-def make_supplier_small_dic(data):
-    supplier = {
+def make_id_name_dic(data):
+    dic = {
         "id": data["id"],
         "name": data["name"]
     }
-    return supplier
+    return dic
 
 
 def make_purchase_dic(data):

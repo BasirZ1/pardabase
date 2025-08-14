@@ -6,6 +6,7 @@ from .purchase import insert_new_purchase, update_purchase, remove_purchase_ps, 
     insert_new_purchase_item, get_purchase_items_ps, search_purchases_list_for_supplier
 from .supplier import insert_new_supplier, update_supplier, get_supplier_ps, \
     get_suppliers_list_ps, remove_supplier_ps, get_supplier_details_ps
+from .entity import get_entities_list_ps, insert_new_entity, update_entity
 from .image import update_image_bucket_db, remove_image_bucket_db, handle_image_update
 from .roll import insert_new_roll, update_roll, search_rolls_for_product, \
     remove_roll_ps, add_roll_quantity_ps, add_cut_fabric_tx, archive_roll_ps, \
@@ -28,9 +29,11 @@ from .order import insert_new_online_order, subscribe_newsletter_ps, \
     unsubscribe_newsletter_ps, confirm_email_newsletter_ps
 from .report import report_recent_activities_list, report_tags_list
 from .sync import insert_update_sync, get_sync, fetch_tailors_list, \
-    fetch_salesmen_list, fetch_suppliers_list, fetch_users_list
+    fetch_salesmen_list, fetch_suppliers_list, fetch_users_list, \
+    fetch_entities_list
 from .payment import add_payment_to_user, add_payment_to_supplier, \
-    get_supplier_payment_history_ps, get_user_payment_history_ps
+    get_supplier_payment_history_ps, get_user_payment_history_ps, \
+    add_payment_to_entity
 from .main import get_gallery_db_name
 from .miscellaneous import add_miscellaneous_record_ps, \
     search_miscellaneous_records

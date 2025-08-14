@@ -1,4 +1,4 @@
-from helpers import get_formatted_suppliers_small_list, get_formatted_users_small_list
+from helpers import get_formatted_id_name_list, get_formatted_users_small_list
 from utils import flatbed
 from utils.conn import connection_context
 
@@ -43,7 +43,7 @@ async def fetch_suppliers_list():
         async with connection_context() as conn:
             query = "SELECT id, name FROM suppliers;"
             suppliers_data = await conn.fetch(query)
-            suppliers_list = get_formatted_suppliers_small_list(suppliers_data)
+            suppliers_list = get_formatted_id_name_list(suppliers_data)
             return suppliers_list  # Returns a list of asyncpg Record objects
 
     except Exception as e:
@@ -119,4 +119,26 @@ async def fetch_users_list():
 
     except Exception as e:
         await flatbed('exception', f"In fetch_users_list: {e}")
+        raise
+
+
+async def fetch_entities_list():
+    """
+    Retrieve all entities id and name from entities table.
+
+    Returns:
+    - List of asyncpg Records with 'id' and 'name' of entities.
+    """
+    try:
+        async with connection_context() as conn:
+            query = """
+                SELECT id, name
+                FROM entities
+            """
+            entities_data = await conn.fetch(query)
+            entities_list = get_formatted_id_name_list(entities_data)
+            return entities_list
+
+    except Exception as e:
+        await flatbed('exception', f"In fetch_entities_list: {e}")
         raise
