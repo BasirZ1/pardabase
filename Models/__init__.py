@@ -4,4 +4,5 @@ from .pydantic_models import (AuthRequest, UpdateRollRequest, ChangePasswordRequ
                               RefreshTokenRequest, RemoveExpenseRequest, GenerateReportRequest,
                               CommentRequest, UpdateCutFabricTXStatusRequest, RemoveSupplierRequest,
                               RemovePurchaseRequest, CheckSyncRequest, RemoveRequest, GetListsRequest,
-                              MarkPrintedRequest, PrintJob, AddPrintJobRequest)
+                              MarkPrintedRequest, PrintJob, AddPrintJobRequest, RemoveEntityRequest,
+                              BotState)

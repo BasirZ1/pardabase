@@ -50,6 +50,10 @@ class RemoveSupplierRequest(BaseModel):
     supplierId: int
 
 
+class RemoveEntityRequest(BaseModel):
+    entityId: int
+
+
 class RemoveExpenseRequest(BaseModel):
     expenseId: int
 

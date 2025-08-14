@@ -10,8 +10,8 @@ from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     UpdateBillTailorRequest, AddPaymentBillRequest, RemoveUserRequest, AddOnlineOrderRequest, RefreshTokenRequest, \
     RemoveExpenseRequest, GenerateReportRequest, CommentRequest, UpdateCutFabricTXStatusRequest, \
     RemoveSupplierRequest, RemovePurchaseRequest, CheckSyncRequest, RemoveRequest, GetListsRequest, \
-    MarkPrintedRequest, AddPrintJobRequest
-from Models.pydantic_models import BotState
+    MarkPrintedRequest, AddPrintJobRequest, RemoveEntityRequest, BotState
+from db.entity import remove_entity_ps
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
@@ -1078,6 +1078,20 @@ async def remove_supplier(
     result = await remove_supplier_ps(request.supplierId)
     if result:
         await remember_users_action(user_data['user_id'], f"Supplier removed: {request.supplierId}")
+    return JSONResponse(content={"result": result}, status_code=200)
+
+
+@router.post("/remove-entity")
+async def remove_entity(
+        request: RemoveEntityRequest,
+        user_data: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Endpoint to remove an entity.
+    """
+    result = await remove_entity_ps(request.entityId)
+    if result:
+        await remember_users_action(user_data['user_id'], f"Entity removed: {request.entityId}")
     return JSONResponse(content={"result": result}, status_code=200)
 
 
