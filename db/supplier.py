@@ -140,9 +140,15 @@ async def get_supplier_details_ps(supplier_id: int):
                 ),
                 misc_totals AS (
                     SELECT
-                        SUM(CASE WHEN currency = 'AFN' THEN amount ELSE 0 END) AS miscellaneous_total_afn,
-                        SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END) AS miscellaneous_total_usd,
-                        SUM(CASE WHEN currency = 'CNY' THEN amount ELSE 0 END) AS miscellaneous_total_cny
+                        -- Payables (what you owe the supplier)
+                        SUM(CASE WHEN direction = 'in'  AND currency = 'AFN' THEN amount ELSE 0 END) AS misc_payable_afn,
+                        SUM(CASE WHEN direction = 'in'  AND currency = 'USD' THEN amount ELSE 0 END) AS misc_payable_usd,
+                        SUM(CASE WHEN direction = 'in'  AND currency = 'CNY' THEN amount ELSE 0 END) AS misc_payable_cny,
+                
+                        -- Receivables (what supplier owes you)
+                        SUM(CASE WHEN direction = 'out' AND currency = 'AFN' THEN amount ELSE 0 END) AS misc_receivable_afn,
+                        SUM(CASE WHEN direction = 'out' AND currency = 'USD' THEN amount ELSE 0 END) AS misc_receivable_usd,
+                        SUM(CASE WHEN direction = 'out' AND currency = 'CNY' THEN amount ELSE 0 END) AS misc_receivable_cny
                     FROM misc_transactions
                     WHERE supplier_id = $1
                 )
@@ -153,9 +159,15 @@ async def get_supplier_details_ps(supplier_id: int):
                     COALESCE(pay.total_paid_afn, 0) AS total_paid_afn,
                     COALESCE(pay.total_paid_usd, 0) AS total_paid_usd,
                     COALESCE(pay.total_paid_cny, 0) AS total_paid_cny,
-                    COALESCE(mt.miscellaneous_total_afn, 0) AS miscellaneous_total_afn,
-                    COALESCE(mt.miscellaneous_total_usd, 0) AS miscellaneous_total_usd,
-                    COALESCE(mt.miscellaneous_total_cny, 0) AS miscellaneous_total_cny
+                    
+                    -- Misc transactions split
+                    COALESCE(mt.misc_payable_afn, 0)    AS payable_total_afn,
+                    COALESCE(mt.misc_payable_usd, 0)    AS payable_total_usd,
+                    COALESCE(mt.misc_payable_cny, 0)    AS payable_total_cny,
+                    COALESCE(mt.misc_receivable_afn, 0) AS receivable_total_afn,
+                    COALESCE(mt.misc_receivable_usd, 0) AS receivable_total_usd,
+                    COALESCE(mt.misc_receivable_cny, 0) AS receivable_total_cny
+                    
                 FROM purchase_totals pt, payment_totals pay, misc_totals mt
             """, supplier_id)
 

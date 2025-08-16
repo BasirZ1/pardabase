@@ -1,6 +1,6 @@
 from typing import Optional
 
-from helpers.format_list import make_entity_dic
+from helpers.format_list import make_entity_dic, make_entity_details_dic
 from utils import flatbed
 from utils.conn import connection_context
 
@@ -114,59 +114,39 @@ async def get_entities_list_ps():
         raise
 
 
-# async def get_entity_details_ps(entity_id: int):
-#     """
-#      Retrieve a entity's details like aggregated totals for purchases, payments,
-#      and miscellaneous transactions per currency.
-#      """
-#     try:
-#         async with connection_context() as conn:
-#             data = await conn.fetchrow("""
-#                 WITH purchase_totals AS (
-#                     SELECT
-#                         SUM(CASE WHEN currency = 'AFN' THEN total_amount ELSE 0 END) AS purchases_total_afn,
-#                         SUM(CASE WHEN currency = 'USD' THEN total_amount ELSE 0 END) AS purchases_total_usd,
-#                         SUM(CASE WHEN currency = 'CNY' THEN total_amount ELSE 0 END) AS purchases_total_cny
-#                     FROM purchases
-#                     WHERE archived = FALSE AND entity_id = $1
-#                 ),
-#                 payment_totals AS (
-#                     SELECT
-#                         SUM(CASE WHEN currency = 'AFN' THEN amount ELSE 0 END) AS total_paid_afn,
-#                         SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END) AS total_paid_usd,
-#                         SUM(CASE WHEN currency = 'CNY' THEN amount ELSE 0 END) AS total_paid_cny
-#                     FROM entity_payments
-#                     WHERE entity_id = $1
-#                 ),
-#                 misc_totals AS (
-#                     SELECT
-#                         SUM(CASE WHEN currency = 'AFN' THEN amount ELSE 0 END) AS miscellaneous_total_afn,
-#                         SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END) AS miscellaneous_total_usd,
-#                         SUM(CASE WHEN currency = 'CNY' THEN amount ELSE 0 END) AS miscellaneous_total_cny
-#                     FROM misc_transactions
-#                     WHERE entity_id = $1
-#                 )
-#                 SELECT
-#                     COALESCE(pt.purchases_total_afn, 0) AS purchases_total_afn,
-#                     COALESCE(pt.purchases_total_usd, 0) AS purchases_total_usd,
-#                     COALESCE(pt.purchases_total_cny, 0) AS purchases_total_cny,
-#                     COALESCE(pay.total_paid_afn, 0) AS total_paid_afn,
-#                     COALESCE(pay.total_paid_usd, 0) AS total_paid_usd,
-#                     COALESCE(pay.total_paid_cny, 0) AS total_paid_cny,
-#                     COALESCE(mt.miscellaneous_total_afn, 0) AS miscellaneous_total_afn,
-#                     COALESCE(mt.miscellaneous_total_usd, 0) AS miscellaneous_total_usd,
-#                     COALESCE(mt.miscellaneous_total_cny, 0) AS miscellaneous_total_cny
-#                 FROM purchase_totals pt, payment_totals pay, misc_totals mt
-#             """, entity_id)
-#
-#             if data:
-#                 entity_details = make_entity_details_dic(data)
-#                 return entity_details
-#
-#             return None
-#     except Exception as e:
-#         await flatbed('exception', f"In get_entity_details_ps: {e}")
-#         raise
+async def get_entity_details_ps(entity_id: int):
+    """
+     Retrieve an entity's details like payable and receivable totals per currency.
+     """
+    try:
+        async with connection_context() as conn:
+            data = await conn.fetchrow(
+                """
+                SELECT
+                    -- payable: what you owe them (in minus any offsets)
+                    COALESCE(SUM(CASE WHEN direction = 'in' AND currency = 'AFN' THEN amount ELSE 0 END), 0)
+                    AS payable_total_afn,
+                    COALESCE(SUM(CASE WHEN direction = 'in' AND currency = 'USD' THEN amount ELSE 0 END), 0) 
+                    AS payable_total_usd,
+                    COALESCE(SUM(CASE WHEN direction = 'in' AND currency = 'CNY' THEN amount ELSE 0 END), 0)
+                    AS payable_total_cny,
+                    
+                    -- receivable: what they owe you (out minus any offsets)
+                    COALESCE(SUM(CASE WHEN direction = 'out' AND currency = 'AFN' THEN amount ELSE 0 END), 0)
+                    AS receivable_total_afn,
+                    COALESCE(SUM(CASE WHEN direction = 'out' AND currency = 'USD' THEN amount ELSE 0 END), 0)
+                    AS receivable_total_usd,
+                    COALESCE(SUM(CASE WHEN direction = 'out' AND currency = 'CNY' THEN amount ELSE 0 END), 0)
+                    AS receivable_total_cny
+                FROM misc_transactions
+                WHERE entity_id = $1
+            """, entity_id)
+
+            return make_entity_details_dic(data)
+
+    except Exception as e:
+        await flatbed('exception', f"In get_entity_details_ps: {e}")
+        raise
 
 
 async def remove_entity_ps(entity_id: int):

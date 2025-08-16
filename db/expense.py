@@ -4,19 +4,19 @@ from utils import flatbed
 from utils.conn import connection_context
 
 
-async def insert_new_expense(category_index, description, amount) -> Optional[str]:
+async def insert_new_expense(category_index, description, amount, currency, added_by) -> Optional[str]:
     try:
         async with connection_context() as conn:
             sql_insert = """
-                INSERT INTO expenses (category_index, description, amount)
-                VALUES ($1, $2, $3)
+                INSERT INTO expenses (category_index, description, amount, currency, added_by)
+                VALUES ($1, $2, $3, $4, $5)
                 RETURNING id;
             """
-            expense_id = await conn.fetchval(sql_insert, category_index, description, amount)
+            expense_id = await conn.fetchval(sql_insert, category_index, description, amount, currency, added_by)
 
             return expense_id
     except Exception as e:
-        await flatbed('exception', f"In add_expense: {e}")
+        await flatbed('exception', f"In insert_new_expense: {e}")
         return None
 
 

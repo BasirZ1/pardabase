@@ -72,3 +72,22 @@ def delete_temp_file(file_path: str):
     except Exception as e:
         # Log the error if file deletion fails
         flatbed('exception', f"In delete temp file {file_path}: {e}")
+
+
+def get_expense_cat_name(cat_index: str) -> str:
+    if cat_index == 0:
+        return "Supplies"
+    elif cat_index == 1:
+        return "Payroll"
+    elif cat_index == 2:
+        return "Utilities"
+    elif cat_index == 3:
+        return "Marketing"
+    elif cat_index == 4:
+        return "Transport"
+    elif cat_index == 5:
+        return "Office"
+    elif cat_index == 6:
+        return "maintenance"
+    elif cat_index == 7:
+        return "Other"

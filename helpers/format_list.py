@@ -487,14 +487,29 @@ def make_supplier_details_dic(data):
         "purchasesTotalAFN": data["purchases_total_afn"],
         "purchasesTotalUSD": data["purchases_total_usd"],
         "purchasesTotalCNY": data["purchases_total_cny"],
-        "miscellaneousTotalAFN": data["miscellaneous_total_afn"],
-        "miscellaneousTotalUSD": data["miscellaneous_total_usd"],
-        "miscellaneousTotalCNY": data["miscellaneous_total_cny"],
+        "payableTotalAFN": data["payable_total_afn"],
+        "payableTotalUSD": data["payable_total_usd"],
+        "payableTotalCNY": data["payable_total_cny"],
+        "receivableTotalAFN": data["receivable_total_afn"],
+        "receivableTotalUSD": data["receivable_total_usd"],
+        "receivableTotalCNY": data["receivable_total_cny"],
         "totalPaidAFN": data["total_paid_afn"],
         "totalPaidUSD": data["total_paid_usd"],
         "totalPaidCNY": data["total_paid_cny"]
     }
     return supplier_details
+
+
+def make_entity_details_dic(data):
+    entity_details = {
+        "payableTotalAFN": data["payable_total_afn"],
+        "payableTotalUSD": data["payable_total_usd"],
+        "payableTotalCNY": data["payable_total_cny"],
+        "receivableTotalAFN": data["receivable_total_afn"],
+        "receivableTotalUSD": data["receivable_total_usd"],
+        "receivableTotalCNY": data["receivable_total_cny"]
+    }
+    return entity_details
 
 
 def make_id_name_dic(data):

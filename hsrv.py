@@ -11,12 +11,12 @@ from Models import AuthRequest, ChangePasswordRequest, CodeRequest, \
     RemoveExpenseRequest, GenerateReportRequest, CommentRequest, UpdateCutFabricTXStatusRequest, \
     RemoveSupplierRequest, RemovePurchaseRequest, CheckSyncRequest, RemoveRequest, GetListsRequest, \
     MarkPrintedRequest, AddPrintJobRequest, RemoveEntityRequest, BotState
-from db.entity import remove_entity_ps
 from helpers import classify_image_upload, get_formatted_search_results_list, \
     get_formatted_expenses_list, get_formatted_rolls_list, get_formatted_recent_activities_list, \
     get_formatted_users_list, get_formatted_tags_list, format_cut_fabric_records, get_formatted_suppliers_list, \
     get_formatted_purchases_list, format_date, format_timestamp, get_formatted_purchase_items, \
-    get_formatted_payments_list, get_formatted_misc_list, get_formatted_earnings_list, get_formatted_entities_list
+    get_formatted_payments_list, get_formatted_misc_list, get_formatted_earnings_list, get_formatted_entities_list, \
+    get_expense_cat_name
 from redisdb import get_user_state, set_user_state, get_print_jobs_redis, add_print_job_redis, \
     mark_printed_redis
 from telegram import send_notification, get_text_according_to_message_text, perform_linking_telegram_to_username, \
@@ -43,7 +43,7 @@ from db import insert_new_product, update_product, insert_new_roll, update_roll,
     search_purchases_list_for_supplier, get_supplier_details_ps, fetch_users_list, get_user_payment_history_ps, \
     get_supplier_payment_history_ps, search_miscellaneous_records, add_miscellaneous_record_ps, \
     get_users_earning_history_ps, add_earning_to_user, add_payment_to_entity, fetch_entities_list, \
-    get_entities_list_ps, insert_new_entity, update_entity
+    get_entities_list_ps, insert_new_entity, update_entity, remove_entity_ps, get_entity_details_ps
 from utils.config import STATE_CHANGING_COMMANDS
 from utils.hasher import hash_password
 
@@ -345,6 +345,7 @@ async def add_payment(
         supplierId: Optional[int] = Form(None),
         userId: Optional[str] = Form(None),
         entityId: Optional[int] = Form(None),
+        expenseCat: Optional[str] = Form(None),
         amount: Optional[int] = Form(None),
         currency: Optional[str] = Form(None),
         note: Optional[str] = Form(None),
@@ -374,6 +375,15 @@ async def add_payment(
                 "result": False
             })
         await remember_users_action(user_data['user_id'], f"Payment added to entity: {entity_name}")
+    elif paymentType == "expense":
+        # EXPENSE PAYMENT
+        expense_id = await insert_new_expense(expenseCat, note, amount, currency, user_data['user_id'])
+        if not expense_id:
+            return JSONResponse(content={
+                "result": False
+            })
+        expense_cat_name = get_expense_cat_name(expenseCat)
+        await remember_users_action(user_data['user_id'], f"Expense added: {expense_cat_name} {note} {amount} {currency}")
     return JSONResponse(content={
         "result": True
     })
@@ -954,6 +964,18 @@ async def get_supplier_details(
     """
     supplier_details = await get_supplier_details_ps(supplierId)
     return JSONResponse(content=supplier_details, status_code=200)
+
+
+@router.get("/entity-details-get")
+async def get_entity_details(
+        entityId: int,
+        _: dict = Depends(verify_jwt_user(required_level=3))
+):
+    """
+    Retrieve an entity's details based on entity id.
+    """
+    entity_details = await get_entity_details_ps(entityId)
+    return JSONResponse(content=entity_details, status_code=200)
 
 
 @router.get("/bill-payment-history-get")
