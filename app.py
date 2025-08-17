@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 # Import HTTP routes from hsrv.py
-from hsrv import router as http_router
+from routes import *
 from utils import flatbed
 from utils.conn import close_all_pools
 
@@ -43,7 +43,30 @@ app.add_middleware(
 )
 
 # Mount HTTP routes
-app.include_router(http_router)
+routers = [
+    login_router,
+    dashboard_router,
+    product_router,
+    roll_router,
+    bill_router,
+    misc_router,
+    entity_router,
+    supplier_router,
+    purchase_router,
+    expense_router,
+    print_router,
+    telegram_router,
+    payment_router,
+    earning_router,
+    report_router,
+    search_router,
+    sync_router,
+    user_router,
+    pardaaf_router,
+]
+
+for r in routers:
+    app.include_router(r)
 
 
 @app.exception_handler(Exception)
