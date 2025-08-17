@@ -41,12 +41,13 @@ async def add_miscellaneous_record(
 async def get_miscellaneous_records_history(
         recordId: int,
         recordType: str,
+        direction: str,
         _: dict = Depends(verify_jwt_user(required_level=3))
 ):
     """
     Retrieve miscellaneous records based on id (supplier_id, entity_id) and type (supplier, entity).
     """
-    misc_records_data = await search_miscellaneous_records(recordId, recordType)
+    misc_records_data = await search_miscellaneous_records(recordId, recordType, direction)
     misc_list = get_formatted_misc_list(misc_records_data)
 
     return JSONResponse(content=misc_list, status_code=200)

@@ -40,13 +40,14 @@ async def add_miscellaneous_record_ps(
         return None
 
 
-async def search_miscellaneous_records(_id: int, _type: str):
+async def search_miscellaneous_records(_id: int, _type: str, direction: str):
     """
     Retrieve miscellaneous records based on id and type.
 
     Parameters:
         _id (int): The id for which to retrieve miscellaneous records (supplier_id or entity_id).
         _type (str): "supplier" or "entity".
+        direction (str): "in" or "out".
 
     Returns:
         list[asyncpg.Record]: Miscellaneous records that match the criteria.
@@ -54,9 +55,9 @@ async def search_miscellaneous_records(_id: int, _type: str):
     try:
         async with connection_context() as conn:
             if _type == "supplier":
-                where_clause = "mt.supplier_id = $1"
+                where_clause = "mt.supplier_id = $1 AND mt.direction = $2"
             elif _type == "entity":
-                where_clause = "mt.entity_id = $1"
+                where_clause = "mt.entity_id = $1 AND mt.direction = $2"
             else:
                 raise ValueError("type must be 'supplier' or 'entity'")
 
@@ -76,7 +77,7 @@ async def search_miscellaneous_records(_id: int, _type: str):
                 ORDER BY mt.created_at DESC;
             """
 
-            misc_records = await conn.fetch(query, _id)
+            misc_records = await conn.fetch(query, _id, direction)
             return misc_records  # Returns a list of asyncpg Record objects
 
     except Exception as e:
