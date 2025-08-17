@@ -389,11 +389,11 @@ async def add_payment(
     })
 
 
-@router.post("/add-miscellaneous_record")
+@router.post("/add-miscellaneous-record")
 async def add_miscellaneous_record(
-        amount: int,
-        currency: str,
-        direction: str,
+        amount: int = Form(...),
+        currency: str = Form(...),
+        direction: str = Form(...),
         supplierId: Optional[int] = Form(None),
         entityId: Optional[int] = Form(None),
         transactionType: Optional[str] = Form(None),
@@ -416,9 +416,9 @@ async def add_miscellaneous_record(
 
 @router.post("/add-user-earning")
 async def add_user_earning(
-        userId: str,
-        amount: int,
-        earningType: str,
+        userId: str = Form(...),
+        amount: int = Form(...),
+        earningType: str = Form(...),
         reference: Optional[str] = Form(None),
         note: Optional[str] = Form(None),
         user_data: dict = Depends(verify_jwt_user(required_level=3))
