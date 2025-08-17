@@ -6,6 +6,8 @@ from db import get_dashboard_data_ps, get_recent_activities_preview, search_rece
 from helpers import get_formatted_recent_activities_list
 from utils import verify_jwt_user
 
+from tasks.test_tasks import delayed_hello
+
 router = APIRouter()
 load_dotenv(override=True)
 
@@ -23,6 +25,8 @@ async def get_dashboard_data(
     activities_data = await get_recent_activities_preview()
     activities_list = get_formatted_recent_activities_list(activities_data)
     data["recentActivities"] = activities_list
+
+    delayed_hello.apply_async(args=["Condition met!"], countdown=300)
     # Fetch data for the dashboard
     return JSONResponse(content=data, status_code=200)
 
