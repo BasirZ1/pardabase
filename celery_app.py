@@ -22,3 +22,5 @@ celery_app.conf.beat_schedule = {
         "args": (),  # no arguments
     }
 }
+
+celery_app.autodiscover_tasks(["tasks"])
