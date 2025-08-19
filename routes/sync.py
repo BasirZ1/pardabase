@@ -1,4 +1,5 @@
 import asyncio
+from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException
@@ -60,8 +61,8 @@ async def get_lists(
 
 @router.post("/get-inventory-lists")
 async def get_inventory_lists(
-        oldSync: str,
-        _: dict = Depends(verify_jwt_user(required_level=2)),
+        oldSync: Optional[str] = None,
+        _: dict = Depends(verify_jwt_user(required_level=1)),
 ):
 
     products_data, rolls_data = await asyncio.gather(
