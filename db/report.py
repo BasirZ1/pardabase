@@ -97,7 +97,8 @@ async def report_tags_list(from_date, to_date):
         products.name AS product_name,
         products.category AS category,
         rolls.color AS color,
-        rolls.created_at AS created_at
+        rolls.created_at AS created_at,
+        rolls.image_url AS image_url
     FROM
         rolls
     INNER JOIN

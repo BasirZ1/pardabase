@@ -45,7 +45,8 @@ def get_formatted_tags_list(tags_data):
                 "productName": data["product_name"],
                 "categoryIndex": data["category"],
                 "colorLetter": data["color"],
-                "createdAt": format_timestamp(data["created_at"])
+                "createdAt": format_timestamp(data["created_at"]),
+                "imageUrl": data["image_url"]
             }
             tags_list.append(tag)
     return tags_list
