@@ -1,6 +1,6 @@
 from typing import Optional, List, Any
 
-from helpers import get_date_range
+from helpers import get_date_range, parse_date
 from utils import flatbed
 from utils.conn import connection_context
 
@@ -230,6 +230,31 @@ async def update_cut_fabric_tx_status_ps(
     except Exception as e:
         await flatbed('exception', f"In update_cut_fabric_tx_status: {e}")
         raise e
+
+
+async def get_rolls_list_for_sync(old_sync: str):
+    """
+    Retrieve rolls list based on last_sync compared to updated_at.
+    Parameters:
+        old_sync (str): The last sync date (ISO string). If None/empty → fetch all.
+    Returns:
+        List of records from the rolls table.
+    """
+    try:
+        async with connection_context() as conn:
+            if old_sync:
+                last_sync_dt = parse_date(old_sync)
+                query = "SELECT * FROM rolls WHERE updated_at > $1;"
+                rolls_list = await conn.fetch(query, last_sync_dt)
+            else:
+                query = "SELECT * FROM rolls;"
+                rolls_list = await conn.fetch(query)
+
+            return rolls_list
+
+    except Exception as e:
+        await flatbed("exception", f"In get_rolls_list_for_sync: {e}")
+        raise
 
 
 async def search_rolls_for_product(product_code):

@@ -1,11 +1,14 @@
+import asyncio
+
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 
 from Models import CheckSyncRequest, GetListsRequest
 from db import get_sync, fetch_suppliers_list, fetch_salesmen_list, fetch_tailors_list, fetch_users_list, \
-    fetch_entities_list
-from helpers import format_date
+    fetch_entities_list, get_products_list_for_sync, get_rolls_list_for_sync
+from helpers import format_date, get_formatted_products_for_sync_list, \
+    get_formatted_rolls_for_sync_list
 from utils import verify_jwt_user
 
 router = APIRouter()
@@ -51,5 +54,27 @@ async def get_lists(
     for key in keys:
         fetcher = list_fetchers[key]
         results[key] = await fetcher()
+
+    return JSONResponse(content=results, status_code=200)
+
+
+@router.post("/get-inventory-lists")
+async def get_inventory_lists(
+        oldSync: str,
+        _: dict = Depends(verify_jwt_user(required_level=2)),
+):
+
+    products_data, rolls_data = await asyncio.gather(
+        get_products_list_for_sync(oldSync),
+        get_rolls_list_for_sync(oldSync)
+    )
+
+    products_list = get_formatted_products_for_sync_list(products_data)
+    rolls_list = get_formatted_rolls_for_sync_list(rolls_data)
+
+    results = {
+        "products": products_list,
+        "rolls": rolls_list,
+    }
 
     return JSONResponse(content=results, status_code=200)

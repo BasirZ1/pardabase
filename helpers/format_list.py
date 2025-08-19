@@ -113,6 +113,42 @@ def get_formatted_rolls_list(rolls_data):
     return rolls_list
 
 
+def get_formatted_products_for_sync_list(products_data):
+    """
+    Helper function to format products data into JSON-compatible objects.
+
+    Parameters:
+    - products_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted products dictionaries.
+    """
+    products_list = []
+    if products_data:
+        for data in products_data:
+            product = make_product_dic_for_sync(data)
+            products_list.append(product)
+    return products_list
+
+
+def get_formatted_rolls_for_sync_list(rolls_data):
+    """
+    Helper function to format rolls data into JSON-compatible objects.
+
+    Parameters:
+    - rolls_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted rolls dictionaries.
+    """
+    rolls_list = []
+    if rolls_data:
+        for data in rolls_data:
+            roll = make_roll_dic_for_sync(data)
+            rolls_list.append(roll)
+    return rolls_list
+
+
 def get_formatted_users_list(users_data):
     """
     Helper function to format users data into JSON-compatible objects.
@@ -321,38 +357,57 @@ def format_date(val: Any) -> Any:
     return val
 
 
-# def parse_date(val: Any) -> date:
-#     """Ensure the value is a date object. Parse if str, pass through if already date."""
+# def parse_date(val: Any) -> Union[date, datetime, None]:
+#     """
+#     Parses a string to date or datetime object.
+#     - If string has only date (YYYY-MM-DD) → returns date object.
+#     - If string has date and time (YYYY-MM-DD HH:MM[:SS]) → returns datetime object.
+#     - If already date/datetime → returns as is.
+#     """
 #     if isinstance(val, str):
-#         return datetime.strptime(val, "%Y-%m-%d").date()
-#     return val  # Assume it's already a date or None
+#         try:
+#             # Try parsing as datetime first
+#             dt = datetime.fromisoformat(val)
+#             return dt if dt.time() != datetime.min.time() else dt.date()
+#         except ValueError:
+#             pass  # Fall back to strict date parsing
+#
+#         try:
+#             # Try parsing date format explicitly if isoformat fails
+#             return datetime.strptime(val, "%Y-%m-%d").date()
+#         except ValueError:
+#             pass  # Invalid format, let it pass through
+#
+#     if isinstance(val, (date, datetime)):
+#         return val
+#
+#     return None  # For None or unexpected types
 
 
 def parse_date(val: Any) -> Union[date, datetime, None]:
     """
-    Parses a string to date or datetime object.
-    - If string has only date (YYYY-MM-DD) → returns date object.
-    - If string has date and time (YYYY-MM-DD HH:MM[:SS]) → returns datetime object.
-    - If already date/datetime → returns as is.
+    Reverse of format_date:
+    - "YYYY-MM-DD" -> date object
+    - "YYYY-MM-DD HH:MM:SS" -> datetime object (naive)
+    - Already a date/datetime -> returned as is
+    - Anything else -> None
     """
     if isinstance(val, str):
         try:
-            # Try parsing as datetime first
-            dt = datetime.fromisoformat(val)
-            return dt if dt.time() != datetime.min.time() else dt.date()
+            # Match datetime with seconds
+            return datetime.strptime(val, "%Y-%m-%d %H:%M:%S")
         except ValueError:
-            pass  # Fall back to strict date parsing
-
+            pass
         try:
-            # Try parsing date format explicitly if isoformat fails
+            # Match pure date
             return datetime.strptime(val, "%Y-%m-%d").date()
         except ValueError:
-            pass  # Invalid format, let it pass through
+            pass
 
     if isinstance(val, (date, datetime)):
         return val
 
-    return None  # For None or unexpected types
+    return None
 
 
 def format_cut_fabric_records(
@@ -615,3 +670,34 @@ def make_earning_dic(data):
         "addedBy": data["added_by_display"]
     }
     return earning
+
+
+def make_product_dic_for_sync(data):
+    """Full product dictionary including all fields needed for offline sync."""
+    return {
+        "productCode": data["product_code"],
+        "name": data["name"],
+        "categoryIndex": data["category"],
+        "costPerMetre": data["cost_per_metre"],
+        "pricePerMetre": data["price_per_metre"],
+        "description": data["description"],
+        "imageUrl": data["image_url"],
+        "archived": data["archived"],
+        "createdAt": format_date(data["created_at"]),
+        "updatedAt": format_date(data["updated_at"])
+    }
+
+
+def make_roll_dic_for_sync(data):
+    """Full roll dictionary including all fields needed for offline sync."""
+    return {
+        "productCode": data["product_code"],
+        "rollCode": data["roll_code"],
+        "quantity": data["quantity"],
+        "color": data["color"],
+        "imageUrl": data["image_url"],
+        "purchaseItemId": data["purchase_item_id"],
+        "archived": data["archived"],
+        "createdAt": format_date(data["created_at"]),
+        "updatedAt": format_date(data["updated_at"])
+    }

@@ -1,4 +1,4 @@
-from helpers import make_roll_dic, make_product_dic
+from helpers import make_roll_dic, make_product_dic, parse_date
 from utils import flatbed
 from utils.conn import connection_context
 
@@ -68,12 +68,37 @@ async def search_products_list(search_query, search_by):
         raise
 
 
+async def get_products_list_for_sync(old_sync: str):
+    """
+    Retrieve products list based on last_sync compared to updated_at.
+    Parameters:
+        old_sync (str): The last sync date (ISO string). If None/empty → fetch all.
+    Returns:
+        List of records from the products table.
+    """
+    try:
+        async with connection_context() as conn:
+            if old_sync:
+                last_sync_dt = parse_date(old_sync)
+                query = "SELECT * FROM products WHERE updated_at > $1;"
+                products_list = await conn.fetch(query, last_sync_dt)
+            else:
+                query = "SELECT * FROM products;"
+                products_list = await conn.fetch(query)
+
+            return products_list
+
+    except Exception as e:
+        await flatbed("exception", f"In get_products_list_for_sync: {e}")
+        raise
+
+
 async def search_products_list_filtered(stock_condition, category):
     """
-    Retrieve products list based on a date or category filter.
+    Retrieve products list based on stock condition or category filter.
 
     Parameters:
-    - date (int): The date filter for products list.
+    - stock_condition (int): The stock condition to filter products list.
     - category (int): The index for the type of the category:
 
     Returns:
