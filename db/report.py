@@ -93,7 +93,7 @@ async def report_tags_list(from_date, to_date):
 
     query = """
     SELECT
-        (products.product_code || rolls.roll_code) AS full_code,
+        (rolls.product_code || rolls.roll_code) AS full_code,
         products.name AS product_name,
         products.category AS category,
         rolls.color AS color,

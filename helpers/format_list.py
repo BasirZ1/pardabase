@@ -384,28 +384,55 @@ def format_date(val: Any) -> Any:
 #
 #     return None  # For None or unexpected types
 
+# def parse_date(val: Any) -> Union[date, datetime, None]:
+#     """
+#     Reverse of format_date:
+#     - "YYYY-MM-DD" -> date object
+#     - "YYYY-MM-DD HH:MM:SS" -> datetime object (naive)
+#     - Already a date/datetime -> returned as is
+#     - Anything else -> None
+#     """
+#     if isinstance(val, str):
+#         try:
+#             # Match datetime with seconds
+#             return datetime.strptime(val, "%Y-%m-%d %H:%M:%S")
+#         except ValueError:
+#             pass
+#         try:
+#             # Match pure date
+#             return datetime.strptime(val, "%Y-%m-%d").date()
+#         except ValueError:
+#             pass
+#
+#     if isinstance(val, (date, datetime)):
+#         return val
+#
+#     return None
 
-def parse_date(val: Any) -> Union[date, datetime, None]:
+
+def parse_date(val: Any) -> Optional[Union[date, datetime]]:
     """
-    Reverse of format_date:
-    - "YYYY-MM-DD" -> date object
-    - "YYYY-MM-DD HH:MM:SS" -> datetime object (naive)
+    Parse input into date or datetime:
+    - "YYYY-MM-DD" -> date
+    - "YYYY-MM-DD[ T]HH:MM[:SS[.ffffff]][±HH:MM]" -> datetime
     - Already a date/datetime -> returned as is
-    - Anything else -> None
+    - Else -> None
     """
     if isinstance(val, str):
         try:
-            # Match datetime with seconds
-            return datetime.strptime(val, "%Y-%m-%d %H:%M:%S")
+            dt = datetime.fromisoformat(val)
+            # If the string was just YYYY-MM-DD, fromisoformat gives a datetime at midnight.
+            # Detect that and return a pure date instead.
+            if dt.time() == datetime.min.time() and "T" not in val and " " not in val:
+                return dt.date()
+            return dt
         except ValueError:
-            pass
-        try:
-            # Match pure date
-            return datetime.strptime(val, "%Y-%m-%d").date()
-        except ValueError:
-            pass
+            return None
 
-    if isinstance(val, (date, datetime)):
+    if isinstance(val, datetime):
+        return val
+
+    if isinstance(val, date):
         return val
 
     return None
