@@ -79,9 +79,9 @@ async def get_products_list_for_sync(old_sync: str):
     try:
         async with connection_context() as conn:
             if old_sync:
-                last_sync_dt = parse_date(old_sync)
+                old_sync_dt = parse_date(old_sync)
                 query = "SELECT * FROM products WHERE updated_at > $1;"
-                products_list = await conn.fetch(query, last_sync_dt)
+                products_list = await conn.fetch(query, old_sync_dt)
             else:
                 query = "SELECT * FROM products;"
                 products_list = await conn.fetch(query)
