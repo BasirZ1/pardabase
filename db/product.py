@@ -67,25 +67,63 @@ async def search_products_list(search_query, search_by):
         await flatbed('exception', f"In search_products_list: {e}")
         raise
 
+#
+# async def get_products_list_for_sync(old_sync: str):
+#     """
+#     Retrieve products list based on last_sync compared to updated_at.
+#     Parameters:
+#         old_sync (str): The last sync date (ISO string). If None/empty → fetch all.
+#     Returns:
+#         List of records from the products table.
+#     """
+#     try:
+#         async with connection_context() as conn:
+#             if old_sync:
+#                 old_sync_dt = parse_date(old_sync)
+#                 query = """
+#                 SELECT * FROM products WHERE updated_at > $1;
+#                 """
+#                 products_list = await conn.fetch(query, old_sync_dt)
+#             else:
+#                 query = "SELECT * FROM products;"
+#                 products_list = await conn.fetch(query)
+#
+#             return products_list
+#
+#     except Exception as e:
+#         await flatbed("exception", f"In get_products_list_for_sync: {e}")
+#         raise
+
 
 async def get_products_list_for_sync(old_sync: str):
     """
     Retrieve products list based on last_sync compared to updated_at.
     Parameters:
         old_sync (str): The last sync date (ISO string). If None/empty → fetch all.
+    Includes:
+        - quantity (sum of rolls)
+
     Returns:
         List of records from the products table.
     """
     try:
         async with connection_context() as conn:
-            if old_sync:
-                old_sync_dt = parse_date(old_sync)
-                query = "SELECT * FROM products WHERE updated_at > $1;"
-                products_list = await conn.fetch(query, old_sync_dt)
-            else:
-                query = "SELECT * FROM products;"
-                products_list = await conn.fetch(query)
+            old_sync_dt = parse_date(old_sync) if old_sync else None
 
+            query = """
+                SELECT 
+                    p.*,
+                    COALESCE(SUM(r.quantity), 0) AS quantity
+                FROM products p
+                LEFT JOIN rolls r ON r.product_code = p.product_code
+                WHERE (
+                    $1::timestamptz IS NULL
+                    OR (p.updated_at IS NOT NULL AND p.updated_at > $1)
+                )
+                GROUP BY p.product_code
+            """
+
+            products_list = await conn.fetch(query, old_sync_dt)
             return products_list
 
     except Exception as e:
