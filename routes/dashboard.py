@@ -1,8 +1,6 @@
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
-from fastapi import status
-from fastapi.responses import Response
 
 from db import get_dashboard_data_ps, get_recent_activities_preview, search_recent_activities_list
 from helpers import get_formatted_recent_activities_list
@@ -14,7 +12,7 @@ load_dotenv(override=True)
 
 @router.get("/")
 async def index():
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return JSONResponse(content={"result": True}, status_code=200)
 
 
 @router.post("/get-dashboard-data")
