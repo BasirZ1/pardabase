@@ -641,6 +641,7 @@ def make_employment_info_dic(data):
         "billBonusPercent": data["bill_bonus_percent"],
         "note": data["note"],
         "salaryCycle": data["salary_cycle"],
+        "lastCalculatedDate": data["last_calculated_date"],
         "isActive": data["is_active"]
     }
     return employment_info

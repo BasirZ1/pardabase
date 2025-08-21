@@ -94,7 +94,8 @@ async def edit_employment_info_ps(
         tailor_type: Optional[str] = None,
         salesman_status: Optional[str] = None,
         bill_bonus_percent: Optional[int] = None,
-        note: Optional[str] = None
+        note: Optional[str] = None,
+        is_active: Optional[bool] = None
 ):
     """
     Updates employment info in the database.
@@ -108,6 +109,7 @@ async def edit_employment_info_ps(
         salesman_status (Optional[str]): The salesman status of the employee.
         bill_bonus_percent (Optional[int]): Bill bonus percentage if any.
         note (Optional[str]): Detail note.
+        is_active (Optional[bool]): Is Active (Toggle user as active or inactive).
 
     Returns:
         str: username if the update was successful, None otherwise.
@@ -126,8 +128,9 @@ async def edit_employment_info_ps(
                         salesman_status = $4,
                         bill_bonus_percent = $5,
                         note = $6,
-                        salary_cycle = $7
-                    WHERE user_id = $8
+                        salary_cycle = $7,
+                        is_active = $8
+                    WHERE user_id = $9
                     RETURNING user_id
                 )
                 SELECT u.username
@@ -136,7 +139,7 @@ async def edit_employment_info_ps(
             """
 
             username = await conn.fetchval(sql_update, salary_amount, salary_start_date, tailor_type,
-                                           salesman_status, bill_bonus_percent, note, salary_cycle, user_id)
+                                           salesman_status, bill_bonus_percent, note, salary_cycle, is_active, user_id)
             return username
 
     except Exception as e:
@@ -220,7 +223,8 @@ async def get_employment_info_ps(user_id):
         async with connection_context() as conn:
             data = await conn.fetchrow("""
                                SELECT id, user_id::TEXT, salary_amount, salary_start_date, tailor_type, salesman_status,
-                                bill_bonus_percent, note, salary_cycle, is_active FROM user_employment_info
+                                bill_bonus_percent, note, salary_cycle, last_calculated_date, is_active 
+                                FROM user_employment_info
                                WHERE user_id = $1
                            """, user_id)
             if not data:

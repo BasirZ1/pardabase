@@ -53,7 +53,7 @@ async def get_users_earning_history_ps(user_id: str):
             FROM user_earnings ue
             LEFT JOIN users u
                 ON is_uuid(ue.added_by) 
-                AND ue.added_by::uuid = u.user_id
+                AND ue.added_by = u.user_id::text
             WHERE ue.user_id = $1
             ORDER BY ue.created_at DESC;
             """
