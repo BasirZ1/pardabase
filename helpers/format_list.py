@@ -639,7 +639,9 @@ def make_employment_info_dic(data):
         "tailorType": data["tailor_type"],
         "salesmanStatus": data["salesman_status"],
         "billBonusPercent": data["bill_bonus_percent"],
-        "note": data["note"]
+        "note": data["note"],
+        "salaryCycle": data["salary_cycle"],
+        "isActive": data["is_active"]
     }
     return employment_info
 

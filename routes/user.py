@@ -53,6 +53,7 @@ async def edit_employment_info(
         userId: Optional[str] = Form(None),
         salaryAmount: Optional[int] = Form(None),
         salaryStartDate: Optional[str] = Form(None),
+        salaryCycle: Optional[str] = Form(None),
         tailorType: Optional[str] = Form(None),
         salesmanStatus: Optional[str] = Form(None),
         billBonusPercent: Optional[int] = Form(None),
@@ -60,7 +61,7 @@ async def edit_employment_info(
         user_data: dict = Depends(verify_jwt_user(required_level=3))
 ):
     # UPDATE OLD
-    username = await edit_employment_info_ps(userId, salaryAmount, salaryStartDate, tailorType, salesmanStatus,
+    username = await edit_employment_info_ps(userId, salaryAmount, salaryStartDate, salaryCycle, tailorType, salesmanStatus,
                                              billBonusPercent, note)
     if not username:
         return JSONResponse(content={

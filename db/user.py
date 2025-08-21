@@ -1,8 +1,7 @@
-import datetime
 import uuid
 from typing import Optional
 
-from helpers import make_employment_info_dic, make_profile_data_dic
+from helpers import make_employment_info_dic, make_profile_data_dic, parse_date
 from utils import flatbed
 from utils.conn import connection_context
 from utils.hasher import hash_password, check_password
@@ -91,6 +90,7 @@ async def edit_employment_info_ps(
         user_id: str,
         salary_amount: Optional[int] = None,
         salary_start_date: Optional[str] = None,
+        salary_cycle: Optional[str] = None,
         tailor_type: Optional[str] = None,
         salesman_status: Optional[str] = None,
         bill_bonus_percent: Optional[int] = None,
@@ -103,6 +103,7 @@ async def edit_employment_info_ps(
         user_id (str): The user_id for editing the employment info.
         salary_amount (Optional[int]): The salary amount of the employee.
         salary_start_date (Optional[str]): The salary start date of the employee.
+        salary_cycle (Optional[str]): The cycle of salary of the employee (monthly, weekly).
         tailor_type (Optional[str]): The tailor type of the employee.
         salesman_status (Optional[str]): The salesman status of the employee.
         bill_bonus_percent (Optional[int]): Bill bonus percentage if any.
@@ -114,8 +115,7 @@ async def edit_employment_info_ps(
     try:
         async with (connection_context() as conn):
             if salary_start_date:
-                salary_start_date = datetime.datetime.strptime(salary_start_date, "%Y-%m-%d").date(
-                )if isinstance(salary_start_date, str) else salary_start_date
+                salary_start_date = parse_date(salary_start_date)
 
             sql_update = """
                 WITH updated AS (
@@ -125,8 +125,9 @@ async def edit_employment_info_ps(
                         tailor_type = $3,
                         salesman_status = $4,
                         bill_bonus_percent = $5,
-                        note = $6
-                    WHERE user_id = $7
+                        note = $6,
+                        salary_cycle = $7
+                    WHERE user_id = $8
                     RETURNING user_id
                 )
                 SELECT u.username
@@ -135,7 +136,7 @@ async def edit_employment_info_ps(
             """
 
             username = await conn.fetchval(sql_update, salary_amount, salary_start_date, tailor_type,
-                                           salesman_status, bill_bonus_percent, note, user_id)
+                                           salesman_status, bill_bonus_percent, note, salary_cycle, user_id)
             return username
 
     except Exception as e:
@@ -219,7 +220,7 @@ async def get_employment_info_ps(user_id):
         async with connection_context() as conn:
             data = await conn.fetchrow("""
                                SELECT id, user_id::TEXT, salary_amount, salary_start_date, tailor_type, salesman_status,
-                                bill_bonus_percent, note FROM user_employment_info
+                                bill_bonus_percent, note, salary_cycle, is_active FROM user_employment_info
                                WHERE user_id = $1
                            """, user_id)
             if not data:
