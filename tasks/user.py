@@ -12,8 +12,10 @@ def scheduled_salary_calculations_with_email():
     """
     Scheduled task that calculates all due salaries and reports to owners and manager.
     """
+    set_current_db("zmt")
     try:
-        set_current_db("zmt")
+
+        asyncio.run(flatbed("debug", "Schedule is working"))
         # Run async function in sync Celery task
         result = asyncio.run(calculate_all_due_salaries_with_report_ps())
 
