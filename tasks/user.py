@@ -1,7 +1,7 @@
 import asyncio
 
 from celery_app import celery_app
-from db import get_emails_high_clearance_users_ps
+from db import get_emails_high_clearance_users_ps, get_all_gallery_db_names
 from db.earning import calculate_all_due_salaries_with_report_ps
 from helpers import send_salary_report_email
 from utils import set_current_db, flatbed
@@ -10,36 +10,62 @@ from utils import set_current_db, flatbed
 @celery_app.task
 def scheduled_salary_calculations_with_email():
     """
-    Scheduled task that calculates all due salaries and reports to owners and manager.
+    Scheduled task that calculates all due salaries for all tenants
+    and reports to their owners/managers.
     """
-    set_current_db("zmt")
     try:
+        # Step 1: Always start with main db
+        set_current_db("pardaaf_main")
 
-        asyncio.run(flatbed("debug", "Schedule is working"))
-        # Run async function in sync Celery task
-        result = asyncio.run(calculate_all_due_salaries_with_report_ps())
+        # Step 2: Fetch all gallery db_names
+        db_names = asyncio.run(get_all_gallery_db_names())
 
-        if result:
-            # Unpack by column names
-            processed = result.get("processed")
-            errors = result.get("errors")
-            total_amount = result.get("total_amount")
-            summary = result.get("summary")
+        overall_summary = []
 
-            recipients = asyncio.run(get_emails_high_clearance_users_ps())
+        for db_name in db_names:
+            try:
+                # Step 3: Switch to each tenant DB
+                set_current_db(db_name)
 
-            # Send success email
-            asyncio.run(send_salary_report_email(processed, errors, total_amount, summary, recipients))
+                asyncio.run(flatbed("debug", f"Running salary calc for {db_name}"))
 
-            return {
-                "status": "success",
-                "processed": processed,
-                "errors": errors,
-                "totalAmount": total_amount,
-                "summary": summary,
-            }
-        else:
-            raise Exception("No results returned from salary calculation function")
+                result = asyncio.run(calculate_all_due_salaries_with_report_ps())
+
+                if not result:
+                    asyncio.run(flatbed("warning", f"No results for {db_name}"))
+                    continue
+
+                processed = result.get("processed")
+                errors = result.get("errors")
+                total_amount = result.get("total_amount")
+                summary = result.get("summary")
+
+                recipients = asyncio.run(get_emails_high_clearance_users_ps())
+
+                # Step 4: Send tenant-specific email
+                asyncio.run(send_salary_report_email(
+                    processed, errors, total_amount, summary, recipients
+                ))
+
+                overall_summary.append({
+                    "db": db_name,
+                    "status": "success",
+                    "processed": processed,
+                    "errors": errors,
+                    "totalAmount": total_amount,
+                    "summary": summary,
+                })
+
+            except Exception as tenant_error:
+                asyncio.run(flatbed("exception", f"Error for {db_name}: {tenant_error}"))
+                overall_summary.append({
+                    "db": db_name,
+                    "status": "error",
+                    "error": str(tenant_error),
+                })
+
+        asyncio.run(flatbed("debug", str(overall_summary)))
+        return overall_summary
 
     except Exception as e:
         asyncio.run(flatbed("exception", f"In celery salary_calculations_with_email: {e}"))

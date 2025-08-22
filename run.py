@@ -1,12 +1,13 @@
 import asyncio
 
 from db import get_supplier_ps, report_tags_list
+from db.earning import calculate_all_due_salaries_with_report_ps
 from utils import set_current_db
 
 
 async def run_this():
     set_current_db("zmt")
-    data = await report_tags_list("2025-06-24", "2025-08-01")
+    data = await calculate_all_due_salaries_with_report_ps()
     print(data)
     # await get_recent_activities_preview()
     # # await update_user("basirzurmati", "Basir Zurmati",
