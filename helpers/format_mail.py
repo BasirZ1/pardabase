@@ -22,7 +22,7 @@ async def send_salary_report_email(processed, errors, total_amount, summary, rec
             <p><strong>Errors:</strong> {errors} users</p>
             <p><strong>Total Amount:</strong> {total_amount} AFN</p>
             <hr>
-            <pre>{html_summary}</pre>
+            {html_summary}
         </body>
         </html>
         """
