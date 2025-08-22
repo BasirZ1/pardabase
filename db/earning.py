@@ -25,6 +25,20 @@ async def add_earning_to_user(user_id, amount, earning_type, reference, note, ad
         return None
 
 
+async def calculate_all_due_salaries_with_report_ps():
+    try:
+        async with connection_context() as conn:
+            sql_query = """
+                SELECT * FROM calculate_all_due_salaries_with_report();
+            """
+            result = await conn.fetchrow(sql_query)
+
+            return result
+    except Exception as e:
+        await flatbed('exception', f"In calculate_all_due_salaries_with_report_ps: {e}")
+        return None
+
+
 async def get_users_earning_history_ps(user_id: str):
     """
         Retrieve earnings history for a user.

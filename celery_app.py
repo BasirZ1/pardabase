@@ -16,10 +16,9 @@ celery_app.conf.timezone = "Asia/Kabul"
 
 # Periodic scheduled task
 celery_app.conf.beat_schedule = {
-    "send_scheduled_hello": {
-        "task": "tasks.test_tasks.scheduled_hello",
-        "schedule": crontab(hour=15, minute=0),  # fires daily at 15:00 Kabul time
-        "args": (),  # no arguments
+    'daily-salary-calculation': {
+        'task': 'tasks.user.scheduled_salary_calculations',
+        'schedule': crontab(minute=10),  # Run daily at 11:30 PM
     }
 }
 

@@ -302,6 +302,25 @@ async def get_users_list_ps():
         raise
 
 
+async def get_emails_high_clearance_users_ps():
+    """
+    Retrieve all emails from users table for high clearance users.
+
+    Returns:
+        List of email strings for high clearance users.
+    """
+    try:
+        async with connection_context() as conn:
+            query = "SELECT email_address FROM users WHERE level > 2;"
+            records = await conn.fetch(query)
+            emails_list = [r['email_address'] for r in records]  # extract email field
+            return emails_list
+
+    except Exception as e:
+        await flatbed('exception', f"In get_emails_high_clearance_users_ps: {e}")
+        raise
+
+
 async def remove_user_ps(username):
     try:
         async with connection_context() as conn:

@@ -236,7 +236,7 @@ async def subscribe_newsletter(
             https://zmt.basirsoft.tech/confirm-email-newsletter?token={result}\n\n
             If you didn’t request this, you can safely ignore this email.\n
               Sent with ❤️ from parda.af"""
-        await send_mail_html("Confirm your subscription", email, html_content, text_content)
+        await send_mail_html("Confirm your subscription", email, html_content, text_content, include_unsubscribe=True, token=result)
 
     if result == "subscribed":
         return JSONResponse(content={"result": "Already subscribed"}, status_code=200)
