@@ -11,16 +11,18 @@ async def send_salary_report_email(processed, errors, total_amount, summary, rec
         report_date = datetime.datetime.now(kabul_tz).strftime('%Y-%m-%d')
         subject = f"Salary Calculation Report - {report_date}"
 
+        html_summary = summary.replace('\n', '<br>')
+
         html_content = f"""
         <html>
         <body>
             <h2>Salary Calculation Report</h2>
-            <p><strong>Date:</strong> {datetime.datetime.now(kabul_tz).strftime('%Y-%m-%d')}</p>
+            <p><strong>Date:</strong> {report_date}</p>
             <p><strong>Processed:</strong> {processed} users</p>
             <p><strong>Errors:</strong> {errors} users</p>
             <p><strong>Total Amount:</strong> {total_amount} AFN</p>
             <hr>
-            <pre>{summary}</pre>
+            <pre>{html_summary}</pre>
         </body>
         </html>
         """
