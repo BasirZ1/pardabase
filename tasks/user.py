@@ -4,6 +4,7 @@ from celery_app import celery_app
 from db import get_emails_high_clearance_users_ps
 from db.earning import calculate_all_due_salaries_with_report_ps
 from helpers import send_salary_report_email
+from utils import set_current_db
 
 
 @celery_app.task
@@ -12,6 +13,7 @@ def scheduled_salary_calculations_with_email():
     Scheduled task that calculates all due salaries and reports to owners and manager.
     """
     try:
+        set_current_db("zmt")
         # Run async function in sync Celery task
         result = asyncio.run(calculate_all_due_salaries_with_report_ps())
 
