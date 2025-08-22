@@ -13,6 +13,8 @@ async def send_salary_report_email(processed, errors, total_amount, summary, rec
 
         html_summary = summary.replace('\n', '<br>')
 
+        print(html_summary)
+
         html_content = f"""
         <html>
         <body>

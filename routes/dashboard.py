@@ -26,8 +26,6 @@ async def get_dashboard_data(
     activities_list = get_formatted_recent_activities_list(activities_data)
     data["recentActivities"] = activities_list
 
-    scheduled_salary_calculations_with_email.delay()
-
     # Fetch data for the dashboard
     return JSONResponse(content=data, status_code=200)
 

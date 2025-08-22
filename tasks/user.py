@@ -22,20 +22,16 @@ def scheduled_salary_calculations_with_email():
             # Step 2: Fetch all gallery db_names
             db_names = await get_all_gallery_db_names()
 
-            overall_summary = []
-
             for db_name in db_names:
                 try:
                     # Step 3: Switch to each tenant DB
                     set_current_db(db_name)
 
-                    await flatbed("debug", f"Running salary calc for {db_name}")
-
                     result = await calculate_all_due_salaries_with_report_ps()
 
                     if not result:
                         await flatbed("warning", f"No results for {db_name}")
-                        continue
+                        return
 
                     processed = result.get("processed")
                     errors = result.get("errors")
@@ -49,27 +45,8 @@ def scheduled_salary_calculations_with_email():
                         processed, errors, total_amount, summary, recipients
                     )
 
-                    overall_summary.append({
-                        "db": db_name,
-                        "status": "success",
-                        "processed": processed,
-                        "errors": errors,
-                        "totalAmount": total_amount,
-                        "summary": summary,
-                    })
-
                 except Exception as tenant_error:
-                    set_current_db(db_name)
-                    await flatbed("exception", f"In celery salary_calculations_with_email: {tenant_error}")
-                    overall_summary.append({
-                        "db": db_name,
-                        "status": "error",
-                        "error": str(tenant_error),
-                    })
-
-            set_current_db("pardaaf_main")
-            await flatbed("debug", str(overall_summary))
-            return overall_summary
+                    raise tenant_error
 
         except Exception as e:
             set_current_db("pardaaf_main")
