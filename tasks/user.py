@@ -38,6 +38,9 @@ def scheduled_salary_calculations_with_email():
                     total_amount = result.get("total_amount")
                     summary = result.get("summary")
 
+                    if processed == 0 and errors == 0:
+                        return
+
                     recipients = await get_emails_high_clearance_users_ps()
 
                     # Step 4: Send tenant-specific email
