@@ -21,7 +21,6 @@ async def add_or_edit_product(
         codeToEdit: Optional[str] = Form(None),
         name: str = Form(...),
         categoryIndex: int = Form(...),
-        cost: int = Form(...),
         price: int = Form(...),
         description: Optional[str] = Form(None),
         image: Optional[UploadFile] = File(None),
@@ -31,7 +30,7 @@ async def add_or_edit_product(
 
     if codeToEdit is None:
         # CREATE NEW
-        product_code = await insert_new_product(name, categoryIndex, cost, price, description)
+        product_code = await insert_new_product(name, categoryIndex, price, description)
         if not product_code:
             return JSONResponse(content={"result": False, "code": product_code, "name": name})
 
@@ -39,7 +38,7 @@ async def add_or_edit_product(
         await remember_users_action(user_data['user_id'], f"Product Added: {product_code}")
     else:
         # UPDATE EXISTING
-        product_code = await update_product(codeToEdit, name, categoryIndex, cost, price, description)
+        product_code = await update_product(codeToEdit, name, categoryIndex, price, description)
         if not product_code:
             return JSONResponse(content={"result": False, "code": product_code, "name": name})
 

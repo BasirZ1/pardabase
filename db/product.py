@@ -3,20 +3,19 @@ from utils import flatbed
 from utils.conn import connection_context
 
 
-async def insert_new_product(name, category_index, cost_per_metre, price, description):
+async def insert_new_product(name, category_index, price, description):
     try:
         async with connection_context() as conn:
             sql_insert = """
                 INSERT INTO products (
                     name,
                     category,
-                    cost_per_metre,
                     price_per_metre,
                     description
-                ) VALUES ($1, $2, $3, $4, $5)
+                ) VALUES ($1, $2, $3, $4)
                 RETURNING product_code
             """
-            product_code = await conn.fetchval(sql_insert, name, category_index, cost_per_metre, price,
+            product_code = await conn.fetchval(sql_insert, name, category_index, price,
                                                description)
 
             return product_code
@@ -25,19 +24,19 @@ async def insert_new_product(name, category_index, cost_per_metre, price, descri
         return None
 
 
-async def update_product(codeToEdit, name, category_index, cost_per_metre, price, description):
+async def update_product(codeToEdit, name, category_index, price, description):
     try:
         async with connection_context() as conn:
             sql_update = """
                 UPDATE products
                 SET name = $1,
-                category = $2, cost_per_metre = $3,
-                price_per_metre = $4, description = $5,
+                category = $2,
+                price_per_metre = $3, description = $4,
                 updated_at = now()
-                WHERE product_code = $6
+                WHERE product_code = $5
                 RETURNING product_code
             """
-            product_code = await conn.fetchval(sql_update, name, category_index, cost_per_metre,
+            product_code = await conn.fetchval(sql_update, name, category_index,
                                                price, description, codeToEdit)
 
             return product_code
@@ -66,33 +65,6 @@ async def search_products_list(search_query, search_by):
     except Exception as e:
         await flatbed('exception', f"In search_products_list: {e}")
         raise
-
-#
-# async def get_products_list_for_sync(old_sync: str):
-#     """
-#     Retrieve products list based on last_sync compared to updated_at.
-#     Parameters:
-#         old_sync (str): The last sync date (ISO string). If None/empty → fetch all.
-#     Returns:
-#         List of records from the products table.
-#     """
-#     try:
-#         async with connection_context() as conn:
-#             if old_sync:
-#                 old_sync_dt = parse_date(old_sync)
-#                 query = """
-#                 SELECT * FROM products WHERE updated_at > $1;
-#                 """
-#                 products_list = await conn.fetch(query, old_sync_dt)
-#             else:
-#                 query = "SELECT * FROM products;"
-#                 products_list = await conn.fetch(query)
-#
-#             return products_list
-#
-#     except Exception as e:
-#         await flatbed("exception", f"In get_products_list_for_sync: {e}")
-#         raise
 
 
 async def get_products_list_for_sync(old_sync: str):
