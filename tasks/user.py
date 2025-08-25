@@ -30,33 +30,43 @@ def scheduled_salary_calculations_with_email():
                     result = await calculate_all_due_salaries_with_report_ps()
 
                     if not result:
-                        await flatbed("warning", f"No results for {db_name}")
-                        return
+                        await flatbed("warning", f"No results returned from calculate_all_due_salaries_with_report_ps")
+                        continue
 
-                    processed = result.get("processed")
-                    errors = result.get("errors")
-                    total_amount = result.get("total_amount")
-                    summary = result.get("summary")
+                    processed = result.get("processed", 0)
+                    errors = result.get("errors", 0)
+                    total_amount = result.get("total_amount", 0)
+                    summary = result.get("summary", "")
 
-                    if processed == 0 and errors == 0:
-                        return
-
-                    recipients = await get_emails_high_clearance_users_ps()
-
-                    # Step 4: Send tenant-specific email
-                    await send_salary_report_email(
-                        processed, errors, total_amount, summary, recipients
-                    )
+                    # ✅ Only send email if there's something to report
+                    if processed > 0 or errors > 0:
+                        recipients = await get_emails_high_clearance_users_ps()
+                        await send_salary_report_email(
+                            processed, errors, total_amount, summary, recipients
+                        )
+                    else:
+                        await flatbed("info", f"Skipping calculation email, nothing to report")
 
                 except Exception as tenant_error:
-                    raise tenant_error
+                    await flatbed("exception", f"In celery salary_calculations_with_email: {tenant_error}")
+                    continue  # move to next tenant
 
         except Exception as e:
             set_current_db("pardaaf_main")
             await flatbed("exception", f"In celery salary_calculations_with_email: {e}")
-            return {
-                "status": "error",
-                "error": str(e),
-            }
+            return {"status": "error", "error": str(e)}
 
-    asyncio.run(run_for_all_tenants())
+    # =====================
+    # ✅ Celery + asyncio integration
+    # =====================
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    # In Celery, loop is usually not running → safe to just run until complete
+    return loop.run_until_complete(run_for_all_tenants())
