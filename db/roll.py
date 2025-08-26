@@ -42,22 +42,22 @@ async def update_roll(codeToEdit, quantity, color_letter):
         return None
 
 
-async def add_roll_quantity_ps(roll_code, quantity) -> bool:
-    try:
-        async with connection_context() as conn:
-            sql_update = """
-                        UPDATE rolls
-                        SET quantity = quantity + $1, updated_at = now()
-                        WHERE roll_code = $2
-                        RETURNING quantity
-                    """
-            updated_quantity = await conn.fetchval(sql_update, quantity, roll_code)
-
-            return updated_quantity is not None
-
-    except Exception as e:
-        await flatbed('exception', f"In add_roll_quantity_ps: {e}")
-        raise e
+# async def add_roll_quantity_ps(roll_code, quantity, comment) -> bool:
+#     try:
+#         async with connection_context() as conn:
+#             sql_update = """
+#                         UPDATE rolls
+#                         SET quantity = quantity + $1, updated_at = now()
+#                         WHERE roll_code = $2
+#                         RETURNING quantity
+#                     """
+#             updated_quantity = await conn.fetchval(sql_update, quantity, roll_code)
+#
+#             return updated_quantity is not None
+#
+#     except Exception as e:
+#         await flatbed('exception', f"In add_roll_quantity_ps: {e}")
+#         raise e
 
 
 async def add_cut_fabric_tx(

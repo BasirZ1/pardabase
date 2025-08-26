@@ -63,6 +63,7 @@ class UpdateRollRequest(BaseModel):
     quantity: int
     action: str
     comment: Optional[str] = None
+    reference: Optional[str] = None
 
 
 class CommentRequest(BaseModel):
