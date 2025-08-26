@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from Models import RemoveRequest, UpdateRollRequest, UpdateCutFabricTXStatusRequest, CommentRequest
 from db import insert_new_roll, handle_image_update, remember_users_action, update_roll, remove_roll_ps, \
-    archive_roll_ps, add_roll_quantity_ps, add_cut_fabric_tx, search_rolls_for_product, \
+    archive_roll_ps, add_cut_fabric_tx, search_rolls_for_product, \
     get_cutting_history_list_for_roll_ps, get_cutting_history_list_ps, update_cut_fabric_tx_status_ps, \
     search_rolls_for_purchase_item, get_drafts_list_ps
 from helpers import classify_image_upload, get_formatted_rolls_list, format_cut_fabric_records

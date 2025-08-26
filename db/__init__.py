@@ -10,7 +10,7 @@ from .entity import get_entities_list_ps, insert_new_entity, update_entity, \
     get_entity_details_ps, remove_entity_ps, get_entity_ps
 from .image import update_image_bucket_db, remove_image_bucket_db, handle_image_update
 from .roll import insert_new_roll, update_roll, search_rolls_for_product, \
-    remove_roll_ps, add_roll_quantity_ps, add_cut_fabric_tx, archive_roll_ps, \
+    remove_roll_ps, add_cut_fabric_tx, archive_roll_ps, \
     update_cut_fabric_tx_status_ps, get_drafts_list_ps, get_cutting_history_list_ps, \
     get_cutting_history_list_for_roll_ps, search_rolls_for_purchase_item, \
     get_rolls_list_for_sync
