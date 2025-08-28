@@ -25,43 +25,51 @@ async def add_payment(
         note: Optional[str] = Form(None),
         user_data: dict = Depends(verify_jwt_user(required_level=3))
 ):
+    expense_cat_id = None
+    expense_note = note or ""
+
     if paymentType == "user":
-        # USER PAYMENT
         username = await add_payment_to_user(userId, amount, currency, note, user_data['user_id'])
         if not username:
-            return JSONResponse(content={
-                "result": False,
-            })
-        await remember_users_action(user_data['user_id'], f"payment added to user: {username}")
+            return JSONResponse(content={"result": False})
+        await remember_users_action(user_data['user_id'], f"Payment added to user: {username}")
+
+        expense_cat_id = 1
+        expense_note = f"[User: {username}] {expense_note}"
+
     elif paymentType == "supplier":
-        # SUPPLIER PAYMENT
         supplier_name = await add_payment_to_supplier(supplierId, amount, currency, note, user_data['user_id'])
         if not supplier_name:
-            return JSONResponse(content={
-                "result": False
-            })
+            return JSONResponse(content={"result": False})
         await remember_users_action(user_data['user_id'], f"Payment added to supplier: {supplier_name}")
+
+        expense_cat_id = 0
+        expense_note = f"[Supplier: {supplier_name}] {expense_note}"
+
     elif paymentType == "entity":
-        # ENTITY PAYMENT
         entity_name = await add_payment_to_entity(entityId, amount, currency, note, user_data['user_id'])
         if not entity_name:
-            return JSONResponse(content={
-                "result": False
-            })
+            return JSONResponse(content={"result": False})
         await remember_users_action(user_data['user_id'], f"Payment added to entity: {entity_name}")
+
+        expense_cat_id = 7
+        expense_note = f"[Entity: {entity_name}] {expense_note}"
+
     elif paymentType == "expense":
-        # EXPENSE PAYMENT
-        expense_id = await insert_new_expense(expenseCat, note, amount, currency, user_data['user_id'])
+        expense_cat_id = expenseCat
+
+    # Save expense if category decided
+    if expense_cat_id is not None:
+        expense_id = await insert_new_expense(expense_cat_id, expense_note, amount, currency, user_data['user_id'])
         if not expense_id:
-            return JSONResponse(content={
-                "result": False
-            })
-        expense_cat_name = get_expense_cat_name(expenseCat)
-        await remember_users_action(user_data['user_id'], f"Expense added: {expense_cat_name}"
-                                    f" {note} {amount} {currency}")
-    return JSONResponse(content={
-        "result": True
-    })
+            return JSONResponse(content={"result": False})
+        expense_cat_name = get_expense_cat_name(str(expense_cat_id))
+        await remember_users_action(
+            user_data['user_id'],
+            f"Expense added: {expense_cat_name} {expense_note} {amount} {currency}"
+        )
+
+    return JSONResponse(content={"result": True})
 
 
 @router.get("/payment-history-get")

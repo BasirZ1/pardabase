@@ -64,10 +64,19 @@ async def get_search_products_list(
     results = []
     product_code_pattern = re.fullmatch(r"(?i)p\d+", searchQuery)
     roll_code_pattern = re.fullmatch(r"(?i)p\d+r\d+", searchQuery)
+    short_roll_code_pattern = re.fullmatch(r"(?i)r\d+", searchQuery)
 
     if roll_code_pattern:
         product_data = await get_product_and_roll_ps(searchQuery)
-        results.append(product_data)
+        if product_data:
+            results.append(product_data)
+
+    elif short_roll_code_pattern:
+        # Roll code like R2; get roll and product.
+        product_data = await get_roll_and_product_ps(searchQuery)
+        if product_data:
+            results.append(product_data)
+
     elif product_code_pattern:
         products = await search_products_list(searchQuery, 0)
         results = get_formatted_search_results_list(products, None)
