@@ -510,8 +510,8 @@ def make_expense_dic(data):
         "categoryIndex": data["category_index"],
         "description": data["description"],
         "amount": data["amount"],
-        "date": data["date"].isoformat() if isinstance(data["date"],
-                                                       (date, datetime)) else data["date"]
+        "date": format_date(data["date"]),
+        "added_by": data["added_by_display"]
     }
     return expense
 
