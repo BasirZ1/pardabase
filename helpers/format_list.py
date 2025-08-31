@@ -318,6 +318,24 @@ def get_formatted_earnings_list(earnings_data):
     return earnings_list
 
 
+def get_formatted_notifications_list(notifications_data):
+    """
+    Helper function to format notifications data into JSON-compatible objects.
+
+    Parameters:
+    - notifications_data: Raw data fetched from the database.
+
+    Returns:
+    - A list of formatted notification dictionaries.
+    """
+    notifications_list = []
+    if notifications_data:
+        for data in notifications_data:
+            notification = make_notification_dic(data)
+            notifications_list.append(notification)
+    return notifications_list
+
+
 def get_formatted_id_name_list(pg_data):
     """
     Helper function to format pg data into JSON-compatible objects.
@@ -698,6 +716,19 @@ def make_earning_dic(data):
         "note": data["note"],
         "createdAt": format_date(data["created_at"]),
         "addedBy": data["added_by_display"]
+    }
+    return earning
+
+
+def make_notification_dic(data):
+    earning = {
+        "id": data["id"],
+        "type": data["type"],
+        "reference": data["reference"],
+        "message": data["message"],
+        "targetUserId": data["target_user_id"],
+        "targetRoles": data["target_roles"],
+        "createdAt": format_date(data["created_at"])
     }
     return earning
 

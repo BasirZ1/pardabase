@@ -17,3 +17,4 @@ from .earning import router as earning_router
 from .pardaaf import router as pardaaf_router
 from .print import router as print_router
 from .telegram import router as telegram_router
+from .notification import router as notification_router

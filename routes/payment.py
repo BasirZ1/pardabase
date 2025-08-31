@@ -52,9 +52,6 @@ async def add_payment(
             return JSONResponse(content={"result": False})
         await remember_users_action(user_data['user_id'], f"Payment added to entity: {entity_name}")
 
-        expense_cat_id = 7
-        expense_note = f"[Entity: {entity_name}] {expense_note}"
-
     elif paymentType == "expense":
         expense_cat_id = expenseCat
 

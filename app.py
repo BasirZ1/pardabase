@@ -63,6 +63,7 @@ routers = [
     sync_router,
     user_router,
     pardaaf_router,
+    notification_router,
 ]
 
 for r in routers:
