@@ -9,7 +9,7 @@ async def get_notifications_for_user_ps(user_id: str, level: int, old_sync: Opti
     if old_sync:
         old_sync = parse_date(old_sync)
     else:
-        old_sync = '1970-01-01T00:00:00Z'  # fetch all if not provided
+        old_sync = parse_date('1970-01-01T00:00:00Z')  # fetch all if not provided
 
     try:
         async with connection_context() as conn:

@@ -721,7 +721,7 @@ def make_earning_dic(data):
 
 
 def make_notification_dic(data):
-    earning = {
+    notification = {
         "id": data["id"],
         "type": data["type"],
         "reference": data["reference"],
@@ -730,7 +730,7 @@ def make_notification_dic(data):
         "targetRoles": data["target_roles"],
         "createdAt": format_date(data["created_at"])
     }
-    return earning
+    return notification
 
 
 def make_product_dic_for_sync(data):
