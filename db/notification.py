@@ -9,7 +9,7 @@ async def get_notifications_for_user_ps(user_id: str, level: int, old_sync: Opti
     if old_sync:
         old_sync = parse_date(old_sync)
     else:
-        old_sync = parse_date('1970-01-01T00:00:00Z')  # fetch all if not provided
+        old_sync = None
 
     try:
         async with connection_context() as conn:
@@ -20,7 +20,7 @@ async def get_notifications_for_user_ps(user_id: str, level: int, old_sync: Opti
                    (n.target_user_id is not null and n.target_user_id = $1::uuid)
                 or (n.target_roles is not null and $2 = any(n.target_roles))
                 )
-                and n.created_at > $3
+                and ($3::timestamptz is null or n.created_at > $3::timestamptz)
                 order by n.created_at desc
                 limit 50;
             """
