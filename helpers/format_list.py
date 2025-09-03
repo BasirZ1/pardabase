@@ -726,7 +726,7 @@ def make_notification_dic(data):
         "type": data["type"],
         "reference": data["reference"],
         "message": data["message"],
-        "targetUserId": data["target_user_id"],
+        "targetUserId": str(data["target_user_id"]),
         "targetRoles": data["target_roles"],
         "createdAt": format_date(data["created_at"])
     }
