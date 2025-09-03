@@ -20,6 +20,7 @@ async def get_notifications_for_user_ps(user_id: str, level: int, old_sync: Opti
                 (n.target_user_id is not null and n.target_user_id = $1)
                 or (n.target_roles is not null and $2 = any(n.target_roles))
                 )
+                and n.created_at > $3
                 order by n.created_at desc
                 limit 50;
             """
