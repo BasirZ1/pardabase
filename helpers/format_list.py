@@ -1,4 +1,5 @@
 #  Helper Functions
+import re
 from datetime import datetime, date
 from typing import Any, Iterable, Mapping, Callable, Optional, Dict, List, Union
 
@@ -549,14 +550,20 @@ def make_product_dic(data):
 
 
 def make_roll_dic(data):
+    archived = data.get("archived")
+
     roll = {
         "productCode": data["product_code"],
         "rollCode": data["roll_code"],
         "quantityInCm": data["quantity"],
         "colorLetter": data["color"],
         "imageUrl": data["image_url"],
-        "costPerMetre": data["cost_per_metre"]
+        "costPerMetre": data["cost_per_metre"],
     }
+
+    if archived is not None:
+        roll["archived"] = archived
+
     return roll
 
 
@@ -762,3 +769,14 @@ def make_roll_dic_for_sync(data):
         "createdAt": format_date(data["created_at"]),
         "updatedAt": format_date(data["updated_at"])
     }
+
+
+def to_camel_case(s: str) -> str:
+    """Convert snake_case or kebab-case to camelCase."""
+    parts = re.split(r'[_\- ]+', s)
+    return parts[0].lower() + ''.join(word.capitalize() for word in parts[1:])
+
+
+def make_camel_dict(data: dict) -> dict:
+    """Convert all keys in a dict to camelCase, keeping values as-is."""
+    return {to_camel_case(k): v for k, v in data.items()}

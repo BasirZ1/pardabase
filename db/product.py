@@ -154,10 +154,11 @@ async def get_product_and_roll_ps(code):
                     r.quantity, 
                     r.color, 
                     r.image_url,
-                    pi.cost_per_metre
+                    pi.cost_per_metre,
+                    r.archived
                 FROM rolls r
                 LEFT JOIN purchase_items pi ON r.purchase_item_id = pi.id
-                WHERE r.product_code = $1 AND r.roll_code = $2 AND r.archived = false
+                WHERE r.product_code = $1 AND r.roll_code = $2
                 """
                 roll = await conn.fetchrow(query_roll, product_code, roll_code)
 
@@ -184,10 +185,11 @@ async def get_roll_and_product_ps(code):
                 r.quantity, 
                 r.color, 
                 r.image_url,
-                pi.cost_per_metre
+                pi.cost_per_metre,
+                r.archived
             FROM rolls r
             LEFT JOIN purchase_items pi ON r.purchase_item_id = pi.id
-            WHERE r.roll_code = $1 AND r.archived = false
+            WHERE r.roll_code = $1
             """
             roll = await conn.fetchrow(query_roll, roll_code)
 
