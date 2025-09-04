@@ -18,11 +18,11 @@ celery_app.conf.timezone = "Asia/Kabul"
 celery_app.conf.beat_schedule = {
     'daily-salary-calculation': {
         'task': 'tasks.user.scheduled_salary_calculations_with_email',
-        'schedule': crontab(hour=20, minute=0),  # Run daily at 8:00 PM
+        'schedule': crontab(hour=19, minute=0),  # Run daily at 7:00 PM
     },
     'daily-backup-all-tenants': {
         'task': 'tasks.backup.scheduled_backup_all_tenants',
-        'schedule': crontab(minute=42),  # Run daily at 8:00 PM
+        'schedule': crontab(hour=20, minute=0),  # Run daily at 8:00 PM
     }
 }
 

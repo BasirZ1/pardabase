@@ -17,16 +17,17 @@ def scheduled_backup_all_tenants():
     """
 
     async def run_for_all_tenants():
+        main_db = "pardaaf_main"
+        set_current_db(main_db)
         try:
             kabul_tz = ZoneInfo("Asia/Kabul")
             timestamp = datetime.now(kabul_tz).strftime('%Y%m%d_%H%M%S')
 
             # Step 1: Always back up main db first
-            main_db = "pardaaf_main"
+
             await backup_single_db(main_db, timestamp)
 
-            # Step 2: Switch to main db and fetch tenant db_names
-            set_current_db(main_db)
+            # Step 2: Fetch tenant db_names
             db_names = await get_all_gallery_db_names()
 
             # Step 3: Backup each tenant DB
@@ -38,7 +39,6 @@ def scheduled_backup_all_tenants():
                     continue  # move to next tenant
 
         except Exception as e:
-            set_current_db("pardaaf_main")
             await flatbed("exception", f"In celery backup_all_tenants: {e}")
             return {"status": "error", "error": str(e)}
 
