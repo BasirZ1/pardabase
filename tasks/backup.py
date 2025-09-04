@@ -64,7 +64,7 @@ async def backup_single_db(db_name: str, timestamp: str):
     dump_file = f"/tmp/{db_name}_{timestamp}.sql"
 
     cmd = [
-        "pg_dump",
+        "/usr/bin/pg_dump",
         "-h", os.getenv("DB_HOST", "localhost"),
         "-U", os.getenv("DB_USER", "postgres"),
         "-d", db_name,

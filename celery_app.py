@@ -22,7 +22,7 @@ celery_app.conf.beat_schedule = {
     },
     'daily-backup-all-tenants': {
         'task': 'tasks.backup.scheduled_backup_all_tenants',
-        'schedule': crontab(minute=15),  # Run daily at 8:00 PM
+        'schedule': crontab(minute=28),  # Run daily at 8:00 PM
     }
 }
 
