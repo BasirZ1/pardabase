@@ -61,12 +61,13 @@ async def backup_single_db(db_name: str, timestamp: str):
     """
     Dump a single DB and push to rclone.
     """
-    dump_file = f"/tmp/{db_name}_{timestamp}.sql"
+    dump_file = f"/tmp/{db_name}_{timestamp}.dump"
 
     cmd = [
         "/usr/bin/pg_dump",
         "-h", os.getenv("DB_HOST", "localhost"),
         "-U", os.getenv("DB_USER", "postgres"),
+        "-Fc",
         "-d", db_name,
         "-f", dump_file,
     ]
