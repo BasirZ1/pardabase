@@ -442,6 +442,10 @@ async def get_payment_history_ps(code):
         return None
 
 
+async def check_due_add_notification_for_related_staff():
+    return False
+
+
 async def remove_bill_ps(code):
     try:
         async with connection_context() as conn:

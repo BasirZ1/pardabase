@@ -18,10 +18,10 @@ async def add_print_job(req: AddPrintJobRequest, user_data: dict = Depends(verif
 
 @router.get("/get-print-jobs")
 async def get_print_jobs(
-        tenant: str,
-        since: int = 0
+        since: int = 0,
+        user_data: dict = Depends(verify_jwt_user(required_level=3))
 ):
-    jobs = await get_print_jobs_redis(tenant, since)
+    jobs = await get_print_jobs_redis(user_data['tenant'], since)
     return {"jobs": jobs}
 
 

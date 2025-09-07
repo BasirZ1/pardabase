@@ -1,9 +1,7 @@
-import asyncio
-
 from celery_app import celery_app
 from db import get_emails_high_clearance_users_ps, get_all_gallery_db_names
 from db.earning import calculate_all_due_salaries_with_report_ps
-from helpers import send_salary_report_email
+from helpers import send_salary_report_email, run_async
 from utils import set_current_db, flatbed
 
 
@@ -56,17 +54,4 @@ def scheduled_salary_calculations_with_email():
             await flatbed("exception", f"In celery salary_calculations_with_email: {e}")
             return {"status": "error", "error": str(e)}
 
-    # =====================
-    # ✅ Celery + asyncio integration
-    # =====================
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_closed():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-    # In Celery, loop is usually not running → safe to just run until complete
-    return loop.run_until_complete(run_for_all_tenants())
+    run_async(run_for_all_tenants())

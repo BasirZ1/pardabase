@@ -10,3 +10,4 @@ from .format_list import get_formatted_search_results_list, get_formatted_users_
     get_formatted_entities_list, make_entity_details_dic, get_formatted_products_for_sync_list, \
     get_formatted_rolls_for_sync_list, get_formatted_notifications_list
 from .format_mail import send_salary_report_email
+from .celery import run_async
