@@ -4,7 +4,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-# Import HTTP routes from hsrv.py
 from routes import *
 from utils import flatbed
 from utils.conn import close_all_pools

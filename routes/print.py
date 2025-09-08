@@ -12,7 +12,7 @@ load_dotenv(override=True)
 @router.post("/add-print-job")
 async def add_print_job(req: AddPrintJobRequest, user_data: dict = Depends(verify_jwt_user(required_level=2))):
     tenant = user_data["tenant"]
-    job_id = await add_print_job_redis(tenant, req.fileName, req.fileContentBase64)
+    job_id = await add_print_job_redis(tenant, req.fileName, req.fileContentBase64, req.copies)
     return {"result": True, "job_id": job_id}
 
 

@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 from redisdb.connection import get_redis_connection
 
@@ -8,13 +9,14 @@ async def get_next_job_id(tenant: str) -> int:
     return await r.incr(f"tenant:last_job_id:{tenant}")
 
 
-async def add_print_job_redis(tenant: str, file_name: str, file_content_base64: str) -> int:
+async def add_print_job_redis(tenant: str, file_name: str, file_content_base64: str, copies: Optional[int] = 1) -> int:
     r = await get_redis_connection()
     job_id = await get_next_job_id(tenant)
     job = {
         "id": job_id,
         "file_name": file_name,
         "file_content_base64": file_content_base64,
+        "copies": copies,
         "tenant": tenant,
     }
     await r.rpush(f"tenant:print_jobs:{tenant}", json.dumps(job))

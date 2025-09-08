@@ -3,7 +3,7 @@ import json
 from typing import Optional
 from zoneinfo import ZoneInfo
 
-from helpers import make_bill_dic, parse_date
+from helpers import make_bill_dic, parse_date, is_uuid
 from utils import flatbed
 from utils.conn import connection_context
 
@@ -442,8 +442,65 @@ async def get_payment_history_ps(code):
         return None
 
 
-async def check_due_add_notification_for_related_staff():
-    return False
+async def check_due_add_notification_for_related_staff(days_before_due: int = 1):
+    """
+    Notify salesman and tailor when a bill is close to due_date.
+
+    Args:
+        days_before_due (int): How many days before due_date to send reminders.
+                               Default = 1 (tomorrow).
+    Returns:
+        int: number of notifications created
+    """
+    try:
+        async with connection_context() as conn:
+            # 1. Select bills that are due today or within the given window
+            query = """
+                SELECT bill_code, due_date, customer_name, salesman, tailor
+                FROM bills
+                WHERE due_date = CURRENT_DATE + $1::interval
+                AND status NOT IN ('ready', 'delivered', 'canceled');
+            """
+            # PostgreSQL interval, e.g. '1 day'
+            overdue_bills = await conn.fetch(query, f'{days_before_due} days')
+
+            if not overdue_bills:
+                return 0
+
+            notifications = []
+            for bill in overdue_bills:
+                bill_code = bill["bill_code"]
+                due_date = bill["due_date"]
+
+                # Choose Persian message depending on days_before_due
+                if days_before_due == 1:
+                    msg = f"یادآوری: سبا آخرین تاریخ تحویل بل شماره {bill_code} است. لطفاً آن را آماده سازید."
+                elif days_before_due == 0:
+                    msg = f"یادآوری: امروز آخرین تاریخ تحویل بل شماره {bill_code} است. لطفاً آن را آماده سازید."
+                else:
+                    msg = f"یادآوری: آخرین تاریخ تحویل بل شماره {bill_code} {due_date} می‌باشد. لطفاً آن را آماده سازید."
+
+                # Only notify if it's a UUID
+                if bill["salesman"] and is_uuid(bill["salesman"]):
+                    notifications.append(("bill_due_alert", bill_code, msg, bill["salesman"]))
+                if bill["tailor"] and is_uuid(bill["tailor"]):
+                    notifications.append(("bill_due_alert", bill_code, msg, bill["tailor"]))
+
+            # 2. Insert notifications (avoid duplicates)
+            if notifications:
+                insert_query = """
+                    INSERT INTO notifications (type, reference, message, target_user_id)
+                    VALUES ($1, $2, $3, $4)
+                    ON CONFLICT DO NOTHING;
+                """
+                for _type, reference, message, target_user_id in notifications:
+                    await conn.execute(insert_query, _type, reference, message, target_user_id)
+
+            return len(notifications)
+
+    except Exception as e:
+        await flatbed('exception', f"In check_due_add_notification_for_related_staff: {e}")
+        raise
 
 
 async def remove_bill_ps(code):

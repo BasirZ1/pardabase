@@ -115,6 +115,7 @@ class PrintJob(BaseModel):
 class AddPrintJobRequest(BaseModel):
     fileName: str
     fileContentBase64: str  # The base64 string of the bill image/pdf
+    copies: Optional[int] = 1
 
 
 class MarkPrintedRequest(BaseModel):

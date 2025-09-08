@@ -125,7 +125,55 @@ async def search_products_list_filtered(stock_condition, category):
         raise
 
 
-async def get_product_and_roll_ps(code):
+# async def get_product_and_roll_ps(code):
+#     try:
+#         async with connection_context() as conn:
+#             upper_code = code.upper()
+#             if "R" in upper_code:
+#                 product_code, roll_code = upper_code.split("R", 1)
+#                 roll_code = f"R{roll_code}"
+#             else:
+#                 product_code, roll_code = upper_code, None
+#
+#             # Fetch the product
+#             query_product = "SELECT * FROM search_products_list($1, 0, 1, true);"
+#             product = await conn.fetchrow(query_product, product_code)
+#
+#             if not product:
+#                 return None
+#
+#             # asyncpg returns a dictionary-like object, so we use column names directly
+#             product_dict = make_product_dic(product)
+#
+#             # Fetch the specific roll
+#             if roll_code:
+#                 query_roll = """
+#                 SELECT
+#                     r.product_code,
+#                     r.roll_code,
+#                     r.quantity,
+#                     r.color,
+#                     r.image_url,
+#                     pi.cost_per_metre,
+#                     r.archived
+#                 FROM rolls r
+#                 LEFT JOIN purchase_items pi ON r.purchase_item_id = pi.id
+#                 WHERE r.product_code = $1 AND r.roll_code = $2
+#                 """
+#                 roll = await conn.fetchrow(query_roll, product_code, roll_code)
+#
+#                 if roll:
+#                     roll_dict = make_roll_dic(roll)
+#                     product_dict["rollsList"].append(roll_dict)
+#
+#             return product_dict
+#
+#     except Exception as e:
+#         await flatbed('exception', f"In get_product_and_roll_ps: {e}")
+#         return None
+
+
+async def get_product_and_roll_ps(code, include_archived: bool = False):
     try:
         async with connection_context() as conn:
             upper_code = code.upper()
@@ -142,17 +190,16 @@ async def get_product_and_roll_ps(code):
             if not product:
                 return None
 
-            # asyncpg returns a dictionary-like object, so we use column names directly
             product_dict = make_product_dic(product)
 
             # Fetch the specific roll
             if roll_code:
                 query_roll = """
-                SELECT 
-                    r.product_code, 
-                    r.roll_code, 
-                    r.quantity, 
-                    r.color, 
+                SELECT
+                    r.product_code,
+                    r.roll_code,
+                    r.quantity,
+                    r.color,
                     r.image_url,
                     pi.cost_per_metre,
                     r.archived
@@ -160,6 +207,9 @@ async def get_product_and_roll_ps(code):
                 LEFT JOIN purchase_items pi ON r.purchase_item_id = pi.id
                 WHERE r.product_code = $1 AND r.roll_code = $2
                 """
+                if not include_archived:
+                    query_roll += " AND r.archived = false"
+
                 roll = await conn.fetchrow(query_roll, product_code, roll_code)
 
                 if roll:
@@ -173,17 +223,18 @@ async def get_product_and_roll_ps(code):
         return None
 
 
-async def get_roll_and_product_ps(code):
+async def get_roll_and_product_ps(code, include_archived: bool = False):
     try:
         async with connection_context() as conn:
             roll_code = code.upper()
+
             # Fetch the specific roll
             query_roll = """
-            SELECT 
-                r.product_code, 
-                r.roll_code, 
-                r.quantity, 
-                r.color, 
+            SELECT
+                r.product_code,
+                r.roll_code,
+                r.quantity,
+                r.color,
                 r.image_url,
                 pi.cost_per_metre,
                 r.archived
@@ -191,6 +242,9 @@ async def get_roll_and_product_ps(code):
             LEFT JOIN purchase_items pi ON r.purchase_item_id = pi.id
             WHERE r.roll_code = $1
             """
+            if not include_archived:
+                query_roll += " AND r.archived = false"
+
             roll = await conn.fetchrow(query_roll, roll_code)
 
             if not roll:
@@ -206,7 +260,6 @@ async def get_roll_and_product_ps(code):
                 return None
 
             product_dict = make_product_dic(product)
-
             product_dict["rollsList"].append(roll_dict)
 
             return product_dict
@@ -214,6 +267,48 @@ async def get_roll_and_product_ps(code):
     except Exception as e:
         await flatbed('exception', f"In get_roll_and_product_ps: {e}")
         return None
+
+# async def get_roll_and_product_ps(code):
+#     try:
+#         async with connection_context() as conn:
+#             roll_code = code.upper()
+#             # Fetch the specific roll
+#             query_roll = """
+#             SELECT
+#                 r.product_code,
+#                 r.roll_code,
+#                 r.quantity,
+#                 r.color,
+#                 r.image_url,
+#                 pi.cost_per_metre,
+#                 r.archived
+#             FROM rolls r
+#             LEFT JOIN purchase_items pi ON r.purchase_item_id = pi.id
+#             WHERE r.roll_code = $1
+#             """
+#             roll = await conn.fetchrow(query_roll, roll_code)
+#
+#             if not roll:
+#                 return None
+#
+#             roll_dict = make_roll_dic(roll)
+#
+#             # Fetch the product
+#             query_product = "SELECT * FROM search_products_list($1, 0, 1, true);"
+#             product = await conn.fetchrow(query_product, roll_dict["productCode"])
+#
+#             if not product:
+#                 return None
+#
+#             product_dict = make_product_dic(product)
+#
+#             product_dict["rollsList"].append(roll_dict)
+#
+#             return product_dict
+#
+#     except Exception as e:
+#         await flatbed('exception', f"In get_roll_and_product_ps: {e}")
+#         return None
 
 
 async def remove_product_ps(code):

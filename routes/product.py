@@ -113,9 +113,9 @@ async def get_product_and_roll(
     otherwise call get_product_and_roll_ps.
     """
     if code and code[0].upper() == "R":
-        product = await get_roll_and_product_ps(code)
+        product = await get_roll_and_product_ps(code, True)
     else:
-        product = await get_product_and_roll_ps(code)
+        product = await get_product_and_roll_ps(code, True)
 
     return JSONResponse(content=product, status_code=200)
 

@@ -23,7 +23,7 @@ def scheduled_notify_salesman_tailor():
                     # Step 3: Switch to each tenant DB
                     set_current_db(db_name)
 
-                    result = await check_due_add_notification_for_related_staff()
+                    await check_due_add_notification_for_related_staff()
 
                 except Exception as tenant_error:
                     await flatbed("exception", f"In celery notify_salesman_tailor: {tenant_error}")

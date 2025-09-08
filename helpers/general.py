@@ -1,4 +1,5 @@
 import os
+import uuid
 from datetime import timedelta, datetime
 from typing import Optional, Tuple
 from zoneinfo import ZoneInfo
@@ -91,3 +92,11 @@ def get_expense_cat_name(cat_index: str) -> str:
         return "maintenance"
     elif cat_index == 7:
         return "Other"
+
+
+def is_uuid(value: str) -> bool:
+    try:
+        uuid.UUID(str(value))
+        return True
+    except (ValueError, TypeError):
+        return False
