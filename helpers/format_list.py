@@ -4,6 +4,56 @@ from datetime import datetime, date
 from typing import Any, Iterable, Mapping, Callable, Optional, Dict, List, Union
 
 
+def format_timestamp(val: Any) -> Any:
+    """Convert datetime → 'YYYY-MM-DD HH:MM:SS'; leave everything else unchanged.
+    Handles both naive and timezone-aware datetimes (timestamptz)."""
+    if isinstance(val, datetime):
+        if val.tzinfo is not None:  # Timezone-aware datetime
+            return val.astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
+        return val.strftime('%Y-%m-%d %H:%M:%S')
+    return val
+
+
+def format_date(val: Any) -> Any:
+    """Convert date/datetime → ISO format string; leave everything else unchanged.
+    Handles both naive and timezone-aware datetimes (timestamptz)."""
+    if isinstance(val, datetime):
+        if val.tzinfo is not None:  # Timezone-aware datetime
+            return val.isoformat(timespec='seconds')  # Includes timezone info
+        return val.isoformat(timespec='seconds')
+    if isinstance(val, date):
+        return val.isoformat()
+    return val
+
+
+def parse_date(val: Any) -> Optional[Union[date, datetime]]:
+    """
+    Parse input into date or datetime:
+    - "YYYY-MM-DD" -> date
+    - "YYYY-MM-DD[ T]HH:MM[:SS[.ffffff]][±HH:MM]" -> datetime
+    - Already a date/datetime -> returned as is
+    - Else -> None
+    """
+    if isinstance(val, str):
+        try:
+            dt = datetime.fromisoformat(val)
+            # If the string was just YYYY-MM-DD, fromisoformat gives a datetime at midnight.
+            # Detect that and return a pure date instead.
+            if dt.time() == datetime.min.time() and "T" not in val and " " not in val:
+                return dt.date()
+            return dt
+        except ValueError:
+            return None
+
+    if isinstance(val, datetime):
+        return val
+
+    if isinstance(val, date):
+        return val
+
+    return None
+
+
 def get_formatted_recent_activities_list(recent_activity_data):
     """
     Helper function to format recent activities data into JSON-compatible objects.
@@ -19,8 +69,7 @@ def get_formatted_recent_activities_list(recent_activity_data):
         for data in recent_activity_data:
             activity = {
                 "id": data["id"],
-                "date": data["date"].strftime('%Y-%m-%d %H:%M:%S') if isinstance(data["date"], datetime)
-                else data["date"],
+                "date": format_date(data["date"]),
                 "username": data["username"],
                 "action": data["action"],
             }
@@ -301,7 +350,7 @@ def get_formatted_misc_list(misc_records_data):
     return misc_list
 
 
-def get_formatted_earnings_list(earnings_data):
+def get_formatted_earnings_list(raw_data):
     """
     Helper function to format earnings data into JSON-compatible objects.
 
@@ -311,12 +360,12 @@ def get_formatted_earnings_list(earnings_data):
     Returns:
     - A list of formatted earning dictionaries.
     """
-    earnings_list = []
-    if earnings_data:
-        for data in earnings_data:
-            earning = make_earning_dic(data)
-            earnings_list.append(earning)
-    return earnings_list
+    _list = []
+    if raw_data:
+        for data in raw_data:
+            dic = make_earning_dic(data)
+            _list.append(dic)
+    return _list
 
 
 def get_formatted_notifications_list(notifications_data):
@@ -353,108 +402,6 @@ def get_formatted_id_name_list(pg_data):
             dic = make_id_name_dic(data)
             _list.append(dic)
     return _list
-
-
-def format_timestamp(val: Any) -> Any:
-    """Convert datetime → 'YYYY-MM-DD HH:MM:SS'; leave everything else unchanged.
-    Handles both naive and timezone-aware datetimes (timestamptz)."""
-    if isinstance(val, datetime):
-        if val.tzinfo is not None:  # Timezone-aware datetime
-            return val.astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
-        return val.strftime('%Y-%m-%d %H:%M:%S')
-    return val
-
-
-def format_date(val: Any) -> Any:
-    """Convert date/datetime → ISO format string; leave everything else unchanged.
-    Handles both naive and timezone-aware datetimes (timestamptz)."""
-    if isinstance(val, datetime):
-        if val.tzinfo is not None:  # Timezone-aware datetime
-            return val.isoformat(timespec='seconds')  # Includes timezone info
-        return val.isoformat(timespec='seconds')
-    if isinstance(val, date):
-        return val.isoformat()
-    return val
-
-
-# def parse_date(val: Any) -> Union[date, datetime, None]:
-#     """
-#     Parses a string to date or datetime object.
-#     - If string has only date (YYYY-MM-DD) → returns date object.
-#     - If string has date and time (YYYY-MM-DD HH:MM[:SS]) → returns datetime object.
-#     - If already date/datetime → returns as is.
-#     """
-#     if isinstance(val, str):
-#         try:
-#             # Try parsing as datetime first
-#             dt = datetime.fromisoformat(val)
-#             return dt if dt.time() != datetime.min.time() else dt.date()
-#         except ValueError:
-#             pass  # Fall back to strict date parsing
-#
-#         try:
-#             # Try parsing date format explicitly if isoformat fails
-#             return datetime.strptime(val, "%Y-%m-%d").date()
-#         except ValueError:
-#             pass  # Invalid format, let it pass through
-#
-#     if isinstance(val, (date, datetime)):
-#         return val
-#
-#     return None  # For None or unexpected types
-
-# def parse_date(val: Any) -> Union[date, datetime, None]:
-#     """
-#     Reverse of format_date:
-#     - "YYYY-MM-DD" -> date object
-#     - "YYYY-MM-DD HH:MM:SS" -> datetime object (naive)
-#     - Already a date/datetime -> returned as is
-#     - Anything else -> None
-#     """
-#     if isinstance(val, str):
-#         try:
-#             # Match datetime with seconds
-#             return datetime.strptime(val, "%Y-%m-%d %H:%M:%S")
-#         except ValueError:
-#             pass
-#         try:
-#             # Match pure date
-#             return datetime.strptime(val, "%Y-%m-%d").date()
-#         except ValueError:
-#             pass
-#
-#     if isinstance(val, (date, datetime)):
-#         return val
-#
-#     return None
-
-
-def parse_date(val: Any) -> Optional[Union[date, datetime]]:
-    """
-    Parse input into date or datetime:
-    - "YYYY-MM-DD" -> date
-    - "YYYY-MM-DD[ T]HH:MM[:SS[.ffffff]][±HH:MM]" -> datetime
-    - Already a date/datetime -> returned as is
-    - Else -> None
-    """
-    if isinstance(val, str):
-        try:
-            dt = datetime.fromisoformat(val)
-            # If the string was just YYYY-MM-DD, fromisoformat gives a datetime at midnight.
-            # Detect that and return a pure date instead.
-            if dt.time() == datetime.min.time() and "T" not in val and " " not in val:
-                return dt.date()
-            return dt
-        except ValueError:
-            return None
-
-    if isinstance(val, datetime):
-        return val
-
-    if isinstance(val, date):
-        return val
-
-    return None
 
 
 def format_cut_fabric_records(
@@ -530,7 +477,7 @@ def make_expense_dic(data):
         "description": data["description"],
         "amount": data["amount"],
         "date": format_date(data["date"]),
-        "added_by": data["added_by_display"]
+        "addedBy": data["added_by_display"]
     }
     return expense
 
@@ -771,12 +718,57 @@ def make_roll_dic_for_sync(data):
     }
 
 
+SPECIAL_KEY_MAPPINGS = {
+    "product_code": "productCode",
+    "quantity": "quantityInCm",
+    "color": "colorLetter",
+    "category": "categoryIndex",
+    "added_by_display": "addedBy",
+    "payable_total_afn": "payableTotalAFN",
+    "payable_total_usd": "payableTotalUSD",
+    "payable_total_cny": "payableTotalCNY",
+    "receivable_total_afn": "receivableTotalAFN",
+    "receivable_total_usd": "receivableTotalUSD",
+    "receivable_total_cny": "receivableTotalCNY",
+    "purchases_total_afn": "purchasesTotalAFN",
+    "purchases_total_usd": "purchasesTotalUSD",
+    "purchases_total_cny": "purchasesTotalCNY",
+    "total_paid_afn": "totalPaidAFN",
+    "total_paid_usd": "totalPaidUSD",
+    "total_paid_cny": "totalPaidCNY"
+}
+
+TRANSFORMERS = {
+    "created_at": format_date,
+    "updated_at": format_date,
+    "salaryStartDate": format_date,
+    "lastCalculatedDate": format_date,
+    "billDate": format_date,
+    "dueDate": format_date,
+    "date": format_date,
+    "targetUserId": str
+}
+
+
+def format_dict(data: dict) -> dict:
+    formatted = {}
+    for k, v in data.items():
+        # Handle special naming
+        camel_key = SPECIAL_KEY_MAPPINGS.get(k, to_camel_case(k))
+
+        # Handle value transformation
+        if k in TRANSFORMERS and v is not None:
+            v = TRANSFORMERS[k](v)
+
+        formatted[camel_key] = v
+    return formatted
+
+
+def format_list(data_list: list[dict]) -> list[dict]:
+    return [format_dict(d) for d in data_list]
+
+
 def to_camel_case(s: str) -> str:
     """Convert snake_case or kebab-case to camelCase."""
     parts = re.split(r'[_\- ]+', s)
     return parts[0].lower() + ''.join(word.capitalize() for word in parts[1:])
-
-
-def make_camel_dict(data: dict) -> dict:
-    """Convert all keys in a dict to camelCase, keeping values as-is."""
-    return {to_camel_case(k): v for k, v in data.items()}

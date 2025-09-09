@@ -6,8 +6,6 @@ from db import get_dashboard_data_ps, get_recent_activities_preview, search_rece
 from helpers import get_formatted_recent_activities_list
 from utils import verify_jwt_user
 
-from tasks.user import scheduled_salary_calculations_with_email
-
 router = APIRouter()
 load_dotenv(override=True)
 

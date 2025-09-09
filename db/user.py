@@ -333,13 +333,13 @@ async def remove_user_ps(username):
 
 async def remember_users_action(user_id, action):
     """
-        Remember admins action
+        Remember users action
         :param user_id: user_id associated with the user.
         :param action: action performed by the user.
     """
     # SQL query to
     sql_insert = """
-            INSERT INTO admins_records (
+            INSERT INTO user_actions (
                 user_id,
                 action
             ) VALUES ($1, $2)

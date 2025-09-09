@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from db import get_notifications_for_user_ps
 from helpers import get_formatted_notifications_list
-from utils import verify_jwt_user, flatbed
+from utils import verify_jwt_user
 
 router = APIRouter()
 load_dotenv(override=True)

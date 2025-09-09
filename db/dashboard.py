@@ -77,7 +77,7 @@ def build_admin_records_query(date_range=None, limit=None):
             ar.date,
             u.username,
             ar.action
-        FROM admins_records ar
+        FROM user_actions ar
         LEFT JOIN users u ON ar.user_id = u.user_id
         WHERE 1=1
     """
