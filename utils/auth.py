@@ -15,14 +15,12 @@ security = HTTPBearer()
 ALGORITHM = "HS256"
 
 
-def create_jwt_token(sub, username, full_name, level, tenant, image_url):
+def create_jwt_token(sub, username, level, tenant):
     payload = {
         "sub": sub,  # the user id
         "username": username,
-        "full_name": full_name,
         "level": level,
         "tenant": tenant,  # for setting DB
-        "image_url": image_url,
         "exp": datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRY_MINUTES),
         "type": "access"
     }
@@ -30,14 +28,12 @@ def create_jwt_token(sub, username, full_name, level, tenant, image_url):
     return token
 
 
-def create_refresh_token(sub, username, full_name, level, tenant, image_url):
+def create_refresh_token(sub, username, level, tenant):
     payload = {
         "sub": sub,  # the user id
         "username": username,
-        "full_name": full_name,
         "level": level,
         "tenant": tenant,  # for setting DB
-        "image_url": image_url,
         "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_EXPIRY_DAYS),
         "type": "refresh"
     }
@@ -94,10 +90,8 @@ async def set_db_from_tenant(tenant: str):
 def validate_payload(payload: dict):
     sub = payload.get("sub")
     username = payload.get("username")
-    full_name = payload.get("full_name")
     level = payload.get("level")
     tenant = payload.get("tenant")
-    image_url = payload.get("image_url")
 
     if not sub or level is None:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -105,8 +99,6 @@ def validate_payload(payload: dict):
     return {
         "user_id": sub,
         "username": username,
-        "full_name": full_name,
         "level": level,
-        "tenant": tenant,
-        "image_url": image_url
+        "tenant": tenant
     }

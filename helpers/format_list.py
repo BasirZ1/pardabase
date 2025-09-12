@@ -741,12 +741,12 @@ SPECIAL_KEY_MAPPINGS = {
 TRANSFORMERS = {
     "created_at": format_date,
     "updated_at": format_date,
-    "salaryStartDate": format_date,
-    "lastCalculatedDate": format_date,
-    "billDate": format_date,
-    "dueDate": format_date,
+    "salary_start_date": format_date,
+    "last_calculated_date": format_date,
+    "bill_date": format_date,
+    "due_date": format_date,
     "date": format_date,
-    "targetUserId": str
+    "target_user_id": str
 }
 
 

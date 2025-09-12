@@ -28,10 +28,10 @@ async def login(
         level = data["level"]
         image_url = data["image_url"]
 
-        access_token = create_jwt_token(user_id, username, full_name, level,
-                                        request.tenant, image_url)
-        _refresh_token = create_refresh_token(user_id, username, full_name, level,
-                                              request.tenant, image_url)
+        access_token = create_jwt_token(user_id, username, level,
+                                        request.tenant)
+        _refresh_token = create_refresh_token(user_id, username, level,
+                                              request.tenant)
 
         return JSONResponse(content={
             "accessToken": access_token,
@@ -60,19 +60,15 @@ async def refresh_token(request: RefreshTokenRequest):
     new_access_token = create_jwt_token(
         sub=user_id,
         username=user_data['username'],
-        full_name=full_name,
         level=level,
-        tenant=user_data['tenant'],
-        image_url=image_url
+        tenant=user_data['tenant']
     )
 
     new_refresh_token = create_refresh_token(
         sub=user_id,
         username=user_data['username'],
-        full_name=full_name,
         level=level,
-        tenant=user_data['tenant'],
-        image_url=image_url
+        tenant=user_data['tenant']
     )
 
     return JSONResponse(content={
