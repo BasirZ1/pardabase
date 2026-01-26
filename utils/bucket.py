@@ -30,48 +30,6 @@ r2 = session.client(
 )
 
 
-# async def upload_image_to_r2(_type: str, tenant: str, code: str, image_data: bytes) -> str:
-#     """
-#     Uploads image to R2 using type, code and tenant name.
-#     Converts image to WebP format.
-#     Returns a cache-busted public URL.
-#     """
-#
-#     img = Image.open(io.BytesIO(image_data))
-#
-#     if not img.format:
-#         raise HTTPException(400, detail="Uploaded file is not a valid image.")
-#
-#     if img.width > 5000 or img.height > 5000:
-#         raise HTTPException(400, detail="Image is too large.")
-#
-#     # Optional conversion — only convert if it's not already WebP
-#     if img.format != "WEBP":
-#         img = img.convert("RGB")
-#         webp_buffer = io.BytesIO()
-#         img.save(webp_buffer, format="WEBP", quality=85)
-#         final_data = webp_buffer.getvalue()
-#     else:
-#         final_data = image_data  # already webp, just store it
-#
-#     version = int(time.time())
-#     object_key = f"curtaindb/{tenant}/{_type}/pardaaf-{code}.webp"
-#
-#     loop = asyncio.get_event_loop()
-#     await loop.run_in_executor(
-#         None,
-#         lambda: r2.put_object(
-#             Bucket=R2_BUCKET_NAME,
-#             Key=object_key,
-#             Body=final_data,
-#             ContentType='image/webp',
-#             ACL='public-read'
-#         )
-#     )
-#
-#     return f"{object_key}?v={version}"
-
-
 async def upload_image_to_r2(_type: str, tenant: str, code: str, image_data: bytes) -> str:
     """
     Uploads the 1200px image from client as-is.
@@ -116,11 +74,6 @@ async def upload_image_to_r2(_type: str, tenant: str, code: str, image_data: byt
     return f"{base_key}.webp?v={version}"
 
 
-# async def delete_image_from_r2(_type: str, tenant: str, code: str) -> bool:
-#     object_key = f"curtaindb/{tenant}/{_type}/pardaaf-{code}.webp"
-#     r2.delete_object(Bucket=R2_BUCKET_NAME, Key=object_key)
-#     return True
-
 async def delete_image_from_r2(_type: str, tenant: str, code: str) -> bool:
     base_key = f"curtaindb/{tenant}/{_type}/pardaaf-{code}"
     for suffix in ["", "_thumb", "_60"]:
@@ -141,5 +94,5 @@ def resize_image(img: Image.Image, size: int, square: bool = False) -> bytes:
         resized.thumbnail((size, size), Image.LANCZOS)
 
     buffer = io.BytesIO()
-    resized.save(buffer, format="WEBP", quality=85)
+    resized.save(buffer, format="WEBP", quality=100)
     return buffer.getvalue()

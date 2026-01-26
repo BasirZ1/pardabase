@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, Form, Depends
 from fastapi.responses import JSONResponse
 
-from db import add_miscellaneous_record_ps, remember_users_action, search_miscellaneous_records
-from helpers import get_formatted_misc_list
+from db import add_miscellaneous_record_ps, remember_users_action, search_miscellaneous_records, insert_new_expense
+from helpers import get_formatted_misc_list, get_expense_cat_name
 from utils import verify_jwt_user
 
 router = APIRouter()
@@ -26,6 +26,19 @@ async def add_miscellaneous_record(
     # MISC RECORD
     name = await add_miscellaneous_record_ps(amount, currency, direction, supplierId,
                                              entityId, transactionType, note, user_data['user_id'])
+
+    if transactionType == "borrow" and direction == "in":
+        expense_cat_index = 0
+        expense_note = f"[Borrow: {name}] {note}"
+
+        expense_id = await insert_new_expense(expense_cat_index, expense_note, amount, currency, user_data['user_id'])
+        if not expense_id:
+            return JSONResponse(content={"result": False})
+        expense_cat_name = get_expense_cat_name(str(expense_cat_index))
+        await remember_users_action(
+            user_data['user_id'],
+            f"Expense added: {expense_cat_name} {expense_note} {amount} {currency}"
+        )
     if not name:
         return JSONResponse(content={
             "result": False,
