@@ -13,7 +13,6 @@ celery_app = Celery(
 )
 celery_app.conf.timezone = "Asia/Kabul"
 
-
 # Periodic scheduled task
 celery_app.conf.beat_schedule = {
     'daily-salary-calculation': {
@@ -39,6 +38,18 @@ celery_app.conf.beat_schedule = {
     'yearly-backup-all-tenants': {
         'task': 'tasks.backup.scheduled_backup_all_tenants_yearly',
         'schedule': crontab(hour=0, minute=0, day_of_month="1", month_of_year="1"),  # Jan 1st midnight
+    },
+    'daily-cleanup-all-backups': {
+        'task': 'tasks.cleanup.scheduled_cleanup_all_backups',
+        'schedule': crontab(hour=1, minute=0),  # midnight at 1
+    },
+    'weekly-cleanup-all-backups': {
+        'task': 'tasks.cleanup.scheduled_cleanup_all_backups_weekly',
+        'schedule': crontab(hour=1, minute=0, day_of_week="friday"),
+    },
+    'monthly-cleanup-all-backups': {
+        'task': 'tasks.cleanup.scheduled_cleanup_all_backups_monthly',
+        'schedule': crontab(hour=1, minute=0, day_of_month="1", month_of_year="1"),  # Jan 1st 1AM
     }
 }
 

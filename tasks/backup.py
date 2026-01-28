@@ -1,3 +1,4 @@
+import asyncio
 from zoneinfo import ZoneInfo
 
 from celery_app import celery_app
@@ -41,6 +42,7 @@ async def backup_all_tenants(period: str):
     db_names = await get_all_gallery_db_names()
     for db_name in db_names:
         try:
+            await asyncio.sleep(10)
             await backup_single_db(db_name, timestamp, period)
         except Exception as tenant_error:
             await flatbed("exception", f"In celery backup {db_name}: {tenant_error}")
