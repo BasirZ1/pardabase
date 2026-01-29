@@ -94,5 +94,5 @@ def resize_image(img: Image.Image, size: int, square: bool = False) -> bytes:
         resized.thumbnail((size, size), Image.LANCZOS)
 
     buffer = io.BytesIO()
-    resized.save(buffer, format="WEBP", quality=100)
+    resized.save(buffer, format="WEBP", quality=90, method=6)
     return buffer.getvalue()

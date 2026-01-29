@@ -31,21 +31,26 @@ async def send_mail(subject, recipient_email, body) -> str:
         return f"Error sending email: {e}"
 
 
-async def send_mail_html(subject, recipient_email, html_content, text_content, include_unsubscribe=False, token=None
-                         ) -> str:
+async def send_mail_html(subject, recipient_email, html_content, text_content, include_unsubscribe=False, token=None,
+                         custom_sender=None) -> str:
     """
     Send an HTML email with both plain text and HTML content.
+
     :param subject: The subject of the email
     :param recipient_email: The recipient's email address
     :param html_content: The HTML body of the email
     :param text_content: The plain text body of the email
     :param include_unsubscribe: Optional unsubscribe header
     :param token: Unique token for the user to unsubscribe
+    :param custom_sender: Optional custom From address for the sender
     :return: Success or error message
     """
     # Create message
     message = MIMEMultipart("alternative")
-    message["From"] = formataddr(("parda.af", "noreply@parda.af"))
+    if custom_sender:
+        message["From"] = formataddr((None, custom_sender))
+    else:
+        message["From"] = formataddr(("parda.af", "noreply@parda.af"))
     message["To"] = recipient_email
     if include_unsubscribe:
         if not token:

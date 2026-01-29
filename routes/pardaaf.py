@@ -1,10 +1,12 @@
+from typing import Optional
+
 from dotenv import load_dotenv
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse
 
 from Models import AddOnlineOrderRequest
 from db import insert_new_online_order, subscribe_newsletter_ps, confirm_email_newsletter_ps, unsubscribe_newsletter_ps
-from utils import send_mail_html, set_current_db
+from utils import send_mail_html, set_current_db, verify_jwt_user
 
 router = APIRouter()
 load_dotenv(override=True)
@@ -289,7 +291,9 @@ async def send_html_mail(
         email: str,
         subject: str,
         html_content: str,
-        text_content: str
+        text_content: str,
+        custom_sender: Optional[str] = None,
+        user_data: dict = Depends(verify_jwt_user(required_level=5))
 ):
     """
     Endpoint to let me send mail for testing.
@@ -297,5 +301,5 @@ async def send_html_mail(
     # check_status = await check_users_token(5, loginToken)
     # if not check_status:
     #     return JSONResponse(content={"error": "Access denied"}, status_code=401)
-    result = await send_mail_html(subject, email, html_content, text_content)
+    result = await send_mail_html(subject, email, html_content, text_content, custom_sender=custom_sender)
     return JSONResponse(content={"result": result})
