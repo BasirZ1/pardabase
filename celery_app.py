@@ -29,15 +29,15 @@ celery_app.conf.beat_schedule = {
     },
     'weekly-backup-all-tenants': {
         'task': 'tasks.backup.scheduled_backup_all_tenants_weekly',
-        'schedule': crontab(hour=0, minute=0, day_of_week="friday"),
+        'schedule': crontab(hour=0, minute=10, day_of_week="friday"),
     },
     'monthly-backup-all-tenants': {
         'task': 'tasks.backup.scheduled_backup_all_tenants_monthly',
-        'schedule': crontab(hour=0, minute=0, day_of_month="1"),
+        'schedule': crontab(hour=0, minute=20, day_of_month="1"),
     },
     'yearly-backup-all-tenants': {
         'task': 'tasks.backup.scheduled_backup_all_tenants_yearly',
-        'schedule': crontab(hour=0, minute=0, day_of_month="1", month_of_year="1"),  # Jan 1st midnight
+        'schedule': crontab(hour=0, minute=30, day_of_month="1", month_of_year="1"),  # Jan 1st midnight
     },
     'daily-cleanup-all-backups': {
         'task': 'tasks.cleanup.scheduled_cleanup_all_backups',
@@ -45,11 +45,11 @@ celery_app.conf.beat_schedule = {
     },
     'weekly-cleanup-all-backups': {
         'task': 'tasks.cleanup.scheduled_cleanup_all_backups_weekly',
-        'schedule': crontab(hour=1, minute=0, day_of_week="friday"),
+        'schedule': crontab(hour=1, minute=10, day_of_week="friday"),
     },
     'monthly-cleanup-all-backups': {
         'task': 'tasks.cleanup.scheduled_cleanup_all_backups_monthly',
-        'schedule': crontab(hour=1, minute=0, day_of_month="1", month_of_year="1"),  # Jan 1st 1AM
+        'schedule': crontab(hour=1, minute=20, day_of_month="1", month_of_year="1"),  # Jan 1st 1AM
     }
 }
 

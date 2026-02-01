@@ -3,7 +3,8 @@ from utils import flatbed
 from utils.conn import connection_context
 
 
-async def insert_new_product(name, category_index, price, description):
+async def insert_new_product(name, category_index, price, description,
+                             material, fabric_height_cm, weight_per_metre, opacity_level, texture):
     try:
         async with connection_context() as conn:
             sql_insert = """
@@ -11,12 +12,18 @@ async def insert_new_product(name, category_index, price, description):
                     name,
                     category,
                     price_per_metre,
-                    description
-                ) VALUES ($1, $2, $3, $4)
+                    description,
+                    material,
+                    fabric_height_cm,
+                    weight_per_metre,
+                    opacity_level,
+                    texture
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 RETURNING product_code
             """
             product_code = await conn.fetchval(sql_insert, name, category_index, price,
-                                               description)
+                                               description, material, fabric_height_cm,
+                                               weight_per_metre, opacity_level, texture)
 
             return product_code
     except Exception as e:
@@ -24,7 +31,8 @@ async def insert_new_product(name, category_index, price, description):
         return None
 
 
-async def update_product(codeToEdit, name, category_index, price, description):
+async def update_product(codeToEdit, name, category_index, price, description,
+                         material, fabric_height_cm, weight_per_metre, opacity_level, texture):
     try:
         async with connection_context() as conn:
             sql_update = """
@@ -32,12 +40,16 @@ async def update_product(codeToEdit, name, category_index, price, description):
                 SET name = $1,
                 category = $2,
                 price_per_metre = $3, description = $4,
+                material = $5, fabric_height_cm = $6, weight_per_metre = $7,
+                opacity_level = $8, texture = $9,
                 updated_at = now()
-                WHERE product_code = $5
+                WHERE product_code = $10
                 RETURNING product_code
             """
             product_code = await conn.fetchval(sql_update, name, category_index,
-                                               price, description, codeToEdit)
+                                               price, description, material,
+                                               fabric_height_cm, weight_per_metre,
+                                               opacity_level, texture, codeToEdit)
 
             return product_code
     except Exception as e:

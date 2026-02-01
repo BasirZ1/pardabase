@@ -490,6 +490,11 @@ def make_product_dic(data):
         "quantityInCm": data["quantity"],
         "pricePerMetre": data["price_per_metre"],
         "description": data["description"],
+        "material": data["material"],
+        "fabricHeightCm": data["fabric_height_cm"],
+        "weightPerMetre": data["weight_per_metre"],
+        "opacityLevel": data["opacity_level"],
+        "texture": data["texture"],
         "imageUrl": data["image_url"],
         "rollsList": []
     }
