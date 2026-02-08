@@ -2,7 +2,7 @@ fastapi~=0.115.3
 uvicorn~=0.32.0
 asyncpg
 pydantic~=2.10.5
-python-multipart~=0.0.19
+python-multipart~=0.0.22
 python-dotenv~=1.0.1
 contextvars
 aiosmtplib
@@ -12,3 +12,4 @@ pillow
 aiogram
 redis
 celery
+requests

@@ -1,4 +1,4 @@
-ADMIN_EMAIL = 'abdulbasirrahmani58@gmail.com'
+ADMIN_EMAIL = 'developers@basirsoft.com'
 ADMIN_TELEGRAM = '7666061191'
 JWT_EXPIRY_MINUTES = 360
 REFRESH_EXPIRY_DAYS = 90

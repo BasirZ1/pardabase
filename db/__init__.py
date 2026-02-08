@@ -42,3 +42,4 @@ from .miscellaneous import add_miscellaneous_record_ps, \
     search_miscellaneous_records
 from .earning import add_earning_to_user, get_users_earning_history_ps
 from .notification import get_notifications_for_user_ps
+from .exchange import update_fx_rates_in_db
