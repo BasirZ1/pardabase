@@ -53,7 +53,7 @@ celery_app.conf.beat_schedule = {
     },
     'fetch-current_rates': {
         'task': 'tasks.exchange.scheduled_fetch_current_rates',
-        'schedule': crontab(minute=48),
+        'schedule': crontab(minute=56),
     }
 }
 
