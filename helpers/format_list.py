@@ -751,7 +751,9 @@ TRANSFORMERS = {
     "bill_date": format_date,
     "due_date": format_date,
     "date": format_date,
-    "target_user_id": str
+    "target_user_id": str,
+    "fetched_at": format_date,
+    "rate": float
 }
 
 

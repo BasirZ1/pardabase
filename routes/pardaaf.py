@@ -5,7 +5,8 @@ from fastapi import APIRouter, Query, HTTPException, Depends
 from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse
 
 from Models import AddOnlineOrderRequest
-from db import insert_new_online_order, subscribe_newsletter_ps, confirm_email_newsletter_ps, unsubscribe_newsletter_ps
+from db import insert_new_online_order, subscribe_newsletter_ps, confirm_email_newsletter_ps, unsubscribe_newsletter_ps, \
+    get_fx_current_rate
 from utils import send_mail_html, set_current_db, verify_jwt_user
 
 router = APIRouter()
@@ -303,3 +304,18 @@ async def send_html_mail(
     #     return JSONResponse(content={"error": "Access denied"}, status_code=401)
     result = await send_mail_html(subject, email, html_content, text_content, custom_sender=custom_sender)
     return JSONResponse(content={"result": result})
+
+
+@router.get("/fx/latest")
+async def get_fx_latest(
+        quoteCurrency: str,
+        baseCurrency: Optional[str] = None
+        # user_data: dict = Depends(verify_jwt_user(required_level=1))
+):
+    """
+    Endpoint to get rate for a currency pair.
+    """
+    main_db = "pardaaf_main"
+    set_current_db(main_db)
+    data = await get_fx_current_rate(quoteCurrency, baseCurrency)
+    return JSONResponse(content=data)

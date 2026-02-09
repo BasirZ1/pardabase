@@ -1,3 +1,6 @@
+from typing import Optional
+
+from helpers.format_list import format_dict
 from utils import flatbed
 from utils.conn import connection_context
 
@@ -32,8 +35,32 @@ async def update_fx_rates_in_db(rates) -> bool:
 
             await conn.executemany(sql_upsert, values)
 
-            await flatbed("info", f"Successfully updated {len(values)} currency rates in DB.")
             return True
     except Exception as e:
-        await flatbed('exception', f"In add_payment_to_supplier: {e}")
+        await flatbed('exception', f"In update_fx_rates_in_db: {e}")
         return False
+
+
+async def get_fx_current_rate(
+        quote_currency: str = "AFN",
+        base_currency: Optional[str] = "USD"
+):
+    """
+        Get the fx_current_rate for a currency pair from the fx_current_rates table.
+    """
+    try:
+        async with connection_context() as conn:
+            sql_query = """
+                        SELECT * from fx_current_rates
+                        WHERE base_currency = $1
+                        AND quote_currency = $2;
+                    """
+
+            data = await conn.fetchrow(sql_query, base_currency, quote_currency)
+            print(data)
+            if not data:
+                return None
+            return format_dict(data)
+    except Exception as e:
+        await flatbed('exception', f"In get_fx_current_rate: {e}")
+        return None
